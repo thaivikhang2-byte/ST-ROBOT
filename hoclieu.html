@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Học liệu thực hành trực quan</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="scrollProgress"></div>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand" href="trangchu.html">STEM ROBOTICS COURSE</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link " href="trangchu.html">Trang chủ</a></li>
+          <li class="nav-item"><a class="nav-link " href="gioithieu.html">Giới thiệu</a></li>
+          <li class="nav-item"><a class="nav-link " href="kit.html">Kit & Khóa học</a></li>
+          <li class="nav-item"><a class="nav-link active" href="hoclieu.html">Học liệu</a></li>
+          <li class="nav-item"><a class="nav-link " href="quiz.html">Quiz</a></li>
+          <li class="nav-item"><a class="nav-link " href="dangky.html">Đăng ký</a></li>
+        </ul>
+        <button class="btn btn-outline-info ms-lg-3" onclick="toggleDarkMode()">Dark Mode</button>
+      </div>
+    </div>
+  </nav>
+
+  <section class="container section-padding" id="mediaSection">
+    <div class="text-center mb-5">
+      <h2 class="section-title">Học liệu chuyên ngành & Video quy trình</h2>
+      <p class="section-desc">Hệ thống bài giảng thực nghiệm đồng bộ giúp học viên theo dõi chi tiết các thao tác kỹ thuật và cấu trúc mã điều khiển mạch thực tế.</p>
+    </div>
+
+    <div class="video-v2-admin-box">
+      <div class="row g-4 align-items-center">
+        <div class="col-md-8">
+          <h3 class="fw-bold mb-2">Bảng điều khiển học liệu mở rộng</h3>
+          <p class="mb-0">Khu vực bổ sung nguồn bài tập sa bàn thực tế dành cho giảng viên.</p>
+        </div>
+        <div class="col-md-4">
+          <div class="input-group">
+            <input type="password" id="adminCodeField" class="form-control" placeholder="Mã xác thực">
+            <button class="btn btn-light" onclick="verifyAdminAccess()">Xác nhận</button>
+          </div>
+        </div>
+      </div>
+      <div id="extendedAdminPanel" class="video-v2-panel">
+        <h5 class="fw-bold mb-3">Thêm nguồn tài liệu bài giảng mới</h5>
+        <input id="inputVidTitle" class="form-control mb-2" placeholder="Tên tiêu đề bài học">
+        <input id="inputVidUrl" class="form-control mb-2" placeholder="Đường dẫn liên kết video hoặc mã nhúng">
+        <textarea id="inputVidDesc" class="form-control mb-2" placeholder="Tóm tắt nội dung yêu cầu thực hành kỹ thuật"></textarea>
+        <button class="btn btn-warning" onclick="commitNewVideoItem()">Cập nhật vào hệ thống</button>
+      </div>
+    </div>
+
+    <div class="row g-4" id="videoLayoutGrid"></div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-md-5">
+          <h4 class="fw-bold">STEM Robotics Course</h4>
+          <p>Hệ thống giới thiệu chương trình học phát triển tư duy sáng tạo kỹ thuật và lập trình điều khiển tự động.</p>
+        </div>
+        <div class="col-md-3">
+          <h5 class="fw-bold">Danh mục</h5>
+          <ul class="list-unstyled">
+            <li><a href="trangchu.html" class="footer-link">Trang chủ</a></li>
+            <li><a href="gioithieu.html" class="footer-link">Giới thiệu khóa học</a></li>
+            <li><a href="kit.html" class="footer-link">Kit & khóa học</a></li>
+            <li><a href="hoclieu.html" class="footer-link">Học liệu</a></li>
+            <li><a href="quiz.html" class="footer-link">Quiz</a></li>
+            <li><a href="dangky.html" class="footer-link">Đăng ký</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4">
+          <h5 class="fw-bold">Định hướng</h5>
+          <p>Học tập chủ động qua trải nghiệm thực tế, phát triển toàn diện tư duy logic thế hệ mới.</p>
+        </div>
+      </div>
+      <hr style="border-color: #334155;">
+      <div class="text-center mb-3">
+        <a href="https://www.facebook.com/share/1Cks4cJt2F/" target="_blank" rel="noopener noreferrer" class="btn btn-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 24px; font-weight: 900; text-decoration: none;">f</a>
+      </div>
+      <p class="text-center mb-0 text-secondary">© 2026 STEM Robotics Lab - Đơn vị đào tạo phát triển giải pháp công nghệ</p>
+    </div>
+  </footer>
+
+  <button id="backToTop" class="btn btn-primary" onclick="scrollToTop()">↑</button>
+
+  <div id="supportChatWindow" class="bot-chat-window">
+    <div class="bot-header">
+      <div>
+        <h5>Hỗ trợ học viên</h5>
+        <small>Giải đáp thông tin khóa học nhanh</small>
+      </div>
+      <button class="bot-close-btn" onclick="toggleChatBot()">×</button>
+    </div>
+    <div id="chatMessageContainer" class="bot-chat-body">
+      <div class="bot-msg bot-msg-ai">Xin chào! Bạn đang quan tâm đến bộ kit học tập hay lộ trình đào tạo nào, hãy để lại câu hỏi nhé.</div>
+    </div>
+    <div class="bot-action-chips">
+      <button class="btn btn-outline-primary btn-sm bot-chip" onclick="triggerQuickQuery('Tư vấn lộ trình học STEM Robotics từ đầu')">Lộ trình học</button>
+      <button class="btn btn-outline-primary btn-sm bot-chip" onclick="triggerQuickQuery('So sánh chi tiết tính năng các bộ Kit')">So sánh Kit</button>
+    </div>
+    <div class="bot-input-area">
+      <div class="input-group">
+        <input id="chatInputField" type="text" class="form-control" placeholder="Nhập câu hỏi tại đây...">
+        <button class="btn btn-primary" onclick="submitChatQuery()">Gửi</button>
+      </div>
+    </div>
+  </div>
+  <button class="bot-trigger-btn" onclick="toggleChatBot()">✦</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
+
+  <script>
+    const SYSTEM_VIDEO_KEY = "site_course_videos_db";
+
+    function verifyAdminAccess() {
+        if (document.getElementById("adminCodeField").value === "STEM2026") {
+            document.getElementById("extendedAdminPanel").classList.add("active");
+            alert("Đã xác thực quyền cập nhật hệ thống thành công.");
+        } else {
+            alert("Mã bảo mật không chính xác. Vui lòng kiểm tra lại.");
+        }
+    }
+
+    function commitNewVideoItem() {
+        let t = document.getElementById("inputVidTitle").value.trim();
+        let u = document.getElementById("inputVidUrl").value.trim();
+        let d = document.getElementById("inputVidDesc").value.trim();
+        
+        if (!t || !u) return alert("Vui lòng bổ sung đầy đủ tiêu đề và liên kết học liệu.");
+        
+        let checkedEmbedUrl = u;
+        if (u.includes("youtube.com/watch?v=")) {
+            checkedEmbedUrl = "https://www.youtube.com/embed/" + u.split("v=")[1].split("&")[0];
+        }
+        
+        let localData = JSON.parse(localStorage.getItem(SYSTEM_VIDEO_KEY) || "[]");
+        localData.push({ title: t, url: checkedEmbedUrl, desc: d });
+        localStorage.setItem(SYSTEM_VIDEO_KEY, JSON.stringify(localData));
+        
+        document.getElementById("inputVidTitle").value = "";
+        document.getElementById("inputVidUrl").value = "";
+        document.getElementById("inputVidDesc").value = "";
+        
+        renderCourseGrid();
+    }
+
+    function renderCourseGrid() {
+        let gridContainer = document.getElementById("videoLayoutGrid");
+        if (!gridContainer) return;
+        
+        let coreVideos = [
+            { title: "Bài học 01: Quy trình cấu trúc khung cơ khí", url: "https://www.youtube.com/embed/dQw4w9WgXcQ", desc: "Các bước lắp ráp động cơ giảm tốc, cố định trục truyền động lực học cân bằng hai bên bánh xe." },
+            { title: "Bài học 02: Thiết lập cấu trúc câu lệnh rẽ hướng", url: "https://www.youtube.com/embed/dQw4w9WgXcQ", desc: "Khởi tạo môi trường lập trình viết hàm điều hướng cấp độ cơ bản bám sát cấu trúc vòng lặp." },
+            { title: "Bài học 03: Hiệu chuẩn cảm biến ngoại vi", url: "https://www.youtube.com/embed/dQw4w9WgXcQ", desc: "Đo đạc sai số thực tế trên sa bàn thi đấu, căn chỉnh góc quét cảm biến siêu âm tránh chướng ngại vật." }
+        ];
+        
+        let localVideos = JSON.parse(localStorage.getItem(SYSTEM_VIDEO_KEY) || "[]");
+        let combinedList = [...coreVideos, ...localVideos];
+        
+        gridContainer.innerHTML = "";
+        combinedList.forEach((video, index) => {
+            let isUserAdded = index >= coreVideos.length;
+            let managementAction = isUserAdded ? `<button class="btn btn-sm btn-outline-danger mt-2" onclick="removeVideoItem(${index - coreVideos.length})">Gỡ tài liệu</button>` : "";
+            
+            gridContainer.innerHTML += `
+                <div class="col-md-4 mb-3">
+                    <div class="video-v2-card">
+                        <iframe class="video-v2-frame" src="${video.url}" allowfullscreen></iframe>
+                        <div class="video-v2-body">
+                            <h5 class="fw-bold">${video.title}</h5>
+                            <p class="text-secondary small mb-2">${video.desc}</p>
+                            ${managementAction}
+                        </div>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function removeVideoItem(targetIdx) {
+        if (!confirm("Xác nhận gỡ bỏ mục học liệu này khỏi hệ thống lưu trữ?")) return;
+        let data = JSON.parse(localStorage.getItem(SYSTEM_VIDEO_KEY) || "[]");
+        data.splice(targetIdx, 1);
+        localStorage.setItem(SYSTEM_VIDEO_KEY, JSON.stringify(data));
+        renderCourseGrid();
+    }
+
+    document.addEventListener("DOMContentLoaded", renderCourseGrid);
+  </script>
+</body>
+</html>

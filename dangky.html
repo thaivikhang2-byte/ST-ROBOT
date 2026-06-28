@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng ký khóa học trực tuyến</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="scrollProgress"></div>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand" href="trangchu.html">STEM ROBOTICS COURSE</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link " href="trangchu.html">Trang chủ</a></li>
+          <li class="nav-item"><a class="nav-link " href="gioithieu.html">Giới thiệu</a></li>
+          <li class="nav-item"><a class="nav-link " href="kit.html">Kit & Khóa học</a></li>
+          <li class="nav-item"><a class="nav-link " href="hoclieu.html">Học liệu</a></li>
+          <li class="nav-item"><a class="nav-link " href="quiz.html">Quiz</a></li>
+          <li class="nav-item"><a class="nav-link active" href="dangky.html">Đăng ký</a></li>
+        </ul>
+        <button class="btn btn-outline-info ms-lg-3" onclick="toggleDarkMode()">Dark Mode</button>
+      </div>
+    </div>
+  </nav>
+
+  <section class="container section-padding">
+    <div class="text-center mb-5">
+      <h2 class="section-title">Ghi danh Đăng ký khóa học trực tuyến</h2>
+      <p class="section-desc">Vui lòng cung cấp thông tin liên hệ chính xác để bộ phận tuyển sinh thiết lập lịch hẹn kiểm tra năng lực tư duy thuật toán đầu vào phù hợp.</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="contact-box p-4">
+          <h3 class="fw-bold mb-3">Thông tin tuyển sinh</h3>
+          <p>Các lớp học được bố trí theo nhóm học viên quy mô nhỏ nhằm nâng cao mật độ tương tác trực tiếp trên sa bàn thực hành cơ điện tử chuyên nghiệp.</p>
+          <ul>
+            <li>Hình thức tổ chức học tập: Thực nghiệm offline tại phòng Lab.</li>
+            <li>Yêu cầu đầu vào: Dành cho học sinh đam mê nghiên cứu cấu trúc logic phần cứng từ cơ bản.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="contact-box p-4">
+          <h3 class="fw-bold mb-3">Phiếu đăng ký thông tin</h3>
+          <form onsubmit="handleFormSubmission(event)">
+            <div class="mb-3">
+              <label class="form-label font-weight-bold">Họ và tên học viên</label>
+              <input type="text" class="form-control" required placeholder="Nhập đầy đủ họ tên học viên">
+            </div>
+            <div class="mb-3">
+              <label class="form-label font-weight-bold">Thông tin phương thức liên hệ</label>
+              <input type="text" class="form-control" required placeholder="Nhập số điện thoại di động hoặc hộp thư email">
+            </div>
+            <div class="mb-3">
+              <label class="form-label font-weight-bold">Nền tảng lớp học định hướng đăng ký</label>
+              <select class="form-select" required>
+                <option value="">-- Lựa chọn chương trình đào tạo tương ứng --</option>
+                <option>Lớp chuyên sâu lập trình mạch vi điều khiển Arduino Uno</option>
+                <option>Lớp rèn luyện thuật toán điều khiển sa bàn thi đấu VEX IQ</option>
+                <option>Lớp sáng tạo kiến trúc mô hình kỹ thuật LEGO SPIKE Prime</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2">Gửi phiếu đăng ký thông tin</button>
+          </form>
+          <div id="submissionSuccessMsg" class="alert alert-success mt-3" style="display:none;">
+            Dữ liệu ghi danh đã được đồng bộ thành công vào hệ thống tuyển sinh. Bộ phận hỗ trợ sẽ chủ động liên hệ đặt lịch tư vấn chi tiết trong thời gian sớm nhất.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-md-5">
+          <h4 class="fw-bold">STEM Robotics Course</h4>
+          <p>Hệ thống giới thiệu chương trình học phát triển tư duy sáng tạo kỹ thuật và lập trình điều khiển tự động.</p>
+        </div>
+        <div class="col-md-3">
+          <h5 class="fw-bold">Danh mục</h5>
+          <ul class="list-unstyled">
+            <li><a href="trangchu.html" class="footer-link">Trang chủ</a></li>
+            <li><a href="gioithieu.html" class="footer-link">Giới thiệu khóa học</a></li>
+            <li><a href="kit.html" class="footer-link">Kit & khóa học</a></li>
+            <li><a href="hoclieu.html" class="footer-link">Học liệu</a></li>
+            <li><a href="quiz.html" class="footer-link">Quiz</a></li>
+            <li><a href="dangky.html" class="footer-link">Đăng ký</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4">
+          <h5 class="fw-bold">Định hướng</h5>
+          <p>Học tập chủ động qua trải nghiệm thực tế, phát triển toàn diện tư duy logic thế hệ mới.</p>
+        </div>
+      </div>
+      <hr style="border-color: #334155;">
+      <div class="text-center mb-3">
+        <a href="https://www.facebook.com/share/1Cks4cJt2F/" target="_blank" rel="noopener noreferrer" class="btn btn-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 24px; font-weight: 900; text-decoration: none;">f</a>
+      </div>
+      <p class="text-center mb-0 text-secondary">© 2026 STEM Robotics Lab - Đơn vị đào tạo phát triển giải pháp công nghệ</p>
+    </div>
+  </footer>
+
+  <button id="backToTop" class="btn btn-primary" onclick="scrollToTop()">↑</button>
+
+  <div id="supportChatWindow" class="bot-chat-window">
+    <div class="bot-header">
+      <div>
+        <h5>Hỗ trợ học viên</h5>
+        <small>Giải đáp thông tin khóa học nhanh</small>
+      </div>
+      <button class="bot-close-btn" onclick="toggleChatBot()">×</button>
+    </div>
+    <div id="chatMessageContainer" class="bot-chat-body">
+      <div class="bot-msg bot-msg-ai">Xin chào! Bạn đang quan tâm đến bộ kit học tập hay lộ trình đào tạo nào, hãy để lại câu hỏi nhé.</div>
+    </div>
+    <div class="bot-action-chips">
+      <button class="btn btn-outline-primary btn-sm bot-chip" onclick="triggerQuickQuery('Tư vấn lộ trình học STEM Robotics từ đầu')">Lộ trình học</button>
+      <button class="btn btn-outline-primary btn-sm bot-chip" onclick="triggerQuickQuery('So sánh chi tiết tính năng các bộ Kit')">So sánh Kit</button>
+    </div>
+    <div class="bot-input-area">
+      <div class="input-group">
+        <input id="chatInputField" type="text" class="form-control" placeholder="Nhập câu hỏi tại đây...">
+        <button class="btn btn-primary" onclick="submitChatQuery()">Gửi</button>
+      </div>
+    </div>
+  </div>
+  <button class="bot-trigger-btn" onclick="toggleChatBot()">✦</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
+
+  <script>
+    function handleFormSubmission(e) {
+        e.preventDefault();
+        document.getElementById("submissionSuccessMsg").style.display = "block";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Khóa học STEM Robotics - Trang chủ</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="scrollProgress"></div>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand" href="trangchu.html">STEM ROBOTICS COURSE</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link active" href="trangchu.html">Trang chủ</a></li>
+          <li class="nav-item"><a class="nav-link " href="gioithieu.html">Giới thiệu</a></li>
+          <li class="nav-item"><a class="nav-link " href="kit.html">Kit & Khóa học</a></li>
+          <li class="nav-item"><a class="nav-link " href="hoclieu.html">Học liệu</a></li>
+          <li class="nav-item"><a class="nav-link " href="quiz.html">Quiz</a></li>
+          <li class="nav-item"><a class="nav-link " href="dangky.html">Đăng ký</a></li>
+        </ul>
+        <button class="btn btn-outline-info ms-lg-3" onclick="toggleDarkMode()">Dark Mode</button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+    <div class="carousel-indicators">
+      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
+      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
+      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
+      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="3"></button>
+    </div>
+
+    <div class="carousel-inner">
+      <div class="carousel-item active">
+        <img src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1800" class="d-block w-100" alt="Slider 1">
+        <div class="carousel-caption">
+          <span class="hero-tag">CHƯƠNG TRÌNH STEM CHUẨN QUỐC TẾ</span>
+          <h1>Khóa học STEM Robotics</h1>
+          <p>Học viên tiếp cận lộ trình từ cơ bản tới chuyên sâu: làm quen linh kiện, lắp ráp cơ cấu, xử lý cảm biến và làm chủ thuật toán điều khiển.</p>
+          <a href="gioithieu.html" class="btn btn-primary btn-lg">Xem lộ trình học</a>
+          <a href="dangky.html" class="btn btn-outline-light btn-lg">Đăng ký ngay</a>
+        </div>
+      </div>
+
+      <div class="carousel-item">
+        <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1800" class="d-block w-100" alt="Slider 2">
+        <div class="carousel-caption">
+          <span class="hero-tag">HỆ THỐNG LINH KIỆN THỰC TẾ</span>
+          <h1>Lắp ráp cùng phần cứng thật</h1>
+          <p>Thực hành trực quan trên bo mạch Arduino, bộ kit VEX IQ, cấu trúc Micro:bit và giải pháp thông minh từ LEGO SPIKE Prime.</p>
+          <a href="kit.html" class="btn btn-info btn-lg text-white">Xem thông tin Kit</a>
+        </div>
+      </div>
+
+      <div class="carousel-item">
+        <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1800" class="d-block w-100" alt="Slider 3">
+        <div class="carousel-caption">
+          <span class="hero-tag">PHƯƠNG PHÁP CHỦ ĐỘNG DỰ ÁN</span>
+          <h1>Học thông qua hành động</h1>
+          <p>Mỗi giai đoạn học tập là một bài toán thực tế: thiết kế bản vẽ, tối ưu phần mềm, hiệu chuẩn sai số sa bàn.</p>
+          <a href="hoclieu.html" class="btn btn-warning btn-lg">Khu vực học liệu</a>
+        </div>
+      </div>
+
+      <div class="carousel-item">
+        <img src="https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=1800" class="d-block w-100" alt="Slider 4">
+        <div class="carousel-caption">
+          <span class="hero-tag">ƯƠM MẦM TƯ DUY ĐỘT PHÁ</span>
+          <h1>Làm chủ giải pháp tương lai</h1>
+          <p>Hỗ trợ học viên định hình tư duy thuật toán vững chắc, khắc phục lỗi hệ thống và hoàn thiện đồ án kỹ thuật.</p>
+          <a href="dangky.html" class="btn btn-success btn-lg">Đăng ký lớp học</a>
+        </div>
+      </div>
+    </div>
+
+    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon"></span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon"></span>
+    </button>
+  </div>
+
+  <section class="container section-padding">
+    <div class="text-center mb-5">
+      <h2 class="section-title">Nền tảng đào tạo STEM Robotics chuyên sâu</h2>
+      <p class="section-desc">Cổng thông tin tổng hợp cập nhật đầy đủ lộ trình phát triển năng lực cá nhân, học liệu đa phương tiện, kho đề bài ôn luyện thuật toán và cổng ghi danh trực tuyến.</p>
+    </div>
+
+    <div class="row g-4 text-center">
+      <div class="col-md-3">
+        <div class="pro-card">
+          <div class="icon-big">🤖</div>
+          <h4 class="fw-bold">Kiến thức nền tảng</h4>
+          <p>Nghiên cứu nguyên lý hoạt động phần cứng, cấu trúc cơ khí và mạch số tự động.</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="pro-card">
+          <div class="icon-big">🧩</div>
+          <h4 class="fw-bold">Thực hành mô hình</h4>
+          <p>Tiếp cận giải pháp phần cứng Arduino, VEX IQ, Micro:bit và LEGO SPIKE Prime chuyên nghiệp.</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="pro-card">
+          <div class="icon-big">🎬</div>
+          <h4 class="fw-bold">Giải quyết đồ án</h4>
+          <p>Xây dựng dự án theo nhóm, vận hành thử nghiệm, đo đạc thông số thực tế liên tục.</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="pro-card">
+          <div class="icon-big">🎲</div>
+          <h4 class="fw-bold">Rèn luyện logic</h4>
+          <p>Hệ thống bài kiểm tra đánh giá năng lực phản xạ tư duy lập trình ngẫu nhiên.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="gradient-box mt-5">
+      <div class="row g-4 align-items-center">
+        <div class="col-md-6">
+          <h3 class="fw-bold">Chuyển hóa ý tưởng khoa học thành sản phẩm ứng dụng</h3>
+          <p>Lộ trình hướng dẫn chi tiết từng bước vững chắc giúp học viên làm chủ hoàn toàn công nghệ cốt lõi.</p>
+          <a href="dangky.html" class="btn btn-light btn-lg">Liên hệ nhận tư vấn khóa học</a>
+        </div>
+        <div class="col-md-2">
+          <div class="stat-box">
+            <h3>4+</h3>
+            <p>Nền tảng Kit</p>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="stat-box">
+            <h3>25+</h3>
+            <p>Chủ đề thực hành</p>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="stat-box">
+            <h3>6</h3>
+            <p>Trang quản trị</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-md-5">
+          <h4 class="fw-bold">STEM Robotics Course</h4>
+          <p>Hệ thống giới thiệu chương trình học phát triển tư duy sáng tạo kỹ thuật và lập trình điều khiển tự động.</p>
+        </div>
+        <div class="col-md-3">
+          <h5 class="fw-bold">Danh mục</h5>
+          <ul class="list-unstyled">
+            <li><a href="trangchu.html" class="footer-link">Trang chủ</a></li>
+            <li><a href="gioithieu.html" class="footer-link">Giới thiệu khóa học</a></li>
+            <li><a href="kit.html" class="footer-link">Kit & khóa học</a></li>
+            <li><a href="hoclieu.html" class="footer-link">Học liệu</a></li>
+            <li><a href="quiz.html" class="footer-link">Quiz</a></li>
+            <li><a href="dangky.html" class="footer-link">Đăng ký</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4">
+          <h5 class="fw-bold">Định hướng</h5>
+          <p>Học tập chủ động qua trải nghiệm thực tế, phát triển toàn diện tư duy logic thế hệ mới.</p>
+        </div>
+      </div>
+      <hr style="border-color: #334155;">
+      <div class="text-center mb-3">
+        <a href="https://www.facebook.com/share/1Cks4cJt2F/" target="_blank" rel="noopener noreferrer" class="btn btn-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 24px; font-weight: 900; text-decoration: none;">f</a>
+      </div>
+      <p class="text-center mb-0 text-secondary">© 2026 STEM Robotics Lab - Đơn vị đào tạo phát triển giải pháp công nghệ</p>
+    </div>
+  </footer>
+
+  <button id="backToTop" class="btn btn-primary" onclick="scrollToTop()">↑</button>
+
+  <div id="supportChatWindow" class="bot-chat-window">
+    <div class="bot-header">
+      <div>
+        <h5>Hỗ trợ học viên</h5>
+        <small>Giải đáp thông tin khóa học nhanh</small>
+      </div>
+      <button class="bot-close-btn" onclick="toggleChatBot()">×</button>
+    </div>
+    <div id="chatMessageContainer" class="bot-chat-body">
+      <div class="bot-msg bot-msg-ai">Xin chào! Bạn đang quan tâm đến bộ kit học tập hay lộ trình đào tạo nào, hãy để lại câu hỏi nhé.</div>
+    </div>
+    <div class="bot-action-chips">
+      <button class="btn btn-outline-primary btn-sm bot-chip" onclick="triggerQuickQuery('Tư vấn lộ trình học STEM Robotics từ đầu')">Lộ trình học</button>
+      <button class="btn btn-outline-primary btn-sm bot-chip" onclick="triggerQuickQuery('So sánh chi tiết tính năng các bộ Kit')">So sánh Kit</button>
+    </div>
+    <div class="bot-input-area">
+      <div class="input-group">
+        <input id="chatInputField" type="text" class="form-control" placeholder="Nhập câu hỏi tại đây...">
+        <button class="btn btn-primary" onclick="submitChatQuery()">Gửi</button>
+      </div>
+    </div>
+  </div>
+  <button class="bot-trigger-btn" onclick="toggleChatBot()">✦</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hệ thống Kit học tập chuyên dụng</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="scrollProgress"></div>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand" href="trangchu.html">STEM ROBOTICS COURSE</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link " href="trangchu.html">Trang chủ</a></li>
+          <li class="nav-item"><a class="nav-link " href="gioithieu.html">Giới thiệu</a></li>
+          <li class="nav-item"><a class="nav-link active" href="kit.html">Kit & Khóa học</a></li>
+          <li class="nav-item"><a class="nav-link " href="hoclieu.html">Học liệu</a></li>
+          <li class="nav-item"><a class="nav-link " href="quiz.html">Quiz</a></li>
+          <li class="nav-item"><a class="nav-link " href="dangky.html">Đăng ký</a></li>
+        </ul>
+        <button class="btn btn-outline-info ms-lg-3" onclick="toggleDarkMode()">Dark Mode</button>
+      </div>
+    </div>
+  </nav>
+
+  <section class="container section-padding">
+    <div class="text-center mb-5">
+      <h2 class="section-title">Hệ thống Kit thực hành & Lớp học tương ứng</h2>
+      <p class="section-desc">Phân loại trang thiết bị thực hành trực quan giúp tối ưu hiệu quả tiếp thu theo từng độ tuổi và nhu cầu học tập thực tế.</p>
+    </div>
+
+    <div class="box mb-4">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-6">
+          <input type="text" id="kitSearch" class="form-control form-control-lg" placeholder="Tìm kiếm bộ kit nhanh..." onkeyup="filterKits()">
+        </div>
+        <div class="col-md-6 text-md-end" id="filterTabContainer">
+          <button class="btn btn-primary m-1 filter-tab-btn" onclick="executeTabFilter('all', this)">Tất cả danh mục</button>
+          <button class="btn btn-outline-primary m-1 filter-tab-btn" onclick="executeTabFilter('basic', this)">Khối Cơ bản</button>
+          <button class="btn btn-outline-primary m-1 filter-tab-btn" onclick="executeTabFilter('competition', this)">Đội Thi đấu</button>
+          <button class="btn btn-outline-primary m-1 filter-tab-btn" onclick="executeTabFilter('creative', this)">Khối Sáng tạo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4" id="kitList">
+      <div class="col-md-3 kit-item" data-name="arduino robot kit mạch điều khiển cấu trúc c" data-type="basic">
+        <div class="kit-card">
+          <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=900" alt="Arduino">
+          <div class="card-body">
+            <h4 class="fw-bold">Arduino Uno Starter</h4>
+            <p>Học lập trình vi điều khiển C/C++, nguyên lý cảm biến dòng điện thế và điều khiển mạch cầu công suất lớn.</p>
+            <span class="tag">Arduino Uno</span> <span class="tag">Mạch Cầu L298N</span><br>
+            <button class="btn btn-primary mt-3" onclick="showKitDetail('arduino')">Thông số chi tiết</button>
+            <a href="dangky.html" class="btn btn-outline-success mt-3">Đăng ký lớp</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-3 kit-item" data-name="vex iq giải đấu chuyên nghiệp robot thông minh" data-type="competition">
+        <div class="kit-card">
+          <img src="https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=900" alt="VEX IQ">
+          <div class="card-body">
+            <h4 class="fw-bold">VEX IQ Robot Platform</h4>
+            <p>Chuẩn hóa mô hình lắp ráp cơ cấu thi đấu, động cơ Encoder tích hợp kiểm soát góc quay chính xác cao.</p>
+            <span class="tag">VEX Brain</span> <span class="tag">Smart Motor</span><br>
+            <button class="btn btn-primary mt-3" onclick="showKitDetail('vex')">Thông số chi tiết</button>
+            <a href="dangky.html" class="btn btn-outline-success mt-3">Đăng ký lớp</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-3 kit-item" data-name="microbit mạch nạp kéo thả lập trình khối lệnh" data-type="basic">
+        <div class="kit-card">
+          <img src="https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=900" alt="Microbit">
+          <div class="card-body">
+            <h4 class="fw-bold">Micro:bit Education Board</h4>
+            <p>Tiếp cận thuật toán logic thông qua khối lệnh trực quan kéo thả, tích hợp sẵn ma trận LED hiển thị.</p>
+            <span class="tag">Micro:bit</span> <span class="tag">LED Matrix</span><br>
+            <button class="btn btn-primary mt-3" onclick="showKitDetail('microbit')">Thông số chi tiết</button>
+            <a href="dangky.html" class="btn btn-outline-success mt-3">Đăng ký lớp</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-3 kit-item" data-name="lego spike prime sáng tạo mô hình robot thông minh" data-type="creative">
+        <div class="kit-card">
+          <img src="https://images.unsplash.com/photo-1516192518150-0d8fee5425e3?w=900" alt="LEGO SPIKE">
+          <div class="card-body">
+            <h4 class="fw-bold">LEGO SPIKE Prime</h4>
+            <p>Phát triển giải pháp kỹ thuật đa hướng, lắp ráp kết cấu module linh hoạt kết hợp ngôn ngữ lập trình hiện đại.</p>
+            <span class="tag">Advanced Hub</span> <span class="tag">Module Color Sensor</span><br>
+            <button class="btn btn-primary mt-3" onclick="showKitDetail('lego')">Thông số chi tiết</button>
+            <a href="dangky.html" class="btn btn-outline-success mt-3">Đăng ký lớp</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="modal fade" id="kitDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="detailModalTitle">Cấu trúc chi tiết linh kiện</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="detailModalBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-md-5">
+          <h4 class="fw-bold">STEM Robotics Course</h4>
+          <p>Hệ thống giới thiệu chương trình học phát triển tư duy sáng tạo kỹ thuật và lập trình điều khiển tự động.</p>
+        </div>
+        <div class="col-md-3">
+          <h5 class="fw-bold">Danh mục</h5>
+          <ul class="list-unstyled">
+            <li><a href="trangchu.html" class="footer-link">Trang chủ</a></li>
+            <li><a href="gioithieu.html" class="footer-link">Giới thiệu khóa học</a></li>
+            <li><a href="kit.html" class="footer-link">Kit & khóa học</a></li>
+            <li><a href="hoclieu.html" class="footer-link">Học liệu</a></li>
+            <li><a href="quiz.html" class="footer-link">Quiz</a></li>
+            <li><a href="dangky.html" class="footer-link">Đăng ký</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4">
+          <h5 class="fw-bold">Định hướng</h5>
+          <p>Học tập chủ động qua trải nghiệm thực tế, phát triển toàn diện tư duy logic thế hệ mới.</p>
+        </div>
+      </div>
+      <hr style="border-color: #334155;">
+      <div class="text-center mb-3">
+        <a href="https://www.facebook.com/share/1Cks4cJt2F/" target="_blank" rel="noopener noreferrer" class="btn btn-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 24px; font-weight: 900; text-decoration: none;">f</a>
+      </div>
+      <p class="text-center mb-0 text-secondary">© 2026 STEM Robotics Lab - Đơn vị đào tạo phát triển giải pháp công nghệ</p>
+    </div>
+  </footer>
+
+  <button id="backToTop" class="btn btn-primary" onclick="scrollToTop()">↑</button>
+
+  <div id="supportChatWindow" class="bot-chat-window">
+    <div class="bot-header">
+      <div>
+        <h5>Hỗ trợ học viên</h5>
+        <small>Giải đáp thông tin khóa học nhanh</small>
+      </div>
+      <button class="bot-close-btn" onclick="toggleChatBot()">×</button>
+    </div>
+    <div id="chatMessageContainer" class="bot-chat-body">
+      <div class="bot-msg bot-msg-ai">Xin chào! Bạn đang quan tâm đến bộ kit học tập hay lộ trình đào tạo nào, hãy để lại câu hỏi nhé.</div>
+    </div>
+    <div class="bot-action-chips">
+      <button class="btn btn-outline-primary btn-sm bot-chip" onclick="triggerQuickQuery('Tư vấn lộ trình học STEM Robotics từ đầu')">Lộ trình học</button>
+      <button class="btn btn-outline-primary btn-sm bot-chip" onclick="triggerQuickQuery('So sánh chi tiết tính năng các bộ Kit')">So sánh Kit</button>
+    </div>
+    <div class="bot-input-area">
+      <div class="input-group">
+        <input id="chatInputField" type="text" class="form-control" placeholder="Nhập câu hỏi tại đây...">
+        <button class="btn btn-primary" onclick="submitChatQuery()">Gửi</button>
+      </div>
+    </div>
+  </div>
+  <button class="bot-trigger-btn" onclick="toggleChatBot()">✦</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
+
+  <script>
+    let activeTypeFilter = "all";
+    const specsData = {
+        arduino: {
+            title: "Hệ thống Arduino Uno Chuyên Sâu",
+            body: "<p>Nền tảng mã nguồn mở phổ biến nhất cho người bắt đầu ngành cơ điện tử.</p><h6>Linh kiện đồng bộ:</h6><ul><li>Bo mạch điều khiển vi xử lý ATmega328P.</li><li>Mạch cầu H điều khiển đảo chiều dòng điện động cơ.</li><li>Cảm biến siêu âm dải đo 2cm - 400cm ổn định.</li></ul>"
+        },
+        vex: {
+            title: "Giải pháp thi đấu VEX IQ",
+            body: "<p>Thiết kế riêng biệt tối ưu cho các câu lạc bộ nghiên cứu khoa học kỹ thuật ứng dụng cao.</p><h6>Linh kiện đồng bộ:</h6><ul><li>Hộp điều khiển Brain 12 cổng giao tiếp tín hiệu số.</li><li>Động cơ DC Servo tích hợp đo lường hành trình thông minh.</li></ul>"
+        },
+        microbit: {
+            title: "Bo mạch Micro:bit Giáo dục",
+            body: "<p>Phù hợp hoàn hảo cho việc giảng dạy logic thuật toán cấp cơ sở nhanh chóng.</p>"
+        },
+        lego: {
+            title: "Hệ sinh thái LEGO SPIKE Prime",
+            body: "<p>Hệ thống mảnh ghép cơ khí chính xác kết hợp cảm biến màu sắc và con quay hồi chuyển đa trục.</p>"
+        }
+    };
+
+    function showKitDetail(key) {
+        document.getElementById("detailModalTitle").innerText = specsData[key].title;
+        document.getElementById("detailModalBody").innerHTML = specsData[key].body;
+        new bootstrap.Modal(document.getElementById("kitDetailsModal")).show();
+    }
+
+    function executeTabFilter(type, buttonEl) {
+        activeTypeFilter = type;
+        
+        let allTabButtons = document.querySelectorAll(".filter-tab-btn");
+        allTabButtons.forEach(btn => {
+            btn.classList.remove("btn-primary");
+            btn.classList.add("btn-outline-primary");
+        });
+        
+        buttonEl.classList.remove("btn-outline-primary");
+        buttonEl.classList.add("btn-primary");
+        
+        applyGridFilter();
+    }
+
+    function applyGridFilter() {
+        let searchKeyword = document.getElementById("kitSearch").value.toLowerCase();
+        let cards = document.getElementsByClassName("kit-item");
+        
+        for (let i = 0; i < cards.length; i++) {
+            let itemText = cards[i].getAttribute("data-name");
+            let itemType = cards[i].getAttribute("data-type");
+            
+            let isNameMatched = itemText.includes(searchKeyword);
+            let isTypeMatched = activeTypeFilter === "all" || itemType === activeTypeFilter;
+            
+            cards[i].style.display = (isNameMatched && isTypeMatched) ? "block" : "none";
+        }
+    }
+
+    function filterKits() {
+        applyGridFilter();
+    }
+  </script>
+</body>
+</html>

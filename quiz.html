@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kiểm tra năng lực tư duy logic</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="scrollProgress"></div>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand" href="trangchu.html">STEM ROBOTICS COURSE</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link " href="trangchu.html">Trang chủ</a></li>
+          <li class="nav-item"><a class="nav-link " href="gioithieu.html">Giới thiệu</a></li>
+          <li class="nav-item"><a class="nav-link " href="kit.html">Kit & Khóa học</a></li>
+          <li class="nav-item"><a class="nav-link " href="hoclieu.html">Học liệu</a></li>
+          <li class="nav-item"><a class="nav-link active" href="quiz.html">Quiz</a></li>
+          <li class="nav-item"><a class="nav-link " href="dangky.html">Đăng ký</a></li>
+        </ul>
+        <button class="btn btn-outline-info ms-lg-3" onclick="toggleDarkMode()">Dark Mode</button>
+      </div>
+    </div>
+  </nav>
+
+  <section class="container section-padding">
+    <div class="text-center mb-5">
+      <h2 class="section-title">Hệ thống đánh giá kiến thức thuật toán</h2>
+      <p class="section-desc">Hệ thống tự động thiết lập bộ đề thi thử ngẫu nhiên từ kho câu hỏi chuyên ngành cấu trúc mạch số và logic lập trình robot.</p>
+    </div>
+
+    <div class="quiz-box">
+      <div id="quizIntroArea" class="text-center">
+        <h3 class="fw-bold">🎲 Thử thách tư duy hệ thống</h3>
+        <p>Bộ câu hỏi đa dạng đo lường khả năng phản xạ giải thuật điều khiển tự động.</p>
+        <button class="btn btn-primary btn-lg mt-3" onclick="executeQuizInit()">Bắt đầu tạo đề thi ngẫu nhiên</button>
+      </div>
+
+      <div id="quizActiveGame" style="display: none;">
+        <h4 class="fw-bold mb-4" id="targetQuestionPlaceholder"></h4>
+        <div id="answerOptionsArea"></div>
+        <div id="feedbackBox" class="alert alert-info mt-3" style="display: none;"></div>
+        <button class="btn btn-success mt-3" id="forwardBtn" style="display: none;" onclick="advanceNextQuestion()">Chuyển sang câu hỏi tiếp theo</button>
+      </div>
+
+      <div id="quizSummaryArea" style="display: none;" class="text-center">
+        <h3 class="fw-bold">Báo cáo kết quả bài làm</h3>
+        <p id="totalScoreText" class="fs-4 mt-3"></p>
+        <button class="btn btn-primary m-2" onclick="executeQuizInit()">Thử thách đề thi mới</button>
+        <button class="btn btn-outline-secondary m-2" onclick="restoreQuizIntro()">Trở lại màn hình ban đầu</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-md-5">
+          <h4 class="fw-bold">STEM Robotics Course</h4>
+          <p>Hệ thống giới thiệu chương trình học phát triển tư duy sáng tạo kỹ thuật và lập trình điều khiển tự động.</p>
+        </div>
+        <div class="col-md-3">
+          <h5 class="fw-bold">Danh mục</h5>
+          <ul class="list-unstyled">
+            <li><a href="trangchu.html" class="footer-link">Trang chủ</a></li>
+            <li><a href="gioithieu.html" class="footer-link">Giới thiệu khóa học</a></li>
+            <li><a href="kit.html" class="footer-link">Kit & khóa học</a></li>
+            <li><a href="hoclieu.html" class="footer-link">Học liệu</a></li>
+            <li><a href="quiz.html" class="footer-link">Quiz</a></li>
+            <li><a href="dangky.html" class="footer-link">Đăng ký</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4">
+          <h5 class="fw-bold">Định hướng</h5>
+          <p>Học tập chủ động qua trải nghiệm thực tế, phát triển toàn diện tư duy logic thế hệ mới.</p>
+        </div>
+      </div>
+      <hr style="border-color: #334155;">
+      <div class="text-center mb-3">
+        <a href="https://www.facebook.com/share/1Cks4cJt2F/" target="_blank" rel="noopener noreferrer" class="btn btn-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 24px; font-weight: 900; text-decoration: none;">f</a>
+      </div>
+      <p class="text-center mb-0 text-secondary">© 2026 STEM Robotics Lab - Đơn vị đào tạo phát triển giải pháp công nghệ</p>
+    </div>
+  </footer>
+
+  <button id="backToTop" class="btn btn-primary" onclick="scrollToTop()">↑</button>
+
+  <div id="supportChatWindow" class="bot-chat-window">
+    <div class="bot-header">
+      <div>
+        <h5>Hỗ trợ học viên</h5>
+        <small>Giải đáp thông tin khóa học nhanh</small>
+      </div>
+      <button class="bot-close-btn" onclick="toggleChatBot()">×</button>
+    </div>
+    <div id="chatMessageContainer" class="bot-chat-body">
+      <div class="bot-msg bot-msg-ai">Xin chào! Bạn đang quan tâm đến bộ kit học tập hay lộ trình đào tạo nào, hãy để lại câu hỏi nhé.</div>
+    </div>
+    <div class="bot-action-chips">
+      <button class="btn btn-outline-primary btn-sm bot-chip" onclick="triggerQuickQuery('Tư vấn lộ trình học STEM Robotics từ đầu')">Lộ trình học</button>
+      <button class="btn btn-outline-primary btn-sm bot-chip" onclick="triggerQuickQuery('So sánh chi tiết tính năng các bộ Kit')">So sánh Kit</button>
+    </div>
+    <div class="bot-input-area">
+      <div class="input-group">
+        <input id="chatInputField" type="text" class="form-control" placeholder="Nhập câu hỏi tại đây...">
+        <button class="btn btn-primary" onclick="submitChatQuery()">Gửi</button>
+      </div>
+    </div>
+  </div>
+  <button class="bot-trigger-btn" onclick="toggleChatBot()">✦</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
+
+  <script>
+    const globalQuestionRepository = [
+        { q: "Thiết bị vi điều khiển trung tâm đóng vai trò gì trong mô hình tự động hóa?", opts: ["Chỉ hỗ trợ sạc nguồn điện", "Thu thập dữ liệu cảm biến, xử lý logic câu lệnh điều khiển", "Đảm bảo tính cơ cơ học của bánh xe"], ans: 1, exp: "Mạch điều khiển trung tâm là hạt nhân điều phối toàn bộ hành vi xử lý dữ liệu và gửi tín hiệu chấp hành." },
+        { q: "Nguyên lý hoạt động chính của cụm cảm biến đo khoảng cách bằng sóng siêu âm là gì?", opts: ["Tính toán thời gian phản hồi của xung sóng âm phát ra gặp vật cản", "Đo cường độ ánh sáng chiếu thẳng vào bề mặt sa bàn", "Xác định từ trường của động cơ DC"], ans: 0, exp: "Cảm biến siêu âm tính toán khoảng cách dựa trên vận tốc truyền âm và tổng thời gian sóng âm phản xạ trở lại đầu thu." },
+        { q: "Mạch công suất cầu H L298N thường được tích hợp nhằm mục đích kỹ thuật nào?", opts: ["Tăng độ phân giải hiển thị màn hình LCD", "Điều chỉnh linh hoạt hướng quay và tốc độ dòng điện cấp cho motor", "Lưu trữ dữ liệu mã nguồn"], ans: 1, exp: "Mạch cầu H thay đổi cực tính dòng điện cấp phát, giúp kiểm soát chiều xoay của motor DC hiệu quả." },
+        { q: "Khi dòng điện cấp phát cho khối điều khiển trung tâm bị sụt áp, hiện tượng nào dễ xảy ra?", opts: ["Hệ thống chạy mượt mà hơn", "Gây sai số dữ liệu phản hồi từ cảm biến hoặc reset mạch đột ngột", "Tốc độ truyền dữ liệu tăng vọt"], ans: 1, exp: "Sụt áp nguồn điện gây mất ổn định tín hiệu điện áp tham chiếu dẫn đến sai lệch dữ liệu ngoại vi." },
+        { q: "Module dò đường line hoạt động dựa trên nguyên lý quang học nào?", opts: ["Hấp thụ và phản xạ tia hồng ngoại trên bề mặt có màu sắc khác nhau", "Đo nhiệt độ sa bàn tỏa ra", "Thu phát tần số sóng vô tuyến cực ngắn"], ans: 0, exp: "Màu trắng phản xạ tia hồng ngoại tốt, màu đen hấp thụ tia hồng ngoại mạnh, giúp cảm biến phân biệt vạch kẻ đường dẫn hướng." }
+    ];
+
+    let randomizedSet = [];
+    let activeIndex = 0;
+    let earnedPoints = 0;
+    let optionSelected = false;
+
+    function executeQuizInit() {
+        randomizedSet = [...globalQuestionRepository].sort(() => Math.random() - 0.5);
+        activeIndex = 0;
+        earnedPoints = 0;
+        
+        document.getElementById("quizIntroArea").style.display = "none";
+        document.getElementById("quizSummaryArea").style.display = "none";
+        document.getElementById("quizActiveGame").style.display = "block";
+        displayCurrentQuestion();
+    }
+
+    function displayCurrentQuestion() {
+        optionSelected = false;
+        let activeData = randomizedSet[activeIndex];
+        
+        document.getElementById("targetQuestionPlaceholder").innerText = `Câu hỏi ${activeIndex + 1}: ${activeData.q}`;
+        document.getElementById("feedbackBox").style.display = "none";
+        document.getElementById("forwardBtn").style.display = "none";
+        
+        let container = document.getElementById("answerOptionsArea");
+        container.innerHTML = "";
+        
+        activeData.opts.forEach((txt, idx) => {
+            let optButton = document.createElement("button");
+            optButton.className = "answer-btn";
+            optButton.innerText = txt;
+            optButton.onclick = () => evaluateUserChoice(optButton, idx);
+            container.appendChild(optButton);
+        });
+    }
+
+    function evaluateUserChoice(clickedBtn, selectedIdx) {
+        if (optionSelected) return;
+        optionSelected = true;
+        
+        let currentCorrectIdx = randomizedSet[activeIndex].ans;
+        if (selectedIdx === currentCorrectIdx) {
+            clickedBtn.classList.add("answer-correct");
+            earnedPoints++;
+        } else {
+            clickedBtn.classList.add("answer-wrong");
+        }
+        
+        let infoBox = document.getElementById("feedbackBox");
+        infoBox.innerText = `Phân tích giải thích: ${randomizedSet[activeIndex].exp}`;
+        infoBox.style.display = "block";
+        document.getElementById("forwardBtn").style.display = "block";
+    }
+
+    function advanceNextQuestion() {
+        activeIndex++;
+        if (activeIndex < randomizedSet.length) {
+            displayCurrentQuestion();
+        } else {
+            concludeQuizSession();
+        }
+    }
+
+    function concludeQuizSession() {
+        document.getElementById("quizActiveGame").style.display = "none";
+        document.getElementById("quizSummaryArea").style.display = "block";
+        document.getElementById("totalScoreText").innerText = `Hệ thống ghi nhận kết quả bài thi thử của bạn đạt: ${earnedPoints} / ${randomizedSet.length} câu trả lời chính xác.`;
+    }
+
+    function restoreQuizIntro() {
+        document.getElementById("quizIntroArea").style.display = "block";
+        document.getElementById("quizActiveGame").style.display = "none";
+        document.getElementById("quizSummaryArea").style.display = "none";
+    }
+  </script>
+</body>
+</html>
