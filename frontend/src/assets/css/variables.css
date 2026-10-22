@@ -1,0 +1,22 @@
+:root {
+    --primary-color: #0d6efd;
+    --primary-hover: #0b5ed7;
+    --info-color: #0dcaf0;
+    --warning-color: #ffc107;
+    --success-color: #22c55e;
+    --danger-color: #ef4444;
+    
+    --bg-light: #f4f7fb;
+    --text-light: #111827;
+    
+    --bg-dark: #020617;
+    --text-dark: #e5e7eb;
+    
+    --card-bg-light: #ffffff;
+    --card-border-light: #e5e7eb;
+    
+    --card-bg-dark: #111827;
+    --card-border-dark: #1f2937;
+    
+    --font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}

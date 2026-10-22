@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <script>
+    if (!window.location.pathname.endsWith('/') && !window.location.pathname.endsWith('.html')) {
+      document.write('<base href="' + window.location.pathname + '/">');
+    }
+  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng ký khóa học trực tuyến</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../src/assets/css/variables.css">
+  <link rel="stylesheet" href="../src/assets/css/base.css">
+  <link rel="stylesheet" href="../src/assets/css/layout.css">
+  <link rel="stylesheet" href="../src/assets/css/components/navbar.css">
+  <link rel="stylesheet" href="../src/assets/css/components/footer.css">
+  <link rel="stylesheet" href="../src/assets/css/components/chatbox.css">
+  <link rel="stylesheet" href="../src/assets/css/components/backtotop.css">
+  <link rel="stylesheet" href="../src/assets/css/components/cards.css">
+  <link rel="stylesheet" href="../src/assets/css/pages/dangky.css">
+</head>
+<body>
+  <div id="scrollProgress"></div>
+  <div id="navbar-container"></div>
+
+  <section class="container section-padding">
+    <div class="text-center mb-5">
+      <h2 class="section-title">Ghi danh Đăng ký khóa học trực tuyến</h2>
+      <p class="section-desc">Vui lòng cung cấp thông tin liên hệ chính xác để bộ phận tuyển sinh nắm thông tin cơ bản của học viên.</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="contact-box p-4">
+          <h3 class="fw-bold mb-3">Thông tin tuyển sinh</h3>
+          <p>Các lớp học được bố trí học tương tác với AI và phòng lab mini</p>
+          <ul>
+            <li>Hình thức tổ chức học tập: Thực nghiệm online tại phòng Lab.</li>
+            <li>Yêu cầu đầu vào: Dành cho học sinh đam mê nghiên cứu cấu trúc logic phần cứng từ cơ bản.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="contact-box p-4">
+          <h3 class="fw-bold mb-3">Phiếu đăng ký thông tin</h3>
+          <form id="registerForm">
+            <div class="mb-3">
+              <label class="form-label font-weight-bold">Họ và tên học viên</label>
+              <input type="text" class="form-control" required placeholder="Nhập đầy đủ họ tên học viên">
+            </div>
+            <div class="mb-3">
+              <label class="form-label font-weight-bold">Thông tin phương thức liên hệ</label>
+              <input type="text" class="form-control" required placeholder="Nhập số điện thoại di động hoặc hộp thư email">
+            </div>
+            <div class="mb-3">
+              <label class="form-label font-weight-bold">Nền tảng lớp học định hướng đăng ký</label>
+              <select class="form-select" required>
+                <option value="">-- Lựa chọn chương trình đào tạo tương ứng --</option>
+      <option value="arduino">Lớp chuyên sâu lập trình mạch vi điều khiển Arduino Uno</option>
+      <option value="vex-iq">Lớp rèn luyện thuật toán điều khiển sa bàn thi đấu VEX IQ</option>
+      <option value="lego-spike">Lớp sáng tạo kiến trúc mô hình kỹ thuật LEGO SPIKE Prime</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2">Gửi phiếu đăng ký thông tin</button>
+          </form>
+          <div id="submissionSuccessMsg" class="alert alert-success mt-3" style="display:none;">
+            Dữ liệu ghi danh đã được đồng bộ thành công vào hệ thống tuyển sinh. Bộ phận hỗ trợ sẽ chủ động liên hệ đặt lịch tư vấn chi tiết trong thời gian sớm nhất.
+          </div>
+          <a id="enterCourseLink"
+   class="btn btn-success w-100 mt-3"
+   href="course.learning.html"
+   hidden>
+  Vào khóa học đã chọn →
+</a>
+        </div>
+      </div>
+    </div>
+  </section>
+<script>
+(() => {
+  const form = document.getElementById('registerForm');
+  const courseSelect = form.querySelector('select');
+  const enterLink = document.getElementById('enterCourseLink');
+
+  const validCourses = new Set([
+    'arduino',
+    'vex-iq',
+    'lego-spike'
+  ]);
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    if (!form.reportValidity()) return;
+
+    const courseId = courseSelect.value;
+    if (!validCourses.has(courseId)) return;
+
+    const url = new URL('course.learning.html', window.location.href);
+    url.searchParams.set('course', courseId);
+
+    enterLink.href = url.href;
+    enterLink.hidden = false;
+  });
+
+  // Nếu sửa thông tin hoặc chọn khóa khác, cần gửi lại biểu mẫu.
+  form.addEventListener('input', () => {
+    enterLink.hidden = true;
+  });
+
+  form.addEventListener('change', () => {
+    enterLink.hidden = true;
+  });
+})();
+</script>
+  <div id="footer-container"></div>
+  <div id="backtotop-container"></div>
+  <div id="chatbox-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="../src/app.js"></script>
+</body>
+</html>

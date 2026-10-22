@@ -1,0 +1,18 @@
+html {
+    scroll-behavior: smooth;
+}
+
+body, input, select, textarea, button {
+    font-family: var(--font-family);
+}
+
+body {
+    background-color: var(--bg-light);
+    color: var(--text-light);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+body.dark-mode {
+    background-color: var(--bg-dark);
+    color: var(--text-dark);
+}

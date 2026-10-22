@@ -1,0 +1,15 @@
+.navbar {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.navbar-brand {
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+.nav-link.active {
+    font-weight: bold;
+    color: var(--info-color) !important;
+    border-bottom: 2px solid var(--info-color);
+}

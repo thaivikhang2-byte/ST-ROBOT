@@ -1,0 +1,17 @@
+footer {
+    background-color: var(--bg-dark);
+    color: white;
+    padding: 60px 0 30px;
+    border-top: 5px solid var(--primary-color);
+}
+
+.footer-link {
+    color: #cbd5e1;
+    text-decoration: none;
+    transition: color 0.2s;
+    line-height: 2;
+}
+
+.footer-link:hover {
+    color: var(--info-color);
+}

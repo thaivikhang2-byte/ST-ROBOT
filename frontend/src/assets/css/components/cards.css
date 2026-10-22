@@ -1,0 +1,24 @@
+.pro-card, .kit-card, .quiz-box, .video-v2-card, .contact-box {
+    background-color: var(--card-bg-light);
+    border: 1px solid var(--card-border-light);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+body.dark-mode .pro-card, 
+body.dark-mode .kit-card, 
+body.dark-mode .quiz-box, 
+body.dark-mode .video-v2-card, 
+body.dark-mode .contact-box {
+    background-color: var(--card-bg-dark);
+    color: var(--text-dark);
+    border-color: var(--card-border-dark);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.pro-card:hover, .kit-card:hover, .video-v2-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(13, 110, 253, 0.15);
+}

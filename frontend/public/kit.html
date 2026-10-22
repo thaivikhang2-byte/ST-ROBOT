@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <script>
+    if (!window.location.pathname.endsWith('/') && !window.location.pathname.endsWith('.html')) {
+      document.write('<base href="' + window.location.pathname + '/">');
+    }
+  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hệ thống Kit học tập chuyên dụng</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../src/assets/css/variables.css">
+  <link rel="stylesheet" href="../src/assets/css/base.css">
+  <link rel="stylesheet" href="../src/assets/css/layout.css">
+  <link rel="stylesheet" href="../src/assets/css/components/navbar.css">
+  <link rel="stylesheet" href="../src/assets/css/components/footer.css">
+  <link rel="stylesheet" href="../src/assets/css/components/chatbox.css">
+  <link rel="stylesheet" href="../src/assets/css/components/backtotop.css">
+  <link rel="stylesheet" href="../src/assets/css/components/cards.css">
+  <link rel="stylesheet" href="../src/assets/css/pages/kit.css">
+</head>
+<body>
+  <div id="scrollProgress"></div>
+  <div id="navbar-container"></div>
+
+  <section class="container section-padding">
+    <div class="text-center mb-5">
+      <h2 class="section-title">Hệ thống Kit thực hành & Lớp học tương ứng</h2>
+      <p class="section-desc">Phân loại trang thiết bị thực hành trực quan giúp tối ưu hiệu quả tiếp thu theo từng độ tuổi và nhu cầu học tập thực tế.</p>
+    </div>
+
+    <div class="box mb-4">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-6">
+          <input type="text" id="kitSearch" class="form-control form-control-lg" placeholder="Tìm kiếm bộ kit nhanh...">
+        </div>
+        <div class="col-md-6 text-md-end" id="filterTabContainer">
+          <button class="btn btn-primary m-1 filter-tab-btn" data-filter="all">Tất cả danh mục</button>
+          <button class="btn btn-outline-primary m-1 filter-tab-btn" data-filter="basic">Khối Cơ bản</button>
+          <button class="btn btn-outline-primary m-1 filter-tab-btn" data-filter="competition">Đội Thi đấu</button>
+          <button class="btn btn-outline-primary m-1 filter-tab-btn" data-filter="creative">Khối Sáng tạo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Render dynamically here -->
+    <div class="row g-4" id="kitList">
+    </div>
+  </section>
+
+  <div id="footer-container"></div>
+  <div id="backtotop-container"></div>
+  <div id="chatbox-container"></div>
+  
+  <!-- For Kit Details -->
+  <div id="modal-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="../src/app.js"></script>
+</body>
+</html>

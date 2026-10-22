@@ -1,0 +1,33 @@
+.quiz-box {
+    padding: 32px;
+}
+
+.answer-btn {
+    width: 100%;
+    text-align: left;
+    padding: 14px 18px;
+    border-radius: 14px;
+    border: 1px solid #d1d5db;
+    background-color: white;
+    margin-bottom: 12px;
+    transition: 0.2s;
+}
+
+.answer-btn:hover {
+    background-color: #eef6ff;
+    border-color: var(--primary-color);
+}
+
+.answer-correct {
+    background-color: #dcfce7 !important;
+    border-color: var(--success-color) !important;
+    color: #166534;
+    font-weight: bold;
+}
+
+.answer-wrong {
+    background-color: #fee2e2 !important;
+    border-color: var(--danger-color) !important;
+    color: #991b1b;
+    font-weight: bold;
+}
