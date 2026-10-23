@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ST-Robot LMS — Khóa Học STEM Robotics & AI Thông Minh</title>
+  <title>ST-Robot LMS — Khóa Học STEM Robotics</title>
   
   
   <style>
@@ -83,7 +83,7 @@ input::placeholder,textarea::placeholder{color:#bdcde0;opacity:1}
       <div>
         <div class="flex items-center gap-2">
           <span class="font-bold text-lg tracking-tight text-white">ST-Robot LMS</span>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30 font-medium">AI STEM E-Learning</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30 font-medium">STEM E-Learning</span>
         </div>
         <p class="text-xs text-slate-400" id="courseName"></p>
       </div>
@@ -204,36 +204,8 @@ input::placeholder,textarea::placeholder{color:#bdcde0;opacity:1}
       <div id="labView" hidden><div id="labButtons" class="toolbar"></div><div class="lab-heading"><h3 id="labBoxTitle"></h3><p id="labBoxDesc"></p><a id="labExternalBtn" target="_blank" rel="noopener noreferrer">Mở ứng dụng riêng ↗</a><p id="frameNote" class="small"></p></div><div id="frameHost"></div><div id="localLab" hidden></div></div>
     </section>
 
-    <!-- CỘT 3: TRỢ LÝ AI THÔNG MINH -->
-    <aside class="w-96 glass-panel border-l border-slate-800 flex flex-col shrink-0">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-sky-400 flex items-center justify-center text-slate-950 font-bold">
-            <i class="fa-solid fa-brain"></i>
-          </div>
-          <div>
-            <h2 class="font-bold text-sm text-white">Trợ lý AI STEM Robotics</h2>
-            <p class="text-[11px] text-emerald-400">Kết nối máy chủ khi được cấu hình</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="px-4 py-2.5 bg-slate-900/70 border-b border-slate-800">
-        <p class="text-[10px] text-slate-400 mb-1.5 font-semibold">Câu hỏi gửi tới AI khi đã kết nối:</p>
-        <div class="flex flex-wrap gap-1.5">
-          <button onclick="sendQuickPrompt('Giải thích chi tiết nguyên lý hoạt động và công thức của bài này')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-sky-300 px-2.5 py-1 rounded-md border border-slate-700">Giải thích công thức</button>
-          <button onclick="sendQuickPrompt('Hướng dẫn tôi từng bước thực hành trên Phòng Lab')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-amber-300 px-2.5 py-1 rounded-md border border-slate-700">Hướng dẫn Lab</button>
-        </div>
-      </div>
-
-      <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm" aria-live="polite"></div><div class="ai-config"><button onclick="lessonHint()">Gợi ý bài học (biên soạn)</button><details><summary>Kết nối AI của website</summary><p class="small">API cùng website nhận POST JSON: course, lesson, question, context; trả {"reply":"…"}. Khóa AI phải nằm ở máy chủ. Chưa có máy chủ thì phần chat báo chưa kết nối. Nội dung câu hỏi có thể được gửi cho dịch vụ AI; không nhập dữ liệu cá nhân.</p><label for="aiEndpoint">Đường dẫn API</label><input id="aiEndpoint" placeholder="/api/tutor"><button id="saveEndpoint">Lưu cấu hình</button></details></div>
-      <form onsubmit="handleChatSubmit(event)" class="p-3 border-t border-slate-800 bg-slate-900/80">
-        <div class="flex items-center gap-2">
-          <input type="text" id="chatInput" placeholder="Nhập câu hỏi bất kỳ cho AI..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none" />
-          <button type="submit" class="bg-sky-500 text-slate-950 font-bold px-3.5 py-2.5 rounded-xl text-xs">Gửi</button>
-        </div>
-      </form>
-    </aside>
+    <!-- Khu vực dành cho trợ lý học tập -->
+    <aside class="w-96 glass-panel border-l border-slate-800 flex flex-col shrink-0"></aside>
   </main>
 
   <!-- MODAL XEM & LƯU FILE PDF THẬT -->
@@ -1905,12 +1877,11 @@ function initPage(){
  $('quizForm').onsubmit=e=>{e.preventDefault();const v=document.querySelector('[name=answer]:checked');if(!v){toast('Chọn một đáp án trước.');return}const r=record();r.choice=Number(v.value);r.done=false;save();$('quizFeedback').textContent=(r.choice===lesson().answer?'Đúng. ':'Chưa đúng. ')+lesson().why;renderLessons()};
  $('downloadPdf').onclick=downloadPdf;$('exportNotes').onclick=()=>downloadBlob(new Blob([JSON.stringify({course:course.id,records:state[course.id],exportedAt:new Date().toISOString()},null,2)],{type:'application/json'}),course.id+'-nhat-ky.json');
  $('copyLink').onclick=async()=>{try{await navigator.clipboard.writeText(new URL('course.learning.html?course='+course.id,location.href).href);toast('Đã sao chép đường dẫn khóa học.')}catch{toast('Đường dẫn khóa: course.learning.html?course='+course.id)}};
- $('aiEndpoint').value=state.endpoint||'';$('saveEndpoint').onclick=()=>{const v=$('aiEndpoint').value.trim();if(v&&(!v.startsWith('/')||v.startsWith('//')||v.includes('\\')||/[?#]/.test(v))){toast('Chỉ nhập đường dẫn API cùng website, ví dụ /api/tutor.');return}state.endpoint=v;save();toast(v?'Đã lưu đường dẫn. Chưa xác nhận máy chủ AI hoạt động.':'Đã tắt kết nối AI.')};
  document.addEventListener('keydown',e=>{if(e.key==='Escape')closePdfModal()});
 }
 function updateURL(){try{const u=new URL(location.href);u.searchParams.set('course',course.id);u.searchParams.set('lesson',lesson().id);history.replaceState(null,'',u)}catch{}}
 function renderLessons(){const records=state[course.id]||{};let n=course.lessons.filter(l=>records[l.id]?.done).length;$('progressText').textContent=n+'/6 bài tự học';$('lessonList').innerHTML=course.lessons.map((l,i)=>'<button class="lesson-item '+(i===currentLessonIndex?'selected':'')+'" aria-current="'+(i===currentLessonIndex?'step':'false')+'" onclick="loadLesson('+i+')"><span class="lesson-number">'+(records[l.id]?.done?'✓':i+1)+'</span><span>'+esc(l.title)+'<small>50 phút · Lý thuyết + thực hành</small></span></button>').join('')}
-function loadLesson(i){currentLessonIndex=i;const l=lesson(),r=record();$('courseName').textContent='Khóa học: '+course.name;$('lessonBadge').textContent=course.tag+' · BÀI '+(i+1)+'/6';$('lessonTitle').textContent=l.title;$('lessonDesc').textContent=l.goal;$('videoTitle').textContent='Dự đoán → Thực hành → Kiểm chứng';$('theoryContent').innerHTML=l.theory.split('\n\n').map(t=>'<p>'+esc(t)+'</p>').join('')+'<p class="example"><strong>Ví dụ:</strong> '+esc(l.example)+'</p>';$('practiceSteps').innerHTML=l.steps.map(s=>'<li>'+esc(s)+'</li>').join('');$('sampleCodeBox').textContent=l.code;$('codeLangLabel').textContent=l.lang;$('prereq').textContent=l.prereq;$('labGuide').textContent=l.labGuide;$('exercise').textContent=l.exercise;$('solution').textContent=l.solution;$('solution').parentElement.open=false;$('quizQuestion').textContent=l.q;$('quizOptions').innerHTML=l.opts.map((o,j)=>'<label class="answer"><input name="answer" type="radio" value="'+j+'" '+(r.choice===j?'checked':'')+'> '+esc(o)+'</label>').join('');$('quizFeedback').textContent=r.choice===null?'':(r.choice===l.answer?'Đúng. ':'Chưa đúng. ')+l.why;$('journal').value=r.note||'';$('rubric').innerHTML=l.rubric.map(x=>'<li>'+esc(x[0])+': '+x[1]+' điểm</li>').join('');$('pdfFileNameLabel').textContent=course.id+'-giao-trinh-6-bai.pdf';$('pdfDocHeading').textContent=course.name;$('chatMessages').replaceChildren();bubble('Trợ lý AI chưa tự kết nối trong file HTML. Có thể cấu hình API máy chủ ở phần bên dưới. Nút “Gợi ý bài học” cung cấp nội dung biên soạn, không giả là AI.');$('notice').textContent='';$('labButtons').innerHTML=(course.lab==='circuit'?['circuit','avr']: [course.lab]).map(k=>'<button onclick="selectLabPlatform(\''+k+'\')">'+esc(labs[k].name)+'</button>').join('')+'<button onclick="selectLabPlatform(\'local\')">Bàn thí nghiệm bài học</button>';frameKey='';$('frameHost').replaceChildren();$('localLab').hidden=true;renderLocal();renderLessons();updateURL();switchMainTab('theory');}
+function loadLesson(i){currentLessonIndex=i;const l=lesson(),r=record();$('courseName').textContent='Khóa học: '+course.name;$('lessonBadge').textContent=course.tag+' · BÀI '+(i+1)+'/6';$('lessonTitle').textContent=l.title;$('lessonDesc').textContent=l.goal;$('videoTitle').textContent='Dự đoán → Thực hành → Kiểm chứng';$('theoryContent').innerHTML=l.theory.split('\n\n').map(t=>'<p>'+esc(t)+'</p>').join('')+'<p class="example"><strong>Ví dụ:</strong> '+esc(l.example)+'</p>';$('practiceSteps').innerHTML=l.steps.map(s=>'<li>'+esc(s)+'</li>').join('');$('sampleCodeBox').textContent=l.code;$('codeLangLabel').textContent=l.lang;$('prereq').textContent=l.prereq;$('labGuide').textContent=l.labGuide;$('exercise').textContent=l.exercise;$('solution').textContent=l.solution;$('solution').parentElement.open=false;$('quizQuestion').textContent=l.q;$('quizOptions').innerHTML=l.opts.map((o,j)=>'<label class="answer"><input name="answer" type="radio" value="'+j+'" '+(r.choice===j?'checked':'')+'> '+esc(o)+'</label>').join('');$('quizFeedback').textContent=r.choice===null?'':(r.choice===l.answer?'Đúng. ':'Chưa đúng. ')+l.why;$('journal').value=r.note||'';$('rubric').innerHTML=l.rubric.map(x=>'<li>'+esc(x[0])+': '+x[1]+' điểm</li>').join('');$('pdfFileNameLabel').textContent=course.id+'-giao-trinh-6-bai.pdf';$('pdfDocHeading').textContent=course.name;$('notice').textContent='';$('labButtons').innerHTML=(course.lab==='circuit'?['circuit','avr']: [course.lab]).map(k=>'<button onclick="selectLabPlatform(\''+k+'\')">'+esc(labs[k].name)+'</button>').join('')+'<button onclick="selectLabPlatform(\'local\')">Bàn thí nghiệm bài học</button>';frameKey='';$('frameHost').replaceChildren();$('localLab').hidden=true;renderLocal();renderLessons();updateURL();switchMainTab('theory');}
 function switchMainTab(t){$('theoryView').hidden=t!=='theory';$('labView').hidden=t!=='lab';$('theoryView').style.display=t==='theory'?'block':'none';$('labView').style.display=t==='lab'?'flex':'none';$('tabBtnTheory').classList.toggle('lab-active-tab',t==='theory');$('tabBtnLab').classList.toggle('lab-active-tab',t==='lab');if(t==='lab'&&!frameKey)selectLabPlatform(course.lab==='circuit'?'avr':course.lab)}
 function selectLabPlatform(key){frameKey=key;$('frameHost').replaceChildren();$('localLab').hidden=key!=='local';if(key==='local'){$('labBoxTitle').textContent='Bàn thí nghiệm: '+lesson().title;$('labBoxDesc').textContent='Mô hình đơn giản để kiểm tra khái niệm; không phải trình biên dịch hoặc mô phỏng đầy đủ phần cứng.';$('labExternalBtn').hidden=true;$('frameNote').textContent='Hoạt động trong file HTML, không cần tài khoản bên ngoài.';return}const cfg=labs[key];$('labBoxTitle').textContent=cfg.name;$('labBoxDesc').textContent=cfg.note;$('labExternalBtn').hidden=false;$('labExternalBtn').href=cfg.url;const f=document.createElement('iframe');f.title=cfg.name;f.src=cfg.url;f.allow='fullscreen; clipboard-write';f.referrerPolicy='strict-origin-when-cross-origin';f.allowFullscreen=true;f.id='practiceFrame';$('frameHost').append(f);$('frameNote').textContent='Đang yêu cầu mở lab trong khung. Cần Internet; trang này không thể đọc trạng thái hoặc điểm trong iframe khác tên miền. Nếu khung không tải, chọn bàn thí nghiệm hoặc mở ứng dụng riêng. Hãy lưu dự án trước khi đổi bài/khóa.';}
 function markLessonComplete(){let r=record();if(r.choice!==lesson().answer){toast('Cần trả lời đúng câu kiểm tra trước.');return}if((r.note||'').trim().length<60){toast('Ghi nhật ký ít nhất 60 ký tự: đầu vào, kết quả và giải thích.');$('journal').focus();return}r.done=true;save();renderLessons();toast('Đã đánh dấu hoàn thành tự học. Đây không phải xác nhận chấm lab ngoài hoặc chứng nhận năng lực.')}
@@ -1920,10 +1891,6 @@ function downloadPdf(){downloadBlob(pdfBlob(),course.id+'-giao-trinh-6-bai.pdf')
 function openPdfModal(){if(pdfURL)URL.revokeObjectURL(pdfURL);pdfURL=URL.createObjectURL(pdfBlob());$('pdfDocHeading').textContent=course.name+' · Giáo trình 6 bài';$('pdfDocBody').innerHTML='<p>PDF có lý thuyết, ví dụ, mã mẫu, bài tập, đáp án và rubric. Nếu thiết bị không xem được PDF trong khung, dùng nút tải.</p><iframe title="Giáo trình PDF" style="width:100%;height:62vh;border:0" src="'+pdfURL+'"></iframe>';$('pdfModal').classList.remove('hidden');$('pdfModal').style.display='flex';$('pdfModal').setAttribute('aria-hidden','false');$('downloadPdf').focus()}
 function closePdfModal(){$('pdfModal').style.display='none';$('pdfModal').setAttribute('aria-hidden','true')}
 async function copySampleCode(){try{await navigator.clipboard.writeText(lesson().code);toast('Đã sao chép mã mẫu.')}catch{toast('Trình duyệt không cho sao chép tự động; chọn mã rồi nhấn Ctrl+C.')}}
-function bubble(t,user=false){let d=document.createElement('div');d.className='chat-message'+(user?' user':'');d.textContent=t;$('chatMessages').append(d);$('chatMessages').scrollTop=$('chatMessages').scrollHeight}
-function lessonHint(){bubble('GỢI Ý BIÊN SOẠN · '+lesson().example+'\nHãy dự đoán một đầu vào khác rồi thử trong lab. Đây là nội dung cố định, không phải phản hồi AI.')}
-async function sendQuickPrompt(q){if(busy)return;bubble(q,true);const endpoint=state.endpoint;if(!endpoint){bubble('Chưa cấu hình máy chủ AI. Mở “Kết nối AI” để nhập đường dẫn API của website; không nhập khóa bí mật vào HTML.');return}if(!/^\/(?!\/)/.test(endpoint)||endpoint.includes('\\')||location.protocol==='file:'){bubble('API cần đường dẫn cùng website và trang được mở qua HTTP/HTTPS.');return}busy=true;const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),30000);try{let r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({course:course.id,lesson:lesson().id,question:q,context:{title:lesson().title,theory:lesson().theory}}),signal:ctrl.signal});if(!r.ok)throw Error('Máy chủ trả HTTP '+r.status);const data=await r.json();if(typeof data.reply!=='string'||!data.reply.trim())throw Error('API cần trả JSON có trường reply.');bubble('AI · '+data.reply)}catch(e){bubble('Không nhận được phản hồi AI: '+(e.name==='AbortError'?'hết thời gian chờ.':e.message))}finally{clearTimeout(timer);busy=false}}
-function handleChatSubmit(e){e.preventDefault();const q=$('chatInput').value.trim();if(!q)return;$('chatInput').value='';sendQuickPrompt(q)}
 // Local numerical/logic benches: explicit models, never execute arbitrary user code.
 function renderLocal(){const id=course.id;$('localLab').innerHTML='<h3>Bàn thí nghiệm tương tác</h3><div id="benchControls"></div><canvas id="benchCanvas" width="600" height="260" style="max-width:100%;width:100%;background:#0b172a;border-radius:12px"></canvas><pre id="benchResult" role="status"></pre>';
  if(id==='arduino'){$('benchControls').innerHTML='<label>Điện trở Ω <input id="resistance" type="number" min="1" max="1000000" value="330"></label><label>Echo µs (0 = timeout) <input id="echo" type="number" min="0" max="30000" value="1000"></label><label>Chuỗi khoảng cách cm <input id="distances" value="30,19,22,24,26"></label><button onclick="runBench()">Tính & chạy cảnh báo</button>'}
@@ -1940,41 +1907,5 @@ function runBench(){const canvas=$('benchCanvas'),ctx=canvas.getContext('2d');ct
 window.addEventListener('DOMContentLoaded',initPage);
 
 </script>
-<script id="gemini-connection">
-// Gemini connection; no secret is present in this HTML.
-let geminiSession=null,geminiConnecting=null;
-async function connectGemini(){
- const status=$('geminiStatus');
- if(location.protocol==='file:'){if(status)status.textContent='Mở qua http://127.0.0.1:8000 sau khi chạy start.bat để dùng Gemini.';return null}
- if(geminiConnecting)return geminiConnecting;
- geminiConnecting=(async()=>{try{const r=await fetch('/api/session',{credentials:'same-origin',cache:'no-store'});if(!r.ok)throw Error('Chưa kết nối bộ máy chủ Gemini.');const s=await r.json();if(typeof s.csrf!=='string'||typeof s.model!=='string')throw Error('Máy chủ chưa đúng cấu hình Gemini.');geminiSession=s;status.textContent=s.configured?'Gemini · '+s.model+' · Đã cấu hình khóa; câu hỏi đầu sẽ kiểm tra API thật.':'Gemini · '+s.model+' · Cần đặt GEMINI_API_KEY trong .env.';return s}catch(e){geminiSession=null;if(status)status.textContent=e.message;return null}finally{geminiConnecting=null}})();return geminiConnecting
-}
-const priorLoadLesson=loadLesson;
-loadLesson=function(i){priorLoadLesson(i);$('chatMessages').replaceChildren();bubble('Bạn có thể hỏi tự do về bài học, công thức hoặc code. Gemini nhận giáo trình của bài hiện tại và nhớ tối đa 4 lượt trao đổi gần nhất theo bài trong phiên máy chủ. Chưa có khóa API thì chưa thể trả lời. Không nhập thông tin cá nhân.');if($('shareLab'))$('shareLab').checked=false;};
-sendQuickPrompt=async function(q){
- q=q.trim();if(busy||!q)return;if(q.length>4000){bubble('Câu hỏi tối đa 4.000 ký tự.');return}
- const cid=course.id,lid=lesson().id;const same=()=>course.id===cid&&lesson().id===lid;
- bubble(q,true);busy=true;const button=document.querySelector('form[onsubmit="handleChatSubmit(event)"] button');button.disabled=true;const status=$('geminiStatus');
- const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),55000);
- try{const s=geminiSession||await connectGemini();if(!s)throw Error('Chạy bộ kết nối Gemini và mở trang qua địa chỉ localhost.');if(!s.configured)throw Error('Chưa đặt GEMINI_API_KEY. Thêm khóa vào .env trên máy chủ rồi khởi động lại.');status.textContent='Gemini đang xử lý câu hỏi…';
- let labEvidence='';if($('shareLab').checked){const inputs=Array.from($('benchControls').querySelectorAll('input')).map(x=>x.id+'='+x.value).join('\n');labEvidence=('Bàn mô hình nội bộ, dữ liệu từ trình duyệt, chưa xác minh:\n'+inputs+'\n'+$('benchResult').textContent).slice(0,4000)}
- const r=await fetch('/api/tutor',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':s.csrf},credentials:'same-origin',signal:controller.signal,body:JSON.stringify({course:cid,lesson:lid,question:q,labEvidence})});
- const data=await r.json().catch(()=>({}));if(!r.ok){if(r.status===403)geminiSession=null;throw Error(data.error||'Máy chủ trả HTTP '+r.status)}
- if(typeof data.reply!=='string'||!data.reply.trim())throw Error('Máy chủ chưa trả lời hợp lệ.');
- if(same())bubble('Gemini · '+data.model+'\n'+data.reply);status.textContent='Đã nhận phản hồi từ '+data.model+'. Hãy kiểm chứng nội dung trước khi áp dụng.';
- }catch(e){if(same())bubble('Chưa nhận được câu trả lời Gemini: '+(e.name==='AbortError'?'hết thời gian chờ.':e.message));status.textContent='Kết nối chưa thành công; không dùng câu trả lời soạn sẵn thay thế.'}
- finally{clearTimeout(timer);busy=false;button.disabled=false}
-};
-window.addEventListener('DOMContentLoaded',()=>{
- const config=document.querySelector('.ai-config');
- const status=document.createElement('p');status.id='geminiStatus';status.className='small';status.setAttribute('role','status');config.prepend(status);
- const label=document.createElement('label');label.className='small';const check=document.createElement('input');check.type='checkbox';check.id='shareLab';label.append(check,document.createTextNode(' Gửi thêm kết quả bàn thí nghiệm nội bộ cho Gemini (dữ liệu tự báo cáo).'));config.append(label);
- const reset=document.createElement('button');reset.textContent='Bắt đầu cuộc trao đổi mới';reset.onclick=async()=>{if(busy)return;const cid=course.id,lid=lesson().id;try{const s=geminiSession||await connectGemini();if(!s)throw Error('Chưa kết nối máy chủ.');const r=await fetch('/api/reset',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':s.csrf},credentials:'same-origin',body:JSON.stringify({course:cid,lesson:lid})});if(!r.ok)throw Error('Chưa xóa được lịch sử phiên; tải lại trang để kết nối.');if(course.id===cid&&lesson().id===lid){$('chatMessages').replaceChildren();bubble('Đã bắt đầu cuộc trao đổi mới cho bài này.')}}catch(e){bubble(e.message)}};config.append(reset);
- $('aiEndpoint').value='/api/tutor';$('aiEndpoint').readOnly=true;$('saveEndpoint').textContent='Kiểm tra kết nối';$('saveEndpoint').onclick=()=>{geminiSession=null;connectGemini()};
- const detail=config.querySelector('details p');detail.textContent='Gemini kết nối qua bộ máy chủ đi kèm. Đặt GEMINI_API_KEY trong .env, chạy start.bat rồi mở địa chỉ localhost. Khóa không lưu trong HTML. Câu hỏi, giáo trình, lịch sử gần nhất và dữ liệu lab nếu bạn chọn sẽ gửi đến Google; nhật ký riêng không tự gửi.';
- document.querySelector('main > aside:last-child h2').textContent='Trợ lý Gemini STEM Robotics';
- connectGemini();
-});
 
-</script>
 </body></html>
