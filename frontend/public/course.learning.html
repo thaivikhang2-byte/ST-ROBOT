@@ -205,7 +205,11 @@ input::placeholder,textarea::placeholder{color:#bdcde0;opacity:1}
     </section>
 
     <!-- Khu vực dành cho trợ lý học tập -->
-    <aside class="w-96 glass-panel border-l border-slate-800 flex flex-col shrink-0"></aside>
+    <aside class="w-96 glass-panel border-l border-slate-800 flex flex-col shrink-0" aria-label="Trợ lý học tập">
+      <div class="p-4 border-b border-slate-800"><h2 class="font-bold text-sm text-white">Trợ lý học tập</h2><p class="small">Hỏi về bài học và thực hành STEM Robotics.</p></div>
+      <div id="tutorMessages" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm" aria-live="polite" style="min-height:120px;white-space:pre-wrap;overflow-wrap:anywhere"></div>
+      <form id="tutorForm" class="p-3 border-t border-slate-800"><label for="tutorQuestion">Câu hỏi của bạn</label><textarea id="tutorQuestion" rows="3" maxlength="3000" required placeholder="Bạn cần giải thích phần nào?"></textarea><button id="tutorSend" type="submit">Gửi</button><button id="tutorReset" type="button">Trao đổi mới</button><p id="tutorStatus" class="small" role="status"></p><p class="small">Câu hỏi và nội dung bài học được gửi đến dịch vụ AI. Không nhập thông tin cá nhân. Hãy đối chiếu câu trả lời với giáo trình.</p></form>
+    </aside>
   </main>
 
   <!-- MODAL XEM & LƯU FILE PDF THẬT -->
@@ -1908,4 +1912,64 @@ window.addEventListener('DOMContentLoaded',initPage);
 
 </script>
 
+<script>
+// Paste only the public backend URL here, never an API key.
+const TUTOR_API_URL = '';
+window.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('tutorForm');
+  const input = document.getElementById('tutorQuestion');
+  const messages = document.getElementById('tutorMessages');
+  const status = document.getElementById('tutorStatus');
+  const send = document.getElementById('tutorSend');
+  const reset = document.getElementById('tutorReset');
+  let history = [], active = null, generation = 0;
+  function add(text, user) {
+    const item = document.createElement('div');
+    item.className = 'chat-message' + (user ? ' user' : '');
+    item.textContent = (user ? 'Bạn: ' : 'Trợ lý: ') + text;
+    messages.append(item); messages.scrollTop = messages.scrollHeight;
+  }
+  function clear() {
+    generation++; active?.abort(); active = null; history = [];
+    messages.replaceChildren(); status.textContent = ''; input.value = '';
+    send.disabled = false;
+  }
+  const originalLoadLesson = loadLesson;
+  loadLesson = function(i) { clear(); originalLoadLesson(i); };
+  reset.onclick = clear;
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const question = input.value.trim();
+    if (!question || active) return;
+    if (!TUTOR_API_URL.startsWith('https://')) { status.textContent = 'Trợ lý đang được thiết lập.'; return; }
+    const ticket = generation;
+    const controller = new AbortController(); active = controller;
+    const timer = setTimeout(() => controller.abort(), 65000);
+    send.disabled = true; add(question, true); input.value = '';
+    status.textContent = 'Đang trả lời…';
+    try {
+      const response = await fetch(TUTOR_API_URL, {
+        method:'POST', headers:{'Content-Type':'application/json'}, credentials:'omit',
+        body:JSON.stringify({course:course.id,lesson:lesson().id,question,history}), signal:controller.signal
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Chưa nhận được phản hồi.');
+      if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('Phản hồi đang trống.');
+      if (ticket !== generation) return;
+      add(data.reply, false);
+      history.push({role:'user',content:question},{role:'assistant',content:data.reply.slice(0,4000)});
+      history = history.slice(-6); status.textContent = '';
+    } catch (error) {
+      if (ticket === generation) {
+        status.textContent = error.name === 'AbortError' ? 'Hết thời gian chờ. Bạn có thể gửi lại câu hỏi.' : (error instanceof TypeError ? 'Chưa kết nối được trợ lý. Bạn hãy thử lại sau.' : error.message);
+        if (!input.value) input.value = question;
+      }
+    } finally {
+      clearTimeout(timer);
+      if (ticket === generation) { active = null; send.disabled = false; }
+    }
+  });
+});
+
+</script>
 </body></html>

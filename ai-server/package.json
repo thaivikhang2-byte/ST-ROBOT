@@ -1,0 +1,1 @@
+{"name":"st-robot-ai","private":true,"version":"1.0.0","engines":{"node":">=22"},"scripts":{"start":"node server.mjs"}}
