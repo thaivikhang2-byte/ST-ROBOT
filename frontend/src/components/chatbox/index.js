@@ -1,10 +1,13 @@
 import { getChatboxTemplate } from './template.js';
 import { $, $$ } from '../../utils/dom.js';
-import { chatbotResponses } from '../../data/chatbot.js';
+
+const AI_URL = 'https://st-robot.onrender.com/api/home-chat';
 
 export class Chatbox {
     constructor(containerId) {
         this.container = $(containerId);
+        this.history = [];
+        this.busy = false;
     }
 
     render() {
@@ -14,68 +17,76 @@ export class Chatbox {
     }
 
     attachEvents() {
-        const triggerBtn = $('#chatTriggerBtn');
-        const closeBtn = $('#chatCloseBtn');
-        const chatWindow = $('#supportChatWindow');
-        const submitBtn = $('#chatSubmitBtn');
-        const inputField = $('#chatInputField');
-        const quickQueries = $$('.chat-quick-query');
-
-        const toggleChat = () => {
-            if (chatWindow) chatWindow.classList.toggle('active');
+        const window = $('#supportChatWindow');
+        const input = $('#chatInputField');
+        const button = $('#chatSubmitBtn');
+        const chips = $$('.chat-quick-query');
+        $('#chatTriggerBtn')?.addEventListener('click', () => window?.classList.toggle('active'));
+        $('#chatCloseBtn')?.addEventListener('click', () => window?.classList.toggle('active'));
+        if (!input || !button) return;
+        input.maxLength = 3000;
+        const submit = async () => {
+            const question = input.value.trim();
+            if (!question || this.busy) return;
+            this.busy = true;
+            button.disabled = true;
+            chips.forEach(b => b.disabled = true);
+            this.appendMessage(question, 'user');
+            input.value = '';
+            const pending = this.appendMessage('AI đang trả lời…', 'assistant');
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 75000);
+            try {
+                const response = await fetch(AI_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, history: this.history.slice(-6) }),
+                    signal: controller.signal
+                });
+                let data;
+                try { data = await response.json(); }
+                catch { throw new Error('Máy chủ chưa sẵn sàng. Hãy thử gửi lại sau 60 giây.'); }
+                if (!response.ok) throw new Error(data.error || 'Không gửi được câu hỏi. Hãy thử lại.');
+                if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('AI chưa trả về nội dung. Hãy thử lại.');
+                pending.textContent = data.reply;
+                this.history.push({ role: 'user', content: question }, { role: 'assistant', content: data.reply.slice(0, 4000) });
+                this.history = this.history.slice(-6);
+            } catch (error) {
+                pending.textContent = error.name === 'AbortError'
+                    ? 'Chờ phản hồi quá lâu. Bạn hãy gửi lại câu hỏi.'
+                    : error instanceof TypeError ? 'Không kết nối được máy chủ AI. Kiểm tra mạng rồi thử lại.' : error.message;
+                if (!input.value) input.value = question;
+            } finally {
+                clearTimeout(timer);
+                this.busy = false;
+                button.disabled = false;
+                chips.forEach(b => b.disabled = false);
+                const messages = $('#chatMessageContainer');
+                if (messages) messages.scrollTop = messages.scrollHeight;
+                input.focus();
+            }
         };
-
-        if (triggerBtn) triggerBtn.addEventListener('click', toggleChat);
-        if (closeBtn) closeBtn.addEventListener('click', toggleChat);
-
-        const submitQuery = () => {
-            const query = inputField.value.trim();
-            if (!query) return;
-            this.appendMessage(query, 'user');
-            inputField.value = '';
-            
-            setTimeout(() => {
-                this.appendMessage(this.generateResponse(query), 'assistant');
-            }, 300);
-        };
-
-        if (submitBtn) submitBtn.addEventListener('click', submitQuery);
-        
-        if (inputField) {
-            inputField.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') submitQuery();
-            });
-        }
-
-        quickQueries.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const query = e.target.getAttribute('data-query');
-                inputField.value = query;
-                submitQuery();
-            });
+        button.addEventListener('click', submit);
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submit(); }
         });
+        chips.forEach(b => b.addEventListener('click', () => {
+            if (this.busy) return;
+            input.value = b.getAttribute('data-query') || '';
+            submit();
+        }));
     }
 
     appendMessage(text, sender) {
-        const container = $('#chatMessageContainer');
-        if (!container) return;
-        
-        const msgBubble = document.createElement('div');
-        msgBubble.className = sender === 'user' ? 'bot-msg bot-msg-user' : 'bot-msg bot-msg-ai';
-        msgBubble.innerText = text;
-        container.appendChild(msgBubble);
-        container.scrollTop = container.scrollHeight;
-    }
-
-    generateResponse(inputStr) {
-        let text = inputStr.toLowerCase();
-        for (let item of chatbotResponses) {
-            if (item.keywords[0] === 'default') continue;
-            if (item.keywords.some(kw => text.includes(kw))) {
-                return item.response;
-            }
-        }
-        const defaultItem = chatbotResponses.find(item => item.keywords.includes('default'));
-        return defaultItem ? defaultItem.response : "Xin lỗi, tôi chưa hiểu ý bạn.";
+        const bubble = document.createElement('div');
+        bubble.className = sender === 'user' ? 'bot-msg bot-msg-user' : 'bot-msg bot-msg-ai';
+        bubble.textContent = text;
+        bubble.style.whiteSpace = 'pre-wrap';
+        bubble.style.overflowWrap = 'anywhere';
+        bubble.style.flexShrink = '0';
+        const messages = $('#chatMessageContainer');
+        messages?.appendChild(bubble);
+        if (messages) messages.scrollTop = messages.scrollHeight;
+        return bubble;
     }
 }
