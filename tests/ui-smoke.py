@@ -403,6 +403,26 @@ with sync_playwright() as p:
 
     checked('all original learning courses, lesson content, tabs and local lab benches', learning)
 
+    def stale_lab_registry():
+        stale_requests = []
+        def old_registry(route):
+            stale_requests.append(route.request.url)
+            route.fulfill(status=200, content_type='text/javascript', body='window.STROBOT_LAB_PLATFORMS={local:{name:"Old local-only bench",mode:"local",languages:"offline"}};window.STROBOT_COURSE_LABS={arduino:["local"]};')
+        page.route('**/src/data/lab-platforms.js*', old_registry)
+        goto('course.learning.html?course=arduino&build=cache-regression')
+        expect(page.locator('#lab-platform-data')).to_have_count(1)
+        expect(page.locator('script[src*="lab-platforms.js"]')).to_have_count(0)
+        page.locator('#tabBtnLab').click()
+        expect(page.locator('#labButtons button')).to_have_count(5)
+        for key in ['circuit', 'avr', 'wokwi', 'phet', 'local']:
+            expect(page.locator('#labButtons button[data-lab-key="' + key + '"]')).to_have_count(1)
+        expect(page.locator('#practiceFrame')).to_have_attribute('src', 'https://www.falstad.com/circuit/avr8js/')
+        require(not stale_requests, 'The page still loads a separately cached lab registry')
+        page.unroute('**/src/data/lab-platforms.js*', old_registry)
+        return {'old_registry_requests': len(stale_requests), 'arduino_choices': 5, 'original_default': 'avr', 'atomic_lab_snapshot': True}
+
+    checked('old cached lab registry cannot hide the restored platforms', stale_lab_registry)
+
     def lab_platforms():
         goto('course.learning.html?course=arduino')
         registry = page.evaluate('window.STROBOT_LAB_PLATFORMS')

@@ -68,3 +68,14 @@ python3 tests/content-validation.py
 Công cụ tạo PDF cần phông DejaVu Sans (`fonts-dejavu-core` trên Debian/Ubuntu), hoặc truyền `--symbol-font /duong/dan/DejaVuSans.ttf`. Font hỗ trợ ký hiệu khoa học, bên cạnh Be Vietnam Pro có sẵn trong dự án. Các file JS sinh ra đã được commit; người dùng website không cần Python hoặc công cụ build.
 
 `python3 scripts/build-learning-content.py --check` phát hiện dữ liệu/PDF chưa cập nhật. Kiểm thử nội dung đọc PDF thật, đối chiếu đủ 30 bài và kiểm tra dữ liệu AI trùng dữ liệu frontend. Kiểm thử trình duyệt chặn các dịch vụ ngoài, xác nhận luồng chọn lab/ẩn nền tảng bị chặn và không mở tab ngoài, không khẳng định máy chủ ngoài đang hoạt động hoặc cho phép nhúng ở mọi thời điểm.
+
+### Tránh lệch phiên bản danh sách lab
+
+Danh sách lab được chèn trực tiếp vào trang học cùng mã hiển thị, thay vì tải một bản `lab-platforms.js` có thể còn trong cache cũ. Khi sửa `frontend/src/data/lab-platforms.js`, chạy:
+
+```sh
+python3 scripts/build-lab-snapshot.py
+python3 scripts/build-lab-snapshot.py --check
+```
+
+Bộ kiểm thử giả lập máy chủ trả danh sách lab cũ và xác nhận trang mới không tải file rời đó, đồng thời vẫn hiện đủ 5 lựa chọn Arduino và tự mở AVR8js.

@@ -33,3 +33,7 @@ New frames cannot open popup tabs or navigate the top page. A new platform that 
 Official source documentation supports the added routes. Direct provider requests from this managed environment failed at the network proxy CONNECT stage with HTTP 403; that is not evidence that the provider rejects website embedding. It must not be used to remove the user's original working labs.
 
 The browser suite uses local iframe fixtures to verify all original URLs/defaults, the four added embed URLs, local benches, blocked-addition recovery, absence of external-tab buttons, responsive layout and existing course features. It does not claim live provider availability. The source list excludes full-editor-only candidates requiring a separate tab (VEX/LEGO vendor editors, Python Editor, Open Roberta) from the shipped lab menu.
+
+## Atomic browser snapshot
+
+A stale copy of the old standalone registry was reproduced against the restored page: it displayed only the local bench, matching the reported screenshot. The lab registry is now bundled into `course.learning.html` by `scripts/build-lab-snapshot.py`, so the page and lab data share one HTTP response. The editable JS source remains in `frontend/src/data/lab-platforms.js`. `--check` detects an out-of-date page snapshot; the browser regression feeds an old registry response and asserts it is never requested.
