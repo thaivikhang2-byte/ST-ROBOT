@@ -24,7 +24,7 @@ Các trang HTML ở thư mục gốc chuyển về `frontend/public/` và giữ 
 
 - 5 khóa × 6 bài: Arduino Uno, VEX IQ, Micro:bit, LEGO SPIKE Prime và VEXcode VR.
 - Lý thuyết, code mẫu, bài tập, quiz, nhật ký, điều kiện hoàn thành và tải PDF.
-- 14 lựa chọn thực hành: 8 cấu hình khung nhúng, 5 công cụ mở riêng và bàn thí nghiệm nội bộ; mỗi khóa có 5–6 lựa chọn phù hợp.
+- 14 lựa chọn thực hành: các nền tảng ngoài mở ở tab riêng và bàn thí nghiệm nội bộ chạy ngay trong trang; mỗi khóa có 5–6 lựa chọn phù hợp.
 - Nội dung 30 bài có mục tiêu, kiến thức theo bước, ví dụ có đơn vị, lỗi thường gặp, tự kiểm tra và nguồn chính thức.
 - micro:bit có cả mã mẫu MakeCode JavaScript và MicroPython; chọn đúng môi trường trước khi sao chép.
 - Tìm/lọc bộ kit, thông số chi tiết, quiz ôn tập và chọn khóa từ trang đăng ký.
@@ -51,9 +51,9 @@ python3 tests/ui-smoke.py --base http://127.0.0.1:8000 --chromium /usr/bin/chrom
 
 Arduino có CircuitJS, AVR8js, Wokwi và PhET. micro:bit có MakeCode, Python Editor, Arcade và Scratch. Các khóa robot có GearsBot, Scratch, Open Roberta và công cụ chính thức VEX/LEGO phù hợp; Arcade được bổ sung cho VEX IQ và VEXcode VR.
 
-Khung nhúng của Scratch/Arcade chạy mẫu để luyện thuật toán; mở editor riêng để sửa hoặc remix. PhET là thí nghiệm điện DC, không chạy code Arduino. GearsBot là môi trường robot ảo khác, không chạy nguyên API VEX/LEGO. Các lựa chọn chính hãng cần phần cứng/cấp truy cập tương ứng khi nền tảng yêu cầu.
+Scratch/Arcade có player chạy mẫu để luyện thuật toán; hiện mở editor riêng để sửa hoặc remix. PhET là thí nghiệm điện DC, không chạy code Arduino. GearsBot là môi trường robot ảo khác, không chạy nguyên API VEX/LEGO. Các lựa chọn chính hãng cần phần cứng/cấp truy cập tương ứng khi nền tảng yêu cầu.
 
-Bàn thí nghiệm nội bộ được chọn mặc định. Chỉ sau khi chọn một nền tảng ngoài, website mới tạo iframe hoặc hiển thị nút mở editor riêng. Có nút tải lại/toàn màn hình và hướng dẫn thực hành; nhật ký, quiz và tiến độ vẫn do ST-Robot lưu như trước. Tài liệu nguồn và giới hạn kiểm chứng trực tiếp: [docs/lab-platforms.md](docs/lab-platforms.md).
+Bàn thí nghiệm nội bộ được chọn mặc định. Nền tảng ngoài chỉ có nút mở riêng khi chưa được kiểm chứng nhúng trực tiếp. Chỉ cấu hình đã xác minh đúng URL và origin website mới được tạo iframe. Các hướng dẫn/liên kết hướng dẫn nền tảng đã bỏ khỏi giao diện; nhật ký, quiz và tiến độ vẫn được giữ. Tài liệu nguồn và giới hạn kiểm chứng trực tiếp: [docs/lab-platforms.md](docs/lab-platforms.md).
 
 ## Cập nhật nội dung và PDF cùng lúc
 

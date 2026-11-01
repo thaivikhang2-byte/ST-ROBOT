@@ -2,7 +2,17 @@
 
 Research date: 2026-11-01. This report reads official GitHub source/documentation only. Provider HTTP hosts are outside the running environment allowlist; no provider hosts were called, proxy bypassed, or network configuration changed. Thus **source-documented integration is not a claim of a successful live iframe/browser session**. Retain an explicit separate-open link for every remote lab. Do not infer a successful third-party simulation from iframe onload.
 
-## Recommended additions
+## Current embedding policy
+
+All remote providers currently use `mode: external` and `embedVerification.status: unverified`. Attempts to read live provider headers through this environment's required proxy failed at CONNECT with HTTP 403. This is an environment access denial, not evidence that the providers themselves prohibit framing.
+
+No remote iframe is therefore displayed by the shipped registry. Provider choices and separate editor links remain available; the local bench stays in-page. Platform help links and task-guidance paragraphs are no longer rendered.
+
+Before enabling an iframe, test the exact candidate URL inside a frame on the deployed website, check the provider response/frame policy and verify that its actual simulator/player renders. Then record `mode: embed` and `embedVerification: {status: verified, url: <exact iframe URL>, origin: <tested website origin>}`. A different URL or origin, an unverified record or an embed flag on its own cannot create a frame. `iframe.onload` is not proof that a provider rendered successfully.
+
+The examples below are research candidates, not a list of currently active frames.
+
+## Source-documented candidates
 
 | Platform | iframe/entry URL | Separate editor | Course fit | Evidence and limits |
 | --- | --- | --- | --- | --- |

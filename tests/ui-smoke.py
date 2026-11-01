@@ -443,8 +443,8 @@ with sync_playwright() as p:
                     expect(page.locator('#labExternalBtn')).to_be_visible()
                     expect(page.locator('#labExternalBtn')).to_have_attribute('href', cfg['url'])
                     require(cfg.get('sourceUrl', '').startswith('https://'), 'Platform lacks evidence/reference link: ' + key)
-                    require(cfg.get('guides', {}).get(course_id), 'Missing course-specific lab instructions: ' + course_id + '/' + key)
-                    require(readable_text(cfg['guides'][course_id]) in readable_text(page.locator('#labView').text_content()), 'Course-specific instructions are not visible in the lab area: ' + course_id + '/' + key)
+                    expect(page.locator('#labActivity, #labProviderDocs, #labBoxDesc, #frameNote')).to_have_count(0)
+                    require('Hướng dẫn nền tảng' not in page.locator('#labView').inner_text(), 'Platform help was not removed')
                     expect(page.locator('#localLab')).to_be_hidden()
                     if mode == 'external':
                         expect(page.locator('#practiceFrame')).to_have_count(0)
@@ -469,7 +469,27 @@ with sync_playwright() as p:
             page.locator('#tabBtnLab').click()
             expect(page.locator('#localLab')).to_be_visible()
             expect(page.locator('#practiceFrame')).to_have_count(0)
-        require(modes['embed'] > 0 and modes['external'] > 0, 'Both embeddable and external-only providers must be handled')
+        require(modes['external'] > 0, 'External provider choices must remain available')
+        # A configured embed flag is insufficient without verification of this exact URL/origin.
+        page.locator('#courseSelect').select_option('arduino')
+        page.locator('#tabBtnLab').click()
+        original = page.evaluate('JSON.parse(JSON.stringify(labs.circuit))')
+        page.evaluate("labs.circuit.mode='embed'; labs.circuit.embedVerification={status:'unverified'}; selectLabPlatform('circuit')")
+        expect(page.locator('#practiceFrame')).to_have_count(0)
+        expect(page.locator('#labExternalBtn')).to_be_visible()
+        page.evaluate("labs.circuit.embedVerification={status:'verified',url:labs.circuit.embedUrl||labs.circuit.url,origin:location.origin}; selectLabPlatform('circuit')")
+        expect(page.locator('#practiceFrame')).to_have_count(1)
+        expect(page.locator('#practiceFrame')).to_have_attribute('src', original.get('embedUrl') or original['url'])
+        expect(page.locator('#practiceFrame')).to_have_attribute('title', original['name'])
+        require('allow-scripts' in page.locator('#practiceFrame').get_attribute('sandbox'), 'Verified frame cannot run')
+        expect(page.locator('#labReloadBtn')).to_be_visible()
+        page.locator('#labReloadBtn').click()
+        expect(page.locator('#practiceFrame')).to_have_count(1)
+        page.evaluate("labs.circuit.embedVerification.origin='https://different-origin.example'; selectLabPlatform('circuit')")
+        expect(page.locator('#practiceFrame')).to_have_count(0)
+        page.evaluate("labs.circuit.embedVerification.origin=location.origin; labs.circuit.embedVerification.url='https://different-url.example/'; selectLabPlatform('circuit')")
+        expect(page.locator('#practiceFrame')).to_have_count(0)
+        page.evaluate('(cfg)=>{labs.circuit=cfg;selectLabPlatform("local")}', original)
         page.set_viewport_size({'width': 390, 'height': 844})
         mobile_layouts = {}
         for course_id in assignments:
@@ -477,7 +497,7 @@ with sync_playwright() as p:
             page.locator('#tabBtnLab').click()
             mobile_layouts[course_id] = no_overflow()
         page.set_viewport_size({'width': 1440, 'height': 1000})
-        return {'registered_platforms': len(registry), 'course_platform_selections': len(checks), 'selection_modes': modes, 'offline_default': True, 'iframe_contract_checked': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; external traffic blocked'}
+        return {'registered_platforms': len(registry), 'course_platform_selections': len(checks), 'selection_modes': modes, 'offline_default': True, 'iframe_contract_checked': True, 'verification_gate_tested': True, 'platform_help_removed': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; external traffic blocked'}
 
     checked('course-specific lab choices, embed safety, external-only and offline recovery', lab_platforms)
 
