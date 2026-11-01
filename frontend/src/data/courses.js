@@ -1,0 +1,55 @@
+// Course summaries from the existing ST-Robot curriculum. Lessons remain in course.learning.html.
+export const courses = [
+  {
+    "id": "arduino",
+    "name": "Arduino Uno",
+    "tag": "ĐIỆN TỬ & VI ĐIỀU KHIỂN",
+    "desc": "Từ dòng điện, LED đến cảm biến siêu âm và cảnh báo khoảng cách.",
+    "tools": [
+      "tinkercad",
+      "wokwi"
+    ],
+    "lessonCount": 6
+  },
+  {
+    "id": "vex-iq",
+    "name": "VEX IQ",
+    "tag": "ROBOT THI ĐẤU",
+    "desc": "Cơ cấu truyền động, thuật toán đường đi và kiểm thử robot VEX IQ.",
+    "tools": [
+      "vexiq",
+      "vexvr"
+    ],
+    "lessonCount": 6
+  },
+  {
+    "id": "microbit",
+    "name": "Micro:bit",
+    "tag": "LẬP TRÌNH SÁNG TẠO",
+    "desc": "Ma trận LED, sự kiện nút bấm, cảm biến và sản phẩm tương tác.",
+    "tools": [
+      "makecode"
+    ],
+    "lessonCount": 6
+  },
+  {
+    "id": "lego-spike",
+    "name": "LEGO SPIKE Prime",
+    "tag": "CƠ CẤU & CẢM BIẾN",
+    "desc": "Từ cơ cấu truyền động đến mô hình phân loại màu có kiểm chứng.",
+    "tools": [
+      "spike"
+    ],
+    "lessonCount": 6
+  },
+  {
+    "id": "vex-vr",
+    "name": "VEXcode VR",
+    "tag": "ROBOT TỰ HÀNH ẢO",
+    "desc": "Học thuật toán trên robot ảo; không cần bộ kit VEX IQ để bắt đầu.",
+    "tools": [
+      "vexvr"
+    ],
+    "lessonCount": 6
+  }
+];

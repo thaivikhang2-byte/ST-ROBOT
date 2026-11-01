@@ -1,0 +1,26 @@
+[
+  {
+    "file": "hero-1.jpg",
+    "source": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1800&q=85",
+    "sha256": "d0646ca3366791a605fedc6a1db0923cf114835cabcb05499364586da66f92ea",
+    "bytes": 195020
+  },
+  {
+    "file": "hero-2.jpg",
+    "source": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1800&q=85",
+    "sha256": "0ed4c606d59b9babee73401763fd71815e078655e6dd55e36d69eeb557905ea6",
+    "bytes": 420483
+  },
+  {
+    "file": "hero-3.jpg",
+    "source": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1800&q=85",
+    "sha256": "4d476d14d568b9a19ef616af97b543d27bba28713c5f51dda2ba3717f5bf0d8a",
+    "bytes": 416153
+  },
+  {
+    "file": "hero-4.jpg",
+    "source": "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=1800&q=85",
+    "sha256": "cba3e9247bd01d72bc3dcdaf4f420f00e9b31c5170ad866677899f836ca3ae91",
+    "bytes": 459728
+  }
+]

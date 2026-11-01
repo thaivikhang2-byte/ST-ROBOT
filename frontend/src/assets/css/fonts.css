@@ -1,0 +1,40 @@
+/* Be Vietnam Pro — locally hosted; SIL Open Font License in ../fonts/be-vietnam-pro/OFL.txt. */
+@font-face {
+    font-family: "Be Vietnam Pro";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/be-vietnam-pro/BeVietnamPro-Regular.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "Be Vietnam Pro";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("../fonts/be-vietnam-pro/BeVietnamPro-Medium.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "Be Vietnam Pro";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("../fonts/be-vietnam-pro/BeVietnamPro-SemiBold.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "Be Vietnam Pro";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/be-vietnam-pro/BeVietnamPro-Bold.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "Be Vietnam Pro";
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+    src: url("../fonts/be-vietnam-pro/BeVietnamPro-ExtraBold.ttf") format("truetype");
+}

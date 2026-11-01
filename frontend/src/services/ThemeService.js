@@ -22,5 +22,6 @@ export class ThemeService {
         const isDark = document.body.classList.contains('dark-mode');
         this.currentTheme = isDark ? THEMES.DARK : THEMES.LIGHT;
         setItem(STORAGE_KEYS.THEME, this.currentTheme);
+        document.dispatchEvent(new CustomEvent('theme-changed', { detail: { theme: this.currentTheme } }));
     }
 }

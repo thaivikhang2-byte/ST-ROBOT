@@ -16,14 +16,11 @@ export class BackToTop {
         const btn = $('#backToTopBtn');
         if (!btn) return;
 
-        window.addEventListener('scroll', () => {
-            const scrollTop = document.documentElement.scrollTop;
-            if (scrollTop > 400) {
-                btn.style.display = 'block';
-            } else {
-                btn.style.display = 'none';
-            }
-        });
+        const updateVisibility = () => {
+            btn.classList.toggle('is-visible', window.scrollY > 400);
+        };
+        window.addEventListener('scroll', updateVisibility, { passive: true });
+        updateVisibility();
 
         btn.addEventListener('click', () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });

@@ -1,0 +1,31 @@
+/* Informational pages (Giới thiệu, Bộ Kit, Học liệu) */
+.prose h2 { margin-bottom: var(--space-3); }
+.prose h3 { margin-top: var(--space-5); }
+.prose ul { margin-bottom: var(--space-4); }
+
+.timeline { list-style: none; margin: 0; padding: 0 0 0 var(--space-5); border-left: 2px solid var(--color-border); }
+.timeline li { position: relative; margin: 0 0 var(--space-5); }
+.timeline li::before { content: ""; position: absolute; left: calc(-1 * var(--space-5) - 7px); top: 0.45rem; width: 12px; height: 12px; border-radius: 50%; background: var(--color-primary); box-shadow: 0 0 0 4px var(--color-surface); }
+.timeline h3 { margin-bottom: var(--space-1); font-size: var(--text-base); }
+.timeline p { margin: 0; color: var(--color-text-muted); }
+
+/* Filter bar shared by kit + catalog */
+.toolbar { display: grid; gap: var(--space-4); padding: var(--space-4); margin-bottom: var(--space-5); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+@media (min-width: 48rem) { .toolbar { grid-template-columns: minmax(0, 1fr) auto; align-items: end; } }
+.toolbar .field { margin: 0; }
+.chip-group { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.chip { min-height: var(--touch-target); padding: var(--space-1) var(--space-4); border: 1px solid var(--color-border-control); border-radius: var(--radius-full); background: var(--color-surface); font-weight: var(--weight-medium); font-size: var(--text-sm); }
+.chip:hover { background: var(--color-surface-muted); }
+.chip[aria-pressed="true"] { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-on-primary); }
+.result-count { margin: 0 0 var(--space-4); color: var(--color-text-muted); font-size: var(--text-sm); }
+
+.kit-card .card-media { aspect-ratio: 4 / 3; }
+.tag-list { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: 0; margin: 0; list-style: none; }
+.tag-list li { margin: 0; }
+.kit-detail h3 { margin-top: var(--space-4); font-size: var(--text-base); }
+.course-placeholder { display: grid; place-items: center; color: var(--color-primary); background: var(--color-primary-soft); }
+.course-placeholder .icon { width: 3rem; height: 3rem; }
+.course-link { color: var(--color-text); text-decoration: none; }
+.course-link:hover { color: var(--color-primary); text-decoration: underline; }
+.line-clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.resource-types { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); margin-bottom: var(--space-7); }

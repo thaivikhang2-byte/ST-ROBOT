@@ -8,19 +8,21 @@ export class KitRenderer {
 
         let html = '';
         kits.forEach(kit => {
-            let tagsHtml = kit.tags.map(t => `<span class="tag">${t}</span>`).join(' ');
+            let tagsHtml = kit.tags.map(t => `<li><span class="tag">${t}</span></li>`).join('');
             html += `
-              <div class="col-md-3 kit-item" data-name="${kit.name}" data-type="${kit.type}">
-                <div class="kit-card">
-                  <img src="${kit.image}" alt="${kit.id}">
+              <div class="kit-item" data-name="${kit.name}" data-type="${kit.type}">
+                <article class="card kit-card card--interactive">
+                  <img class="card-media" src="${kit.image}" alt="${kit.displayTitle}" loading="lazy">
                   <div class="card-body">
-                    <h4 class="fw-bold">${kit.displayTitle}</h4>
+                    <h2>${kit.displayTitle}</h2>
                     <p>${kit.displayDesc}</p>
-                    ${tagsHtml}<br>
-                    <button class="btn btn-primary mt-3 btn-show-kit-detail" data-id="${kit.id}">Thông số chi tiết</button>
-                    <a href="${ROUTES.DANG_KY}" class="btn btn-outline-success mt-3">Đăng ký lớp</a>
+                    <ul class="tag-list" aria-label="Linh kiện nổi bật">${tagsHtml}</ul>
+                    <div class="card-actions">
+                      <button type="button" class="btn btn--primary btn-show-kit-detail" data-id="${kit.id}">Thông số chi tiết</button>
+                      <a href="${ROUTES.DANG_KY}" class="btn">Đăng ký lớp</a>
+                    </div>
                   </div>
-                </div>
+                </article>
               </div>
             `;
         });

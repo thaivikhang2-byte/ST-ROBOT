@@ -1,5 +1,12 @@
 import { getNavbarTemplate } from './template.js';
 import { $, $$ } from '../../utils/dom.js';
+import { icon } from '../ui/icon.js';
+
+/** Pure: does a page URL path correspond to the current location? Handles directory roots and base paths. */
+export function isActivePath(currentPath, linkPath) {
+    const normalize = (path) => path.replace(/\/index\.html$/, '/').replace(/\/$/, '') || '/';
+    return normalize(currentPath) === normalize(linkPath);
+}
 
 export class Navbar {
     constructor(containerId) {
@@ -11,31 +18,42 @@ export class Navbar {
         this.container.innerHTML = getNavbarTemplate();
         this.setActiveLink();
         this.attachEvents();
+        this.syncThemeButton();
     }
 
     setActiveLink() {
-        const currentPath = window.location.pathname;
-        const links = $$('.navbar-nav .nav-link');
-        links.forEach(link => {
-            // Very simple path matching
-            const path = link.getAttribute('data-path');
-            if (currentPath.endsWith(path) || (currentPath === '/' && path === '/')) {
-                link.classList.add('active');
-            } else if (currentPath.includes('index.html') && path === '/') {
-                link.classList.add('active');
-            } else {
-                link.classList.remove('active');
-            }
-        });
+        for (const link of $$('.navbar a[data-path]')) {
+            if (isActivePath(window.location.pathname, link.getAttribute('data-path'))) link.setAttribute('aria-current', 'page');
+            else link.removeAttribute('aria-current');
+        }
+    }
+
+    syncThemeButton() {
+        const button = $('#themeToggleBtn');
+        if (!button) return;
+        const dark = document.body.classList.contains('dark-mode');
+        button.setAttribute('aria-pressed', String(dark));
+        button.setAttribute('aria-label', dark ? 'Bật chế độ sáng' : 'Bật chế độ tối');
+        button.innerHTML = icon(dark ? 'sun' : 'moon');
     }
 
     attachEvents() {
-        const themeBtn = $('#themeToggleBtn');
-        if (themeBtn) {
-            themeBtn.addEventListener('click', () => {
-                // We dispatch a custom event so ThemeController can handle it
-                document.dispatchEvent(new CustomEvent('toggle-theme'));
-            });
-        }
+        $('#themeToggleBtn')?.addEventListener('click', () => document.dispatchEvent(new CustomEvent('toggle-theme')));
+        document.addEventListener('theme-changed', () => this.syncThemeButton());
+
+        const toggle = $('#navToggle');
+        const menu = $('#mainNavbar');
+        if (!toggle || !menu) return;
+        const setOpen = (open) => {
+            menu.classList.toggle('is-open', open);
+            toggle.setAttribute('aria-expanded', String(open));
+            toggle.setAttribute('aria-label', open ? 'Đóng menu' : 'Mở menu');
+            toggle.innerHTML = icon(open ? 'x' : 'menu');
+        };
+        toggle.addEventListener('click', () => setOpen(!menu.classList.contains('is-open')));
+        menu.addEventListener('click', (event) => { if (event.target.closest('a')) setOpen(false); });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && menu.classList.contains('is-open')) { setOpen(false); toggle.focus(); }
+        });
     }
 }

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <script>
+    if (!window.location.pathname.endsWith('/') && !window.location.pathname.endsWith('.html')) {
+      document.write('<base href="' + window.location.pathname + '/">');
+    }
+  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Khóa học &amp; Học liệu thực hành — ST-Robot</title>
+  <meta name="description" content="Khám phá 5 khóa học STEM Robotics với lý thuyết, bài tập, tài liệu PDF và phòng lab thực hành.">
+  <link rel="stylesheet" href="../src/assets/css/variables.css">
+  <link rel="stylesheet" href="../src/assets/css/base.css">
+  <link rel="stylesheet" href="../src/assets/css/layout.css">
+  <link rel="stylesheet" href="../src/assets/css/components.css">
+  <link rel="stylesheet" href="../src/assets/css/pages/info.css">
+</head>
+<body>
+  <a href="#main" class="skip-link">Chuyển đến nội dung chính</a>
+  <div id="scrollProgress" aria-hidden="true"></div>
+  <header id="navbar-container"></header>
+
+  <main id="main" tabindex="-1">
+    <div class="page-head">
+      <div class="container">
+        <ol class="breadcrumb" aria-label="Vị trí trang">
+          <li><a href="index.html">Trang chủ</a></li>
+          <li aria-current="page">Khóa học &amp; Học liệu</li>
+        </ol>
+        <h1>Khóa học &amp; Học liệu thực hành</h1>
+        <p>Chọn khóa học để xem lý thuyết, tải tài liệu PDF, làm bài tập và thực hành trong phòng lab.</p>
+      </div>
+    </div>
+
+    <!-- KHÓA HỌC CHÍNH THỨC -->
+    <section class="section" id="courseCatalogSection" aria-labelledby="catalogHead">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">Danh mục đào tạo</span>
+          <h2 id="catalogHead">Khóa học trên hệ thống</h2>
+          <p>5 khóa học, 30 bài học đang có trên ST-Robot. Tiến độ và nhật ký được lưu trên trình duyệt bạn đang dùng.</p>
+        </div>
+
+        <div class="toolbar" role="search">
+          <div class="field">
+            <label class="label" for="catalogSearch">Tìm kiếm khóa học</label>
+            <input id="catalogSearch" class="input" type="search" autocomplete="off" placeholder="Nhập tên khóa học hoặc nội dung…">
+          </div>
+          <div class="field">
+            <label class="label" for="catalogCategoryFilter">Danh mục</label>
+            <select id="catalogCategoryFilter" class="select" aria-label="Lọc theo danh mục">
+              <option value="">Tất cả danh mục</option>
+            </select>
+          </div>
+        </div>
+
+        <p id="catalogCount" class="result-count" role="status" aria-live="polite"></p>
+        <div id="catalogCoursesGrid" class="grid grid--3" style="--col-min: 18rem" aria-live="polite" aria-busy="false"></div>
+      </div>
+    </section>
+
+  </main>
+  <div id="footer-container"></div>
+  <div id="backtotop-container"></div>
+  <div id="chatbox-container"></div>
+  <script type="module" src="../src/app.js"></script>
+</body>
+</html>

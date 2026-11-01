@@ -1,4 +1,17 @@
-.contact-box {
-    padding: 30px;
-    height: 100%;
-}
+/* Registration layout from the supplied frontend. */
+.legacy-registration .registration-intro { padding-block: 72px; }
+.legacy-registration .registration-intro .container { max-width: 1248px; }
+.registration-intro .section-head { max-width: 100%; margin-bottom: 44px; }
+.registration-intro h1 { font: 900 38px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif; margin-bottom: 16px; }
+.registration-intro .section-head p { max-width: 900px; margin: 8px auto; }
+.registration-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; align-items: stretch; }
+.contact-box { padding: 30px; height: 100%; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 20px; box-shadow: 0 10px 30px rgb(15 23 42 / .05); }
+.contact-box h2 { font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+.contact-box ul { padding-left: 24px; }
+.contact-box .btn--primary { --btn-bg: #0d6efd; --btn-fg: #fff; --btn-border: #0d6efd; }
+.contact-box .btn--primary:hover { --btn-bg: #0b5ed7; }
+.account-grid { max-width: 720px; margin: 28px auto 0; }
+#account { scroll-margin-top: 80px; }
+@media(max-width:768px) { .registration-grid { grid-template-columns: 1fr; } .registration-intro h1 { font-size: 28px; } .legacy-registration .registration-intro { padding-block: 48px; } }
+
+#submissionSuccessMsg, #enterCourseLink { margin-top: var(--space-4); }

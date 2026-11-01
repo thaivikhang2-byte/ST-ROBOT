@@ -21,7 +21,7 @@ export class KitController {
     attachEvents() {
         const searchInput = $('#kitSearch');
         if (searchInput) {
-            searchInput.addEventListener('keyup', () => this.applyGridFilter());
+            searchInput.addEventListener('input', () => this.applyGridFilter());
         }
 
         const filterTabs = $$('.filter-tab-btn');
@@ -31,9 +31,11 @@ export class KitController {
                 filterTabs.forEach(b => {
                     b.classList.remove('btn-primary');
                     b.classList.add('btn-outline-primary');
+                    b.setAttribute('aria-pressed', 'false');
                 });
                 e.target.classList.remove('btn-outline-primary');
                 e.target.classList.add('btn-primary');
+                e.target.setAttribute('aria-pressed', 'true');
                 this.applyGridFilter();
             });
         });

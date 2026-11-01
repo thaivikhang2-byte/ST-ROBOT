@@ -17,12 +17,24 @@ export class Chatbox {
     }
 
     attachEvents() {
-        const window = $('#supportChatWindow');
+        const panel = $('#supportChatWindow');
+        const trigger = $('#chatTriggerBtn');
         const input = $('#chatInputField');
         const button = $('#chatSubmitBtn');
         const chips = $$('.chat-quick-query');
-        $('#chatTriggerBtn')?.addEventListener('click', () => window?.classList.toggle('active'));
-        $('#chatCloseBtn')?.addEventListener('click', () => window?.classList.toggle('active'));
+        const setOpen = (open) => {
+            if (!panel) return;
+            panel.hidden = !open;
+            panel.classList.toggle('is-open', open);
+            trigger?.setAttribute('aria-expanded', String(open));
+            if (open) input?.focus();
+            else trigger?.focus();
+        };
+        trigger?.addEventListener('click', () => setOpen(panel?.hidden));
+        $('#chatCloseBtn')?.addEventListener('click', () => setOpen(false));
+        panel?.addEventListener('keydown', event => {
+            if (event.key === 'Escape') setOpen(false);
+        });
         if (!input || !button) return;
         input.maxLength = 3000;
         const submit = async () => {
@@ -66,9 +78,9 @@ export class Chatbox {
                 input.focus();
             }
         };
-        button.addEventListener('click', submit);
-        input.addEventListener('keydown', e => {
-            if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submit(); }
+        $('#chatForm')?.addEventListener('submit', event => {
+            event.preventDefault();
+            submit();
         });
         chips.forEach(b => b.addEventListener('click', () => {
             if (this.busy) return;
@@ -79,7 +91,7 @@ export class Chatbox {
 
     appendMessage(text, sender) {
         const bubble = document.createElement('div');
-        bubble.className = sender === 'user' ? 'bot-msg bot-msg-user' : 'bot-msg bot-msg-ai';
+        bubble.className = sender === 'user' ? 'msg msg--user' : 'msg msg--assistant';
         bubble.textContent = text;
         bubble.style.whiteSpace = 'pre-wrap';
         bubble.style.overflowWrap = 'anywhere';

@@ -8,154 +8,120 @@
   </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Khóa học STEM Robotics - Trang chủ</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-  
-  <!-- Modular CSS -->
+  <title>Khóa học STEM Robotics — ST-Robot</title>
+  <meta name="description" content="ST-Robot: nền tảng đào tạo STEM Robotics với lộ trình từ cơ bản đến chuyên sâu, học liệu, bài kiểm tra và trợ lý AI.">
   <link rel="stylesheet" href="../src/assets/css/variables.css">
   <link rel="stylesheet" href="../src/assets/css/base.css">
   <link rel="stylesheet" href="../src/assets/css/layout.css">
-  <link rel="stylesheet" href="../src/assets/css/components/navbar.css">
-  <link rel="stylesheet" href="../src/assets/css/components/footer.css">
-  <link rel="stylesheet" href="../src/assets/css/components/chatbox.css">
-  <link rel="stylesheet" href="../src/assets/css/components/backtotop.css">
-  <link rel="stylesheet" href="../src/assets/css/components/cards.css">
-  <link rel="stylesheet" href="../src/assets/css/components/carousel.css">
+  <link rel="stylesheet" href="../src/assets/css/components.css">
   <link rel="stylesheet" href="../src/assets/css/pages/home.css">
 </head>
-<body>
-  <div id="scrollProgress"></div>
-  
-  <div id="navbar-container"></div>
+<body class="legacy-home">
+  <a href="#main" class="skip-link">Chuyển đến nội dung chính</a>
+  <div id="scrollProgress" aria-hidden="true"></div>
+  <header id="navbar-container"></header>
 
-  <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
-    <div class="carousel-indicators">
-      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
-      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
-      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
-      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="3"></button>
-    </div>
-
-    <div class="carousel-inner">
-      <div class="carousel-item active">
-        <img src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1800" class="d-block w-100" alt="Slider 1">
-        <div class="carousel-caption">
-          <span class="hero-tag">CHƯƠNG TRÌNH STEM CHUẨN QUỐC TẾ</span>
-          <h1>Khóa học STEM Robotics</h1>
-          <p>Học viên tiếp cận lộ trình từ cơ bản tới chuyên sâu: làm quen linh kiện, lắp ráp cơ cấu, xử lý cảm biến và làm chủ thuật toán điều khiển.</p>
-          <a href="gioithieu.html" class="btn btn-primary btn-lg">Xem lộ trình học</a>
-          <a href="dangky.html" class="btn btn-outline-light btn-lg">Đăng ký ngay</a>
-        </div>
-      </div>
-      <!-- Other carousel items remain the same -->
-      <div class="carousel-item">
-        <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1800" class="d-block w-100" alt="Slider 2">
-        <div class="carousel-caption">
-          <span class="hero-tag">HỆ THỐNG LINH KIỆN THỰC TẾ</span>
-          <h1>Lắp ráp cùng phần cứng thật</h1>
-          <p>Thực hành trực quan trên bo mạch Arduino, bộ kit VEX IQ, cấu trúc Micro:bit và giải pháp thông minh từ LEGO SPIKE Prime.</p>
-          <a href="kit.html" class="btn btn-info btn-lg text-white">Xem thông tin Kit</a>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1800" class="d-block w-100" alt="Slider 3">
-        <div class="carousel-caption">
-          <span class="hero-tag">PHƯƠNG PHÁP CHỦ ĐỘNG DỰ ÁN</span>
-          <h1>Học thông qua hành động</h1>
-          <p>Mỗi giai đoạn học tập là một bài toán thực tế: thiết kế bản vẽ, tối ưu phần mềm, hiệu chuẩn sai số sa bàn.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=1800" class="d-block w-100" alt="Slider 4">
-        <div class="carousel-caption">
-          <span class="hero-tag">ƯƠM MẦM TƯ DUY ĐỘT PHÁ</span>
-          <h1>Làm chủ giải pháp tương lai</h1>
-          <p>Hỗ trợ học viên định hình tư duy thuật toán vững chắc, khắc phục lỗi hệ thống và hoàn thiện đồ án kỹ thuật.</p>
-          <a href="dangky.html" class="btn btn-success btn-lg">Đăng ký lớp học</a>
-        </div>
-      </div>
-    </div>
-
-    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-      <span class="carousel-control-prev-icon"></span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-      <span class="carousel-control-next-icon"></span>
-    </button>
-  </div>
-
-  <section class="container section-padding">
-    <div class="text-center mb-5">
-      <h2 class="section-title">Nền tảng đào tạo STEM Robotics chuyên sâu</h2>
-      <p class="section-desc">Cổng thông tin tổng hợp cập nhật đầy đủ lộ trình phát triển năng lực cá nhân, học liệu đa phương tiện, kho đề bài ôn luyện thuật toán và cổng ghi danh trực tuyến.</p>
-    </div>
-
-    <div class="row g-4 text-center">
-      <div class="col-md-3">
-        <div class="pro-card">
-          <div class="icon-big">🤖</div>
-          <h4 class="fw-bold">Kiến thức nền tảng</h4>
-          <p>Nghiên cứu nguyên lý hoạt động phần cứng, cấu trúc cơ khí và mạch số tự động.</p>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="pro-card">
-          <div class="icon-big">🧩</div>
-          <h4 class="fw-bold">Thực hành mô hình</h4>
-          <p>Tiếp cận giải pháp phần cứng Arduino, VEX IQ, Micro:bit và LEGO SPIKE Prime chuyên nghiệp.</p>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="pro-card">
-          <div class="icon-big">🎬</div>
-          <h4 class="fw-bold">Giải quyết đồ án</h4>
-          <p>Xây dựng dự án theo nhóm, vận hành thử nghiệm, đo đạc thông số thực tế liên tục.</p>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="pro-card">
-          <div class="icon-big">🎲</div>
-          <h4 class="fw-bold">Rèn luyện logic</h4>
-          <p>Hệ thống bài kiểm tra đánh giá năng lực phản xạ tư duy lập trình ngẫu nhiên.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="gradient-box mt-5">
-      <div class="row g-4 align-items-center">
-        <div class="col-md-6">
-          <h3 class="fw-bold">Chuyển hóa ý tưởng khoa học thành sản phẩm ứng dụng</h3>
-          <p>Lộ trình hướng dẫn chi tiết từng bước vững chắc giúp học viên làm chủ hoàn toàn công nghệ cốt lõi.</p>
-          <a href="dangky.html" class="btn btn-light btn-lg">Liên hệ nhận tư vấn khóa học</a>
-        </div>
-        <div class="col-md-2">
-          <div class="stat-box">
-            <h3>4+</h3>
-            <p>Nền tảng Kit</p>
+  <main id="main" tabindex="-1">
+    <!-- Hero carousel (bố cục gốc của ST-Robot) -->
+    <section class="hero-carousel" id="heroCarousel" aria-roledescription="carousel" aria-label="Giới thiệu chương trình">
+      <div class="hc-track">
+        <article class="hc-slide is-active" role="group" aria-roledescription="slide" aria-label="1 / 4">
+          <img src="../src/assets/images/legacy/hero-1.jpg" alt="Robot trong phòng thí nghiệm STEM" fetchpriority="high">
+          <div class="hc-caption">
+            <span class="hero-tag">CHƯƠNG TRÌNH STEM CHUẨN QUỐC TẾ</span>
+            <h1>Khóa học STEM Robotics</h1>
+            <p>Học viên tiếp cận lộ trình từ cơ bản tới chuyên sâu: làm quen linh kiện, lắp ráp cơ cấu, xử lý cảm biến và làm chủ thuật toán điều khiển.</p>
+            <div class="hc-actions">
+              <a class="btn btn--primary btn--lg" href="gioithieu.html">Xem lộ trình học</a>
+              <a class="btn btn--on-hero btn--lg" href="dangky.html">Đăng ký ngay</a>
+            </div>
           </div>
-        </div>
-        <div class="col-md-2">
-          <div class="stat-box">
-            <h3>25+</h3>
-            <p>Chủ đề thực hành</p>
+        </article>
+        <article class="hc-slide" role="group" aria-roledescription="slide" aria-label="2 / 4">
+          <img src="../src/assets/images/legacy/hero-2.jpg" alt="Bo mạch điện tử và linh kiện" loading="lazy">
+          <div class="hc-caption">
+            <span class="hero-tag">Hệ thống linh kiện thực tế</span>
+            <h2 class="hc-title">Lắp ráp cùng phần cứng thật</h2>
+            <p>Thực hành trực quan trên bo mạch Arduino, bộ kit VEX IQ, cấu trúc Micro:bit và giải pháp thông minh từ LEGO SPIKE Prime.</p>
+            <div class="hc-actions"><a class="btn btn--primary btn--lg" href="kit.html">Xem thông tin Kit</a></div>
           </div>
-        </div>
-        <div class="col-md-2">
-          <div class="stat-box">
-            <h3>6</h3>
-            <p>Trang quản trị</p>
+        </article>
+        <article class="hc-slide" role="group" aria-roledescription="slide" aria-label="3 / 4">
+          <img src="../src/assets/images/legacy/hero-3.jpg" alt="Nhóm học viên làm dự án" loading="lazy">
+          <div class="hc-caption">
+            <span class="hero-tag">Phương pháp chủ động dự án</span>
+            <h2 class="hc-title">Học thông qua hành động</h2>
+            <p>Mỗi giai đoạn học tập là một bài toán thực tế: thiết kế bản vẽ, tối ưu phần mềm, hiệu chuẩn sai số sa bàn.</p>
+            <div class="hc-actions"><a class="btn btn--primary btn--lg" href="hoclieu.html">Khu vực học liệu</a></div>
           </div>
+        </article>
+        <article class="hc-slide" role="group" aria-roledescription="slide" aria-label="4 / 4">
+          <img src="../src/assets/images/legacy/hero-4.jpg" alt="Mã nguồn và thuật toán điều khiển" loading="lazy">
+          <div class="hc-caption">
+            <span class="hero-tag">Ươm mầm tư duy đột phá</span>
+            <h2 class="hc-title">Làm chủ giải pháp tương lai</h2>
+            <p>Hỗ trợ học viên định hình tư duy thuật toán vững chắc, khắc phục lỗi hệ thống và hoàn thiện đồ án kỹ thuật.</p>
+            <div class="hc-actions"><a class="btn btn--primary btn--lg" href="dangky.html">Đăng ký lớp học</a></div>
+          </div>
+        </article>
+      </div>
+      <div class="hc-controls">
+        <button type="button" class="hc-btn" data-hc="prev" aria-label="Slide trước"><svg class="icon" aria-hidden="true" focusable="false"><use href="../src/assets/icons.svg#chevron-left"></use></svg></button>
+        <div class="hc-dots" role="group" aria-label="Chọn slide"></div>
+        <button type="button" class="hc-btn" data-hc="toggle" aria-label="Tạm dừng tự chuyển slide" aria-pressed="false"><svg class="icon" aria-hidden="true" focusable="false"><use href="../src/assets/icons.svg#stop"></use></svg></button>
+        <button type="button" class="hc-btn" data-hc="next" aria-label="Slide sau"><svg class="icon" aria-hidden="true" focusable="false"><use href="../src/assets/icons.svg#chevron-right"></use></svg></button>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="platform-title">
+      <div class="container">
+        <div class="section-head text-center">
+          <h2 id="platform-title">Nền tảng đào tạo STEM Robotics chuyên sâu</h2>
+          <p>Cổng thông tin tổng hợp cập nhật đầy đủ lộ trình phát triển năng lực cá nhân, học liệu đa phương tiện, kho đề bài ôn luyện thuật toán và khu vực chọn khóa học trực tuyến.</p>
+        </div>
+        <div class="grid grid--4 pro-grid">
+          <article class="pro-card"><span class="pro-icon" aria-hidden="true">🤖</span><h3>Kiến thức nền tảng</h3><p>Nghiên cứu nguyên lý hoạt động phần cứng, cấu trúc cơ khí và mạch số tự động.</p></article>
+          <article class="pro-card"><span class="pro-icon" aria-hidden="true">🧩</span><h3>Thực hành mô hình</h3><p>Tiếp cận giải pháp phần cứng Arduino, VEX IQ, Micro:bit và LEGO SPIKE Prime chuyên nghiệp.</p></article>
+          <article class="pro-card"><span class="pro-icon" aria-hidden="true">🎬</span><h3>Giải quyết đồ án</h3><p>Xây dựng dự án theo nhóm, vận hành thử nghiệm, đo đạc thông số thực tế liên tục.</p></article>
+          <article class="pro-card"><span class="pro-icon" aria-hidden="true">🎲</span><h3>Rèn luyện logic</h3><p>Hệ thống câu hỏi ôn luyện tư duy lập trình, có đáp án và giải thích sau mỗi câu.</p></article>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+
+
+    <section class="section" aria-label="Đăng ký tư vấn">
+      <div class="container">
+        <div class="gradient-box">
+          <div class="gb-copy">
+            <h2>Chuyển hóa ý tưởng khoa học thành sản phẩm ứng dụng</h2>
+            <p>Lộ trình hướng dẫn chi tiết từng bước vững chắc giúp học viên làm chủ hoàn toàn công nghệ cốt lõi.</p>
+            <a class="btn btn--lg gb-cta" href="dangky.html">Chọn khóa học</a>
+          </div>
+          <dl class="gb-stats">
+            <div><dt>Nền tảng Kit</dt><dd>4</dd></div>
+            <div><dt>Khóa học</dt><dd>5</dd></div>
+            <div><dt>Bài học</dt><dd>30</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+    <section class="section section--muted" aria-labelledby="featured-title">
+      <div class="container">
+        <div class="section-head text-center">
+          <h2 id="featured-title">Khóa học nổi bật</h2>
+          <p>Khám phá các khóa học đang có trên ST-Robot. Mở khóa để xem bài học, thực hành lab và lưu tiến độ trên trình duyệt.</p>
+        </div>
+        <div id="featuredCourses" class="grid" aria-live="polite" aria-busy="true"></div>
+        <p class="text-center" style="margin-top: var(--space-5)"><a class="btn" href="hoclieu.html">Xem tất cả khóa học<svg class="icon" aria-hidden="true" focusable="false"><use href="../src/assets/icons.svg#arrow-right"></use></svg></a></p>
+      </div>
+    </section>
+  </main>
 
   <div id="footer-container"></div>
   <div id="backtotop-container"></div>
   <div id="chatbox-container"></div>
-  <div id="modal-container"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module" src="../src/app.js"></script>
 </body>
 </html>

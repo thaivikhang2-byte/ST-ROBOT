@@ -12,6 +12,7 @@ import { KitController } from './modules/kit/KitController.js';
 import { QuizController } from './modules/quiz/QuizController.js';
 import { GioiThieuController } from './modules/gioithieu/GioiThieuController.js';
 import { DangKyController } from './modules/dangky/DangKyController.js';
+import { CatalogController } from './modules/hoclieu/CatalogController.js';
 
 class App {
     constructor() {
@@ -27,7 +28,8 @@ class App {
             { path: ROUTES.KIT, controller: KitController },
             { path: ROUTES.GIOI_THIEU, controller: GioiThieuController },
             { path: ROUTES.QUIZ, controller: QuizController },
-            { path: ROUTES.DANG_KY, controller: DangKyController }
+            { path: ROUTES.DANG_KY, controller: DangKyController },
+            { path: ROUTES.HOC_LIEU, controller: CatalogController }
         ]);
     }
 

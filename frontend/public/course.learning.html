@@ -1,256 +1,92 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ST-Robot LMS — Khóa Học STEM Robotics</title>
-  
-  
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #0f172a;
-      color: #f8fafc;
-      overflow-x: hidden;
-    }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #1e293b; }
-    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-
-    .glass-panel {
-      background: rgba(30, 41, 59, 0.85);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .lab-active-tab {
-      border-bottom: 2px solid #38bdf8;
-      color: #38bdf8;
-      background: rgba(56, 189, 248, 0.1);
-    }
-    .typing-indicator span {
-  height: 7px; width: 7px; display: inline-block; margin: 0 2px; background-color: #38bdf8; border-radius: 50%; animation: bounce 1.3s infinite ease-in-out;
-}
-    .typing-indicator span:nth-child(2) { animation-delay: -1.1s; }
-    .typing-indicator span:nth-child(3) { animation-delay: -0.9s; }
-    @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
-  </style>
-<style>
-/* Local fallback styles keep the supplied three-column layout usable without CDN. */
-*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;font-size:14px;height:100vh;display:flex;flex-direction:column}button,a,input,textarea,select{font:inherit}button,a{touch-action:manipulation}button{cursor:pointer;border:1px solid #39516c;background:#20354c;color:#e9f5ff;border-radius:8px;padding:9px 12px}button:hover{background:#31506d}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #7dd3fc;outline-offset:2px}a{color:#7dd3fc;text-decoration:none}h1{font-size:26px;line-height:1.3}h2{font-size:19px}h3{font-size:16px}p,li{line-height:1.75}h1,h2,h3,p{margin-top:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}input,textarea,select{background:#101e32;color:#f1f5f9;border:1px solid #46617b;border-radius:8px;padding:9px;max-width:100%}textarea,select{width:100%}label{display:block;margin:8px 0}summary{cursor:pointer;padding:10px 0;color:#8fd9f7}details{border-top:1px solid #33465c;margin-top:12px}small,.small{font-size:12px;color:#adbed0}header{min-height:78px;padding:12px 22px;display:flex;justify-content:space-between;gap:12px;align-items:center}header>div{display:flex;align-items:center;gap:12px}header button{font-size:12px}body>main{display:flex;flex:1;min-height:0;overflow:hidden}main>aside:first-child{width:260px;flex-shrink:0;display:flex;flex-direction:column;overflow:auto}main>section{min-width:0;flex:1;display:flex;flex-direction:column;background:#091222;overflow:hidden}main>aside:last-child{width:300px;flex-shrink:0;display:flex;flex-direction:column;min-height:0}main>section>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border-bottom:1px solid #334155}main>section>div:first-child>div{display:flex;gap:4px}#theoryView{flex:1;overflow:auto;padding:22px}#theoryView>div{margin-bottom:20px}#theoryView .glass-panel{padding:20px;border-radius:16px}#theoryView>.grid{display:grid;grid-template-columns:1fr;gap:18px}.grid .glass-panel{min-width:0}#theoryView>.grid .glass-panel:first-child{padding:16px}.aspect-video{padding:16px;border-radius:12px;background:#122039}.aspect-video button{margin-top:12px}#sampleCodeBox{padding:14px;background:#07101d;border-radius:10px;color:#9debc5}#practiceSteps{padding-left:24px}#practiceSteps li{padding:5px 0}.course-picker{padding:16px}.course-picker label{font-size:11px;letter-spacing:.1em;color:#94b9d1}.course-picker button{font-size:11px;margin-top:8px}#lessonList{padding:8px;overflow:auto}.lesson-item{width:100%;text-align:left;display:flex;gap:10px;padding:13px 10px;margin:5px 0;background:transparent;border:1px solid transparent}.lesson-item small{display:block;margin-top:5px;font-size:10px}.lesson-item.selected{border-color:#4d97bd;background:#16374e}.lesson-number{flex-shrink:0;background:#263c52;border-radius:7px;display:grid;place-items:center;width:26px;height:26px;color:#9fe9e1}#lessonList+div{padding:16px;font-size:12px}main>aside>div:first-child{padding:16px}#enrollmentBanner{padding:9px 22px;background:linear-gradient(100deg,#126256,#144466);display:flex;justify-content:space-between;gap:15px;font-size:12px}#enrollmentBanner button{font-size:11px;white-space:nowrap}#notice{padding:0 22px;background:#203a54;color:#ffe2a1;line-height:2}#notice:empty{display:none}.example{padding:14px;background:#172c41;border-left:3px solid #65cbbd;border-radius:8px}#labView{flex:1;min-height:0;overflow:auto;flex-direction:column}.toolbar{display:flex;gap:8px;flex-wrap:wrap;padding:12px;background:#122136}.lab-heading{padding:16px}.lab-heading p{margin-bottom:8px}#frameHost{width:100%;min-height:0}#practiceFrame{width:100%;height:740px;border:0;background:white;display:block}#localLab{padding:20px}#benchControls input{margin:4px}#benchControls button{margin:10px 0}#benchResult{font-size:13px;color:#b3eadc}.answer{padding:10px;border:1px solid #34465b;border-radius:9px}.answer input{margin-right:8px}#quizForm{padding-top:20px}#journal{margin-top:10px}#assessment button{margin:10px 0}.ai-config{padding:12px;border-top:1px solid #334155}.ai-config input{width:100%}.ai-config details{max-height:280px;overflow:auto}#chatMessages{overflow:auto;flex:1;padding:12px;min-height:100px}.chat-message{padding:13px;background:#20344a;border-radius:12px;margin-bottom:10px;line-height:1.7;white-space:pre-wrap;font-size:12px}.chat-message.user{background:#155275}main>aside:last-child>form{padding:12px}main>aside:last-child>form>div{display:flex;gap:7px}#chatInput{width:100%;min-width:0}main>aside:last-child>div:nth-child(2){padding:12px}main>aside:last-child>div:nth-child(2) button{font-size:11px;margin:3px}#pdfModal{position:fixed;inset:0;background:#000c;z-index:100;display:none;padding:18px;align-items:center;justify-content:center}#pdfModal>div{max-width:950px;width:100%;max-height:94vh;overflow:auto;background:#122036;border-radius:16px}#pdfModal>div>div:first-child{padding:15px;display:flex;justify-content:space-between;gap:15px}#printablePdfArea{padding:20px;background:white;color:#13253a}#pdfDocBody p{color:#31465d}#progressText{font-size:11px}.home-link{white-space:nowrap}.hidden,[hidden]{display:none!important}.lab-active-tab{border-color:#38bdf8;color:#7dd3fc}.font-bold,.font-semibold{font-weight:600}.text-xs{font-size:12px}.text-sm{font-size:14px}.text-slate-400{color:#a6b7ca}.text-sky-400{color:#7dd3fc}.text-amber-400{color:#f6cc79}.text-emerald-400{color:#7edfc2}
-@media(min-width:1550px){#theoryView>.grid{grid-template-columns:1fr 1.3fr}main>aside:first-child{width:280px}main>aside:last-child{width:320px}}
-@media(max-width:1100px){body{height:auto;min-height:100vh}body>main{flex-wrap:wrap;overflow:visible}main>aside:first-child{width:230px}main>section{overflow:visible}#theoryView{overflow:visible}main>aside:last-child{width:100%;min-height:400px}#chatMessages{max-height:300px}#practiceFrame{height:720px}header{flex-wrap:wrap}}
-@media(max-width:700px){body>main{display:block}main>aside:first-child{width:100%}#lessonList{display:flex;overflow-x:auto;max-height:145px}.lesson-item{min-width:190px;max-width:210px}#lessonList+div{display:none}.course-picker{padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.course-picker select{width:100%}main>section>div:first-child{flex-wrap:wrap}main>section>div:first-child button{font-size:11px;padding:8px}#theoryView{padding:12px}#enrollmentBanner{padding:10px;align-items:flex-start}header{padding:12px}header>div{flex-wrap:wrap}h1{font-size:22px}#pdfModal>div>div:first-child{flex-wrap:wrap}#practiceFrame{height:700px}#benchControls input{width:100%}}
-</style><style id="readability-colors">/* Higher-contrast typography, retaining the original dark layout. */
-body{background:#0f172a;color:#f8fafc}
-header,main,#enrollmentBanner{color:#f8fafc}
-main h1,main h2,main h3,header strong{color:#ffffff}
-main p,main li,main label,#lessonList button{color:#eef4fc}
-.text-slate-200,.text-slate-300,.text-slate-400,small,.small,#courseName,#progressText,.course-picker label,.lesson-item small{color:#d6e4f3}
-.text-sky-400,.text-sky-300,a,summary{color:#9cdeff}
-.text-amber-400,.text-amber-300{color:#ffe09a}
-.text-emerald-400,.text-emerald-300,#sampleCodeBox,#benchResult{color:#b4f5d5}
-button,input,textarea,select,.chat-message,.chat-message.user{color:#f8fbff}
-input::placeholder,textarea::placeholder{color:#bdcde0;opacity:1}
-.lesson-number{color:#c5fff4}
-.lesson-item small{font-size:11px}
-.lab-active-tab{color:#b6e9ff;background:#14384c}
-#saveNotice,#quizFeedback{color:#d1f7e9}
-#pdfModal #printablePdfArea,#pdfModal #pdfDocHeading{color:#13253a}
-#pdfModal #pdfDocBody p{color:#31465d}
-</style>
-<style id="tutor-layout-fix">
-/* Giữ hội thoại trong khung riêng; ô nhập không bị tin nhắn dài đẩy/chồng lên. */
-main>aside[aria-label="Trợ lý học tập"]{min-height:0;min-width:0;overflow:hidden}
-#tutorMessages{display:flex;flex:1 1 0%;flex-direction:column;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable}
-#tutorMessages>.chat-message{flex:0 0 auto;width:100%;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal}
-#tutorForm{position:relative;z-index:1;flex:0 0 auto;min-width:0;background:#0f172a}
-#tutorQuestion{display:block;width:100%;min-width:0;max-height:22vh;resize:vertical;overflow-y:auto;overflow-wrap:anywhere}
-#tutorForm button{margin:3px 4px 3px 0}
-#tutorStatus,#tutorForm .small{overflow-wrap:anywhere}
-@media(max-width:1100px){main>aside[aria-label="Trợ lý học tập"]{height:min(68vh,620px);min-height:400px;max-height:620px}}
-@media(max-width:700px){main>aside[aria-label="Trợ lý học tập"]{height:68vh;min-height:380px;max-height:620px;width:100%;margin:0}}
-</style>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tự học STEM Robotics — ST-Robot</title>
+  <meta name="description" content="Không gian tự học STEM Robotics: 5 khóa học, 30 bài học, tài liệu PDF, phòng lab tương tác và trợ lý AI.">
+  <link rel="stylesheet" href="../src/assets/css/variables.css">
+  <link rel="stylesheet" href="../src/assets/css/base.css">
+  <link rel="stylesheet" href="../src/assets/css/layout.css">
+  <link rel="stylesheet" href="../src/assets/css/components.css">
+  <link rel="stylesheet" href="../src/assets/css/pages/selfstudy.css">
 </head>
-<body class="h-screen flex flex-col">
-
-  <!-- THÔNG BÁO ĐĂNG KÝ THÀNH CÔNG -->
-  <div id="enrollmentBanner" class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white px-6 py-2.5 flex items-center justify-between shadow-lg z-50">
-    <div class="flex items-center gap-3 text-sm font-medium">
-      <span class="bg-white/20 p-1.5 rounded-full"><i class="fa-solid fa-circle-check"></i></span>
-      <span>
-        <strong>Không gian học tập STEM Robotics</strong> Chào mừng bạn đến với hệ thống <strong>ST-Robot LMS</strong>. Chọn đúng khóa ở thanh bên. Tiến độ lưu trên trình duyệt; trang này không xác nhận thanh toán.
-      </span>
+<body class="learning-page">
+  <a href="#main" class="skip-link">Chuyển đến nội dung chính</a>
+  <header id="navbar-container"></header>
+  <div class="learning-workspace">
+    <div id="enrollmentBanner" class="ws-banner" role="region" aria-label="Thông báo khóa học">
+      <span><strong>Không gian học tập STEM Robotics.</strong> Chọn khóa ở thanh bên. Tiến độ được lưu trên trình duyệt; trang này không xác nhận thanh toán.</span>
+      <button type="button" onclick="document.getElementById('enrollmentBanner').style.display='none'">Đã hiểu</button>
     </div>
-    <button onclick="document.getElementById('enrollmentBanner').style.display='none'" class="text-white/80 hover:text-white text-xs bg-black/20 px-3 py-1 rounded-md">
-      Đã hiểu <i class="fa-solid fa-xmark ml-1"></i>
-    </button>
+    <div id="notice" role="status" aria-live="polite"></div>
+    <div class="ws-head glass-panel">
+      <div class="ws-brand">
+        <svg class="icon" aria-hidden="true"><use href="../src/assets/icons.svg#cpu"></use></svg>
+        <div><p class="ws-eyebrow">ST-Robot <span>STEM E-Learning</span></p><p id="courseName"></p></div>
+      </div>
+      <button type="button" class="btn btn--primary btn--sm" onclick="openPdfModal()">Xem &amp; lưu PDF bài giảng</button>
+    </div>
+    <main id="main" class="ws" tabindex="-1">
+      <aside class="ws-side glass-panel" aria-label="Lộ trình bài học">
+        <div class="ws-side-head"><h2>Lộ trình &amp; tài liệu</h2><span id="progressText">0/6 bài tự học</span></div>
+        <div class="ws-side-scroll">
+          <div class="course-picker"><label for="courseSelect">Chọn khóa học</label><select id="courseSelect"></select><button type="button" id="copyLink">Sao chép link khóa</button></div>
+          <div id="lessonList"></div>
+          <div class="ws-pdf"><p>Tài liệu PDF của khóa</p><button type="button" onclick="openPdfModal()"><span id="pdfFileNameLabel">giao-trinh.pdf</span> ↗</button></div>
+        </div>
+      </aside>
+      <section class="ws-content" aria-label="Nội dung bài học và thực hành">
+        <div class="ws-toolbar">
+          <div class="ws-tabs" aria-label="Chế độ học">
+            <button type="button" onclick="switchMainTab('theory')" id="tabBtnTheory" class="lab-active-tab">1. Lý thuyết &amp; hướng dẫn</button>
+            <button type="button" onclick="switchMainTab('lab')" id="tabBtnLab">2. Phòng lab mini</button>
+          </div>
+          <button type="button" class="btn--primary" onclick="markLessonComplete()">✓ Hoàn thành bài</button>
+        </div>
+        <div id="theoryView">
+          <div class="lesson-hero">
+            <div class="lesson-meta"><span id="lessonBadge"></span><span>Thời lượng gợi ý: 50 phút</span></div>
+            <h1 id="lessonTitle"></h1><p id="lessonDesc"></p>
+          </div>
+          <p class="example"><strong>Chuẩn bị:</strong> <span id="prereq"></span></p>
+          <div class="ws-grid-2">
+            <section class="ws-card glass-panel">
+              <h2>Hướng dẫn thực hành nhanh</h2>
+              <div class="lab-teaser"><svg class="icon" aria-hidden="true"><use href="../src/assets/icons.svg#cpu"></use></svg><p id="videoTitle"></p><button type="button" class="btn--primary" onclick="switchMainTab('lab')">Mở phòng lab</button></div>
+            </section>
+            <section class="ws-card glass-panel"><h2>Kiến thức lý thuyết trọng tâm</h2><div id="theoryContent"></div></section>
+          </div>
+          <section class="ws-card glass-panel">
+            <h2>Các bước thực hành &amp; code mẫu</h2>
+            <div class="ws-grid-2"><ol id="practiceSteps"></ol><div class="code-box"><div class="code-box-head"><span id="codeLangLabel">Mã nguồn mẫu</span><button type="button" onclick="copySampleCode()">Sao chép</button></div><pre id="sampleCodeBox"></pre></div></div>
+          </section>
+          <section class="ws-card glass-panel"><h2>Hướng dẫn sử dụng phòng lab</h2><p id="labGuide"></p></section>
+          <section class="ws-card glass-panel" id="assessment">
+            <h2>Bài tập &amp; kiểm tra</h2><p id="exercise"></p>
+            <details><summary>Đối chiếu sau khi tự làm</summary><p id="solution"></p></details>
+            <form id="quizForm"><h3 id="quizQuestion"></h3><div id="quizOptions"></div><button type="submit" class="btn--primary">Kiểm tra đáp án</button><p id="quizFeedback" role="status"></p></form>
+            <h3>Nhật ký thực hành</h3><label for="journal">Ghi đầu vào, dự đoán, kết quả, lỗi và giải thích (ít nhất 60 ký tự)</label>
+            <textarea id="journal" maxlength="15000" rows="6" placeholder="Lượt 1: đầu vào…; dự đoán…; quan sát…; giải thích…"></textarea>
+            <p id="saveNotice" role="status"></p><button type="button" id="exportNotes">Tải nhật ký khóa này</button>
+            <h3>Rubric giáo viên đối chiếu · 100 điểm</h3><ul id="rubric"></ul>
+            <p class="small">Mỗi tiêu chí: đủ chứng cứ = toàn điểm; thiếu một phần = nửa điểm; chưa có = 0. Trang chỉ kiểm tra trắc nghiệm và lưu nhật ký, không tự chấm nội dung iframe bên ngoài.</p>
+            <button type="button" class="btn--primary" onclick="markLessonComplete()">Đánh dấu hoàn thành tự học</button>
+          </section>
+        </div>
+        <div id="labView" hidden><div id="labButtons" class="toolbar"></div><div class="lab-heading"><h2 id="labBoxTitle"></h2><p id="labBoxDesc"></p><a id="labExternalBtn" class="btn btn--primary btn--sm" target="_blank" rel="noopener noreferrer">Mở ứng dụng riêng ↗</a><p id="frameNote" class="small"></p></div><div id="frameHost"></div><div id="localLab" hidden></div></div>
+      </section>
+      <aside class="ws-ai glass-panel" aria-label="Trợ lý học tập">
+        <div class="ai-head"><span class="ai-avatar"><svg class="icon" aria-hidden="true"><use href="../src/assets/icons.svg#message"></use></svg></span><div><h2>Trợ lý AI STEM Robotics</h2><p>Hỏi về bài học và thực hành</p></div></div>
+        <div id="tutorMessages" aria-live="polite"></div>
+        <form id="tutorForm"><label for="tutorQuestion">Câu hỏi của bạn</label><textarea id="tutorQuestion" rows="3" maxlength="3000" required placeholder="Bạn cần giải thích phần nào?"></textarea><div class="tutor-actions"><button id="tutorSend" type="submit" class="btn--primary">Gửi câu hỏi</button><button id="tutorReset" type="button">Trao đổi mới</button></div><p id="tutorStatus" class="small" role="status"></p><p class="small">Câu hỏi và nội dung bài học được gửi đến dịch vụ AI. Không nhập thông tin cá nhân. Hãy đối chiếu câu trả lời với giáo trình.</p></form>
+      </aside>
+    </main>
   </div>
-
-  <!-- HEADER -->
-  <header class="h-16 glass-panel px-6 flex items-center justify-between shrink-0">
-    <div class="flex items-center gap-4">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
-        <i class="fa-solid fa-robot text-xl text-white"></i>
-      </div>
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="font-bold text-lg tracking-tight text-white">ST-Robot LMS</span>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30 font-medium">STEM E-Learning</span>
-        </div>
-        <p class="text-xs text-slate-400" id="courseName"></p>
-      </div>
-    </div>
-
-    <div class="flex items-center gap-4">
-      <a href="index.html" class="home-link">← Trang chủ</a><button onclick="openPdfModal()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow flex items-center gap-1.5 transition">
-        <i class="fa-solid fa-file-pdf"></i> Xem & Lưu File PDF Bài Giảng
-      </button>
-    </div>
-  </header>
-
-  <div id="notice" role="status"></div>
-  <!-- MAIN 3 CỘT -->
-  <main class="flex-1 flex overflow-hidden">
-
-    <!-- CỘT 1: DANH SÁCH BÀI HỌC -->
-    <aside class="w-80 glass-panel border-r border-slate-800 flex flex-col shrink-0">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-        <h2 class="font-semibold text-sm uppercase tracking-wider text-slate-300">
-          <i class="fa-solid fa-book-open text-sky-400 mr-2"></i>Lộ trình & Tài liệu
-        </h2>
-        <span class="text-xs text-slate-400"><span id="progressText">0/6 bài tự học</span></span>
-      </div>
-
-      <div class="course-picker"><label for="courseSelect">CHỌN KHÓA HỌC</label><select id="courseSelect"></select><button id="copyLink">Sao chép link khóa</button></div><div class="flex-1 overflow-y-auto p-3 space-y-2" id="lessonList"></div>
-
-      <div class="p-4 border-t border-slate-800 bg-slate-900/60">
-        <p class="text-xs font-semibold text-slate-400 uppercase mb-2">Tài liệu PDF bài học</p>
-        <div onclick="openPdfModal()" class="cursor-pointer flex items-center justify-between p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs transition border border-slate-700">
-          <div class="flex items-center gap-2 truncate">
-            <i class="fa-solid fa-file-pdf text-rose-400"></i>
-            <span class="truncate text-slate-200" id="pdfFileNameLabel">Giao-Trinh-Ly-Thuyet.pdf</span>
-          </div>
-          <span class="text-[10px] text-sky-400 shrink-0 ml-2">Mở PDF <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i></span>
-        </div>
-      </div>
-    </aside>
-
-    <!-- CỘT 2: LÝ THUYẾT & PHÒNG LAB -->
-    <section class="flex-1 flex flex-col bg-slate-950 overflow-hidden">
-      <div class="h-12 bg-slate-900 border-b border-slate-800 px-6 flex items-center justify-between shrink-0">
-        <div class="flex items-center h-full space-x-1">
-          <button onclick="switchMainTab('theory')" id="tabBtnTheory" class="h-full px-5 text-sm font-medium flex items-center gap-2 lab-active-tab transition">
-            <i class="fa-solid fa-graduation-cap"></i> 1. Tài liệu Lý thuyết & Hướng dẫn
-          </button>
-          <button onclick="switchMainTab('lab')" id="tabBtnLab" class="h-full px-5 text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2 transition">
-            <i class="fa-solid fa-flask"></i> 2. Phòng Lab Mini (Nhúng Trực Tiếp)
-          </button>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <button onclick="markLessonComplete()" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5">
-            <i class="fa-solid fa-check"></i> Hoàn thành bài
-          </button>
-        </div>
-      </div>
-
-      <!-- TAB 1: LÝ THUYẾT -->
-      <div id="theoryView" class="flex-1 overflow-y-auto p-6 space-y-6">
-        <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-6 rounded-2xl border border-slate-700/60 shadow-lg">
-          <div class="flex flex-wrap items-center justify-between gap-4 mb-3">
-            <span id="lessonBadge" class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30"></span>
-            <span class="text-xs text-slate-400"><i class="fa-regular fa-clock mr-1"></i>Thời lượng gợi ý: 50 phút</span>
-          </div>
-          <h1 id="lessonTitle" class="text-2xl font-bold text-white mb-2"></h1>
-          <p id="lessonDesc" class="text-sm text-slate-300 leading-relaxed"></p>
-        </div>
-
-        <p class="example"><strong>Chuẩn bị:</strong> <span id="prereq"></span></p><div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div class="glass-panel rounded-2xl p-4 flex flex-col justify-between">
-            <div>
-              <h3 class="text-sm font-semibold text-sky-400 mb-3 flex items-center gap-2">
-                <i class="fa-solid fa-circle-play"></i> Hướng Dẫn Thực Hành Nhanh
-              </h3>
-              <div class="aspect-video bg-slate-900 rounded-xl border border-slate-700 flex flex-col items-center justify-center relative overflow-hidden p-6 text-center">
-                <i class="fa-solid fa-laptop-code text-4xl text-sky-400/80 mb-3"></i>
-                <p class="text-sm font-medium text-slate-200" id="videoTitle"></p>
-                <button onclick="switchMainTab('lab')" class="mt-4 bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs px-4 py-2 rounded-lg shadow-lg transition">
-                  Mở Phòng Lab Ngay Trong Web <i class="fa-solid fa-arrow-right ml-1"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between">
-            <div>
-              <h3 class="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
-                <i class="fa-solid fa-lightbulb"></i> Kiến thức Lý thuyết Trọng tâm
-              </h3>
-              <div id="theoryContent" class="space-y-3 text-sm text-slate-300 leading-relaxed"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="glass-panel rounded-2xl p-6">
-          <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-list-check text-emerald-400"></i> Các Bước Thực Hành & Code Mẫu
-          </h3>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ol id="practiceSteps" class="space-y-3 text-sm text-slate-300 list-decimal list-inside"></ol>
-            <div class="bg-slate-900 rounded-xl border border-slate-800 p-4 flex flex-col">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-mono text-sky-400" id="codeLangLabel">Mã nguồn mẫu</span>
-                <button onclick="copySampleCode()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded border border-slate-700">
-                  <i class="fa-regular fa-copy mr-1"></i> Copy Code
-                </button>
-              </div>
-              <pre id="sampleCodeBox" class="text-xs font-mono text-emerald-300 overflow-x-auto p-3 bg-slate-950 rounded-lg border border-slate-800 flex-1"></pre>
-            </div>
-          </div>
-        </div>
-        <div class="glass-panel rounded-2xl p-6"><h3>Hướng dẫn sử dụng phòng lab</h3><p id="labGuide"></p></div>
-        <div class="glass-panel rounded-2xl p-6" id="assessment"><h2>Bài tập & kiểm tra</h2><p id="exercise"></p><details><summary>Đối chiếu sau khi tự làm</summary><p id="solution"></p></details><form id="quizForm"><h3 id="quizQuestion"></h3><div id="quizOptions"></div><button type="submit">Kiểm tra đáp án</button><p id="quizFeedback" role="status"></p></form><h3>Nhật ký thực hành</h3><label for="journal">Ghi đầu vào, dự đoán, kết quả, lỗi và giải thích (ít nhất 60 ký tự)</label><textarea id="journal" maxlength="15000" rows="6" placeholder="Lượt 1: đầu vào…; dự đoán…; quan sát…; giải thích…"></textarea><p id="saveNotice" role="status"></p><button id="exportNotes">Tải nhật ký khóa này</button><h3>Rubric giáo viên đối chiếu · 100 điểm</h3><ul id="rubric"></ul><p class="small">Mỗi tiêu chí: đủ chứng cứ = toàn điểm; thiếu một phần = nửa điểm; chưa có = 0. Trang chỉ kiểm tra trắc nghiệm và lưu nhật ký, không tự chấm nội dung iframe bên ngoài.</p><button onclick="markLessonComplete()">Đánh dấu hoàn thành tự học</button></div>
-      </div>
-
-      <!-- TAB 2: PHÒNG LAB NHÚNG TRỰC TIẾP -->
-      <div id="labView" hidden><div id="labButtons" class="toolbar"></div><div class="lab-heading"><h3 id="labBoxTitle"></h3><p id="labBoxDesc"></p><a id="labExternalBtn" target="_blank" rel="noopener noreferrer">Mở ứng dụng riêng ↗</a><p id="frameNote" class="small"></p></div><div id="frameHost"></div><div id="localLab" hidden></div></div>
-    </section>
-
-    <!-- Khu vực dành cho trợ lý học tập -->
-    <aside class="w-96 glass-panel border-l border-slate-800 flex flex-col shrink-0" aria-label="Trợ lý học tập">
-      <div class="p-4 border-b border-slate-800"><h2 class="font-bold text-sm text-white">Trợ lý học tập</h2><p class="small">Hỏi về bài học và thực hành STEM Robotics.</p></div>
-      <div id="tutorMessages" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm" aria-live="polite" style="min-height:120px;white-space:pre-wrap;overflow-wrap:anywhere"></div>
-      <form id="tutorForm" class="p-3 border-t border-slate-800"><label for="tutorQuestion">Câu hỏi của bạn</label><textarea id="tutorQuestion" rows="3" maxlength="3000" required placeholder="Bạn cần giải thích phần nào?"></textarea><button id="tutorSend" type="submit">Gửi</button><button id="tutorReset" type="button">Trao đổi mới</button><p id="tutorStatus" class="small" role="status"></p><p class="small">Câu hỏi và nội dung bài học được gửi đến dịch vụ AI. Không nhập thông tin cá nhân. Hãy đối chiếu câu trả lời với giáo trình.</p></form>
-    </aside>
-  </main>
-
-  <!-- MODAL XEM & LƯU FILE PDF THẬT -->
-  <div role="dialog" aria-modal="true" aria-label="Giáo trình PDF" aria-hidden="true" id="pdfModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-      <div class="bg-slate-950 px-6 py-3.5 border-b border-slate-800 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-file-pdf text-rose-500 text-lg"></i>
-          <span class="text-sm font-bold text-white" id="modalPdfTitle">Tài Liệu Giáo Trình ST-Robot LMS</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button id="downloadPdf" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl">
-            <i class="fa-solid fa-print mr-1"></i> Tải PDF thật · 6 bài
-          </button>
-          <button onclick="closePdfModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-xl">Đóng</button>
-        </div>
-      </div>
-      <div class="flex-1 overflow-y-auto p-6 bg-slate-800">
-        <div id="printablePdfArea" class="bg-white text-slate-900 p-8 rounded-xl shadow-lg space-y-4 max-w-2xl mx-auto">
-          <h2 class="text-xl font-extrabold text-rose-700 border-b pb-2" id="pdfDocHeading">Tiêu đề bài học</h2>
-          <p class="text-xs text-slate-500">Hệ thống giáo dục ST-Robot LMS — Tài liệu tự học có bài tập và đáp án đối chiếu</p>
-          <div class="space-y-2 text-sm" id="pdfDocBody"></div>
-        </div>
-      </div>
-    </div>
+  <div role="dialog" aria-modal="true" aria-label="Giáo trình PDF" aria-hidden="true" id="pdfModal" class="hidden">
+    <div class="pdf-panel"><div class="pdf-head"><span id="modalPdfTitle">Tài liệu giáo trình ST-Robot</span><div class="pdf-actions"><button type="button" id="downloadPdf" class="btn--primary">Tải PDF thật · 6 bài</button><button type="button" onclick="closePdfModal()">Đóng</button></div></div><div class="pdf-body"><div id="printablePdfArea"><h2 id="pdfDocHeading">Tiêu đề bài học</h2><p class="small">Tài liệu tự học có bài tập và đáp án đối chiếu</p><div id="pdfDocBody"></div></div></div></div>
   </div>
-
+  <script type="module" src="../src/app.js"></script>
 <script>
 const COURSES=[
   {
