@@ -189,13 +189,12 @@ function switchMainTab(t) {
  $('tabBtnLab').classList.toggle('lab-active-tab',t==='lab');
  $('tabBtnTheory').setAttribute('aria-pressed',String(t==='theory'));
  $('tabBtnLab').setAttribute('aria-pressed',String(t==='lab'));
- if(t==='lab'&&!frameKey)selectLabPlatform('local');
+ if(t==='lab'&&!frameKey)selectLabPlatform(defaultLabKey());
 }
+function defaultLabKey() { return course.lab==='circuit'?'avr':course.lab; }
 function canEmbedPlatform(cfg) {
- const verification=cfg?.embedVerification;
- return cfg?.mode==='embed' && verification?.status==='verified'
-  && verification.url===(cfg.embedUrl||cfg.url)
-  && verification.origin===location.origin;
+ return cfg?.mode==='embed' && ['existing','official'].includes(cfg.embedSupport)
+  && /^https:\/\//.test(cfg.embedUrl||cfg.url||'');
 }
 function selectLabPlatform(key) {
  if(!courseLabKeys().includes(key)||!labs[key])key='local';
@@ -212,9 +211,9 @@ function selectLabPlatform(key) {
  const f=document.createElement('iframe');
  f.title=cfg.name;f.src=cfg.embedUrl||cfg.url;
  f.allow='fullscreen; clipboard-write';
- f.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-pointer-lock');
+ if(cfg.embedSupport!=='existing')f.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-pointer-lock');
  f.referrerPolicy='strict-origin-when-cross-origin';f.loading='lazy';f.allowFullscreen=true;f.id='practiceFrame';
- f.addEventListener('error',()=>{cfg.mode='disabled';renderLabButtons();selectLabPlatform('local');});
+ f.addEventListener('error',()=>{if(cfg.embedSupport!=='existing'){cfg.mode='blocked';renderLabButtons();selectLabPlatform(defaultLabKey());}});
  $('frameHost').append(f);
 }
 function reloadLabFrame() { if(canEmbedPlatform(labs[frameKey]))selectLabPlatform(frameKey); }

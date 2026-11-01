@@ -407,78 +407,88 @@ with sync_playwright() as p:
         goto('course.learning.html?course=arduino')
         registry = page.evaluate('window.STROBOT_LAB_PLATFORMS')
         assignments = page.evaluate('window.STROBOT_COURSE_LABS')
-        require('local' in registry, 'The in-page bench must remain available')
-        require(set(assignments) == {'arduino', 'vex-iq', 'microbit', 'lego-spike', 'vex-vr'}, 'Missing course lab assignments')
+        original_urls = {
+            'circuit': 'https://www.falstad.com/circuit/circuitjs.html',
+            'avr': 'https://www.falstad.com/circuit/avr8js/',
+            'makecode': 'https://makecode.microbit.org/#editor',
+            'gears': 'https://gears.aposteriori.com.sg/'
+        }
+        defaults = {'arduino': 'avr', 'microbit': 'makecode', 'vex-iq': 'gears', 'lego-spike': 'gears', 'vex-vr': 'gears'}
+        additions = {'wokwi', 'phet', 'scratch', 'arcade'}
+        require(set(registry) == set(original_urls) | additions | {'local'}, 'Original labs or official embed additions missing; external-only editor added')
+        for key, url in original_urls.items():
+            require(registry[key]['url'] == url and registry[key]['mode'] == 'embed', 'Original lab changed: ' + key)
+            require(registry[key]['embedSupport'] == 'existing', 'Original lab can be disabled by a new verification gate: ' + key)
+        # Local fixture tests the iframe integration only, not provider availability.
+        # There are no live external requests or paid AI calls in this suite.
+        frame_urls = {cfg.get('embedUrl') or cfg.get('url') for cfg in registry.values() if cfg['mode'] == 'embed'}
+        def iframe_fixture(route):
+            request = route.request
+            if request.resource_type == 'document' and request.frame.parent_frame is not None and request.url.split('#')[0] in {u.split('#')[0] for u in frame_urls}:
+                route.fulfill(status=200, content_type='text/html', body='<html><title>Lab integration fixture</title><body><canvas id="labFixture"></canvas></body></html>')
+            else:
+                route.fallback()
+        page.route('**/*', iframe_fixture)
         popups = []
         on_popup = lambda popup: popups.append(popup)
         page.on('popup', on_popup)
-        hidden_providers = 0
-        visible_choices = 0
+        checks = 0
         for course_id, keys in assignments.items():
-            require(len(set(keys)) == len(keys) and keys[-1] == 'local', 'Invalid lab assignments: ' + course_id)
+            require(len(keys) >= 4 and len(set(keys)) == len(keys) and keys[-1] == 'local', 'Missing course lab choices: ' + course_id)
             page.locator('#courseSelect').select_option(course_id)
             page.locator('#tabBtnLab').click()
-            expect(page.locator('#localLab')).to_be_visible()
-            expect(page.locator('#practiceFrame')).to_have_count(0)
+            default = defaults[course_id]
+            expect(page.locator('#practiceFrame')).to_have_attribute('src', original_urls[default])
+            expect(page.locator('#labButtons button[data-lab-key="' + default + '"]')).to_have_attribute('aria-pressed', 'true')
+            expect(page.locator('#localLab')).to_be_hidden()
             expect(page.locator('#labExternalBtn, #labActivity, #labProviderDocs, #labBoxDesc, #frameNote')).to_have_count(0)
-            expect(page.locator('a[target="_blank"]')).to_have_count(0)
+            expect(page.locator('#labView a')).to_have_count(0)
             require('Hướng dẫn nền tảng' not in page.locator('#labView').inner_text(), 'Platform help returned')
+            expect(page.locator('#labButtons button')).to_have_count(len(keys))
             for key in keys:
                 cfg = registry[key]
-                verification = cfg.get('embedVerification', {})
-                allowed = key == 'local' or (
-                    cfg['mode'] == 'embed' and verification.get('status') == 'verified'
-                    and verification.get('url') == (cfg.get('embedUrl') or cfg.get('url'))
-                    and verification.get('origin') == urlparse(BASE).scheme + '://' + urlparse(BASE).netloc)
                 button = page.locator('#labButtons button[data-lab-key="' + key + '"]')
-                if not allowed:
-                    expect(button).to_have_count(0)
-                    page.evaluate('(key)=>selectLabPlatform(key)', key)
-                    expect(page.locator('#localLab')).to_be_visible()
-                    expect(page.locator('#practiceFrame')).to_have_count(0)
-                    hidden_providers += 1
-                    continue
-                visible_choices += 1
-                expect(button).to_have_count(1)
                 button.click()
                 expect(button).to_have_attribute('aria-pressed', 'true')
                 expect(page.locator('#labButtons button[aria-pressed="true"]')).to_have_count(1)
                 if key == 'local':
+                    expect(page.locator('#localLab')).to_be_visible()
+                    expect(page.locator('#practiceFrame')).to_have_count(0)
                     require(page.locator('#benchResult').inner_text().strip(), 'In-page bench did not run')
                 else:
+                    frame = page.locator('#practiceFrame')
+                    expect(frame).to_have_attribute('src', cfg.get('embedUrl') or cfg['url'])
+                    expect(frame).to_have_attribute('title', cfg['name'])
+                    expect(frame).to_have_attribute('allow', 'fullscreen; clipboard-write')
+                    if key in original_urls:
+                        require(frame.get_attribute('sandbox') is None, 'New restrictions changed the original iframe: ' + key)
+                    else:
+                        require(cfg['embedSupport'] == 'official' and cfg['embedUrl'].startswith('https://'), 'New platform lacks official embed route')
+                        permissions = set((frame.get_attribute('sandbox') or '').split())
+                        require('allow-scripts' in permissions, 'Embedded simulator cannot execute')
+                        require(not permissions.intersection({'allow-popups', 'allow-popups-to-escape-sandbox', 'allow-top-navigation', 'allow-top-navigation-by-user-activation'}), 'New lab opens another tab or leaves the website')
+                    page.locator('#labReloadBtn').click()
                     expect(page.locator('#practiceFrame')).to_have_attribute('src', cfg.get('embedUrl') or cfg['url'])
+                checks += 1
+            # The next lesson must reopen the original lab, rather than replacing it with a local-only screen.
             page.locator('#lessonList button').nth(1).click()
             page.locator('#tabBtnLab').click()
-            expect(page.locator('#localLab')).to_be_visible()
-        require(hidden_providers > 0, 'Unverified providers were not excluded')
-        # Exercise approval/error handling with synthetic metadata, without calling a provider.
+            expect(page.locator('#practiceFrame')).to_have_attribute('src', original_urls[default])
         page.locator('#courseSelect').select_option('arduino')
         page.locator('#tabBtnLab').click()
-        original = page.evaluate('JSON.parse(JSON.stringify(labs.circuit))')
-        page.evaluate("labs.circuit.mode='embed'; labs.circuit.embedVerification={status:'unverified'}; renderLabButtons();selectLabPlatform('circuit')")
-        expect(page.locator('#labButtons button[data-lab-key="circuit"]')).to_have_count(0)
-        expect(page.locator('#practiceFrame')).to_have_count(0)
-        page.evaluate("labs.circuit.embedVerification={status:'verified',url:labs.circuit.embedUrl||labs.circuit.url,origin:'https://different-origin.example'};renderLabButtons()")
-        expect(page.locator('#labButtons button[data-lab-key="circuit"]')).to_have_count(0)
-        page.evaluate("labs.circuit.embedVerification.origin=location.origin; labs.circuit.embedVerification.url='https://different-url.example/';renderLabButtons()")
-        expect(page.locator('#labButtons button[data-lab-key="circuit"]')).to_have_count(0)
-        page.evaluate("labs.circuit.embedVerification.url=labs.circuit.embedUrl||labs.circuit.url;renderLabButtons()")
-        page.locator('#labButtons button[data-lab-key="circuit"]').click()
-        frame = page.locator('#practiceFrame')
-        expect(frame).to_have_attribute('src', original.get('embedUrl') or original['url'])
-        expect(frame).to_have_attribute('title', original['name'])
-        permissions = set((frame.get_attribute('sandbox') or '').split())
-        require('allow-scripts' in permissions, 'Embedded simulator cannot execute')
-        require(not permissions.intersection({'allow-popups', 'allow-popups-to-escape-sandbox', 'allow-top-navigation', 'allow-top-navigation-by-user-activation'}), 'Embedded lab can open another tab or leave the website')
+        original = page.evaluate('JSON.parse(JSON.stringify(labs.wokwi))')
+        page.evaluate("labs.wokwi.mode='external';renderLabButtons();selectLabPlatform('wokwi')")
+        expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_count(0)
         expect(page.locator('#labExternalBtn')).to_have_count(0)
-        page.locator('#labReloadBtn').click()
-        expect(page.locator('#practiceFrame')).to_have_count(1)
+        page.evaluate("labs.wokwi.mode='embed';labs.wokwi.embedSupport='unknown';renderLabButtons()")
+        expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_count(0)
+        page.evaluate('(cfg)=>{labs.wokwi=cfg;renderLabButtons()}', original)
+        page.locator('#labButtons button[data-lab-key="wokwi"]').click()
         page.locator('#practiceFrame').dispatch_event('error')
-        expect(page.locator('#practiceFrame')).to_have_count(0)
-        expect(page.locator('#labButtons button[data-lab-key="circuit"]')).to_have_count(0)
-        expect(page.locator('#localLab')).to_be_visible()
-        page.evaluate('(cfg)=>{labs.circuit=cfg;renderLabButtons();selectLabPlatform("local")}', original)
-        require(len(popups) == 0, 'Lab interaction opened a separate tab')
+        expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_count(0)
+        expect(page.locator('#practiceFrame')).to_have_attribute('src', original_urls['avr'])
+        page.evaluate('(cfg)=>{labs.wokwi=cfg;renderLabButtons()}', original)
+        require(len(popups) == 0, 'A lab choice opened a separate tab')
         page.remove_listener('popup', on_popup)
         page.set_viewport_size({'width': 390, 'height': 844})
         mobile_layouts = {}
@@ -487,9 +497,10 @@ with sync_playwright() as p:
             page.locator('#tabBtnLab').click()
             mobile_layouts[course_id] = no_overflow()
         page.set_viewport_size({'width': 1440, 'height': 1000})
-        return {'registered_candidates': len(registry), 'visible_in_page_choices': visible_choices, 'hidden_unverified_assignments': hidden_providers, 'external_links': 0, 'popups': 0, 'verification_gate_tested': True, 'blocked_frame_removed': True, 'platform_help_removed': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; external traffic blocked'}
+        page.unroute('**/*', iframe_fixture)
+        return {'original_platforms_restored': 4, 'original_course_defaults_restored': 5, 'official_embed_additions': 4, 'selections_checked': checks, 'external_editor_choices': 0, 'popups': 0, 'failed_addition_returns_to_original_lab': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; iframe integration uses local fixtures'}
 
-    checked('only in-page labs; unverified/blocked providers hidden; no external tabs', lab_platforms)
+    checked('original labs/defaults restored, official embeds added, no external-tab fallback', lab_platforms)
 
     def persistence_pdf():
         goto('course.learning.html?course=arduino')
