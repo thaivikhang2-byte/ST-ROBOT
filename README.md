@@ -24,7 +24,7 @@ Các trang HTML ở thư mục gốc chuyển về `frontend/public/` và giữ 
 
 - 5 khóa × 6 bài: Arduino Uno, VEX IQ, Micro:bit, LEGO SPIKE Prime và VEXcode VR.
 - Lý thuyết, code mẫu, bài tập, quiz, nhật ký, điều kiện hoàn thành và tải PDF.
-- 14 lựa chọn thực hành: các nền tảng ngoài mở ở tab riêng và bàn thí nghiệm nội bộ chạy ngay trong trang; mỗi khóa có 5–6 lựa chọn phù hợp.
+- Lab chạy trực tiếp trong website. Chỉ hiển thị nền tảng nhúng đã được kiểm chứng; nền tảng bị chặn hoặc chưa kiểm chứng sẽ bị ẩn, không có nút mở ngoài.
 - Nội dung 30 bài có mục tiêu, kiến thức theo bước, ví dụ có đơn vị, lỗi thường gặp, tự kiểm tra và nguồn chính thức.
 - micro:bit có cả mã mẫu MakeCode JavaScript và MicroPython; chọn đúng môi trường trước khi sao chép.
 - Tìm/lọc bộ kit, thông số chi tiết, quiz ôn tập và chọn khóa từ trang đăng ký.
@@ -47,13 +47,11 @@ python3 tests/ui-smoke.py --base http://127.0.0.1:8000 --chromium /usr/bin/chrom
 
 Đổi `--chromium` theo nơi cài trình duyệt nếu cần. Test chặn kết nối ngoài và giả lập cả hai API AI; không gọi dịch vụ AI trả phí. Test kiểm tra giao diện, danh mục, đường dẫn cũ, kit, quiz, đăng ký, 30 bài học, lab nội bộ, lưu nhật ký, tải PDF, AI, menu và bố cục điện thoại. Các simulator bên ngoài và phản hồi AI thật phụ thuộc dịch vụ đang triển khai, không được xác nhận bởi test giả lập.
 
-## Phòng lab mới
+## Phòng lab trong website
 
-Arduino có CircuitJS, AVR8js, Wokwi và PhET. micro:bit có MakeCode, Python Editor, Arcade và Scratch. Các khóa robot có GearsBot, Scratch, Open Roberta và công cụ chính thức VEX/LEGO phù hợp; Arcade được bổ sung cho VEX IQ và VEXcode VR.
+Bàn thí nghiệm nội bộ luôn chạy trong trang. Nền tảng ngoài chỉ xuất hiện khi có kết quả kiểm chứng nhúng thành công đúng URL và origin website; các ứng viên chưa kiểm chứng hoặc bị chặn bị ẩn khỏi bộ chọn. Hiện môi trường kiểm tra chưa truy cập được nhà cung cấp để xác minh trực tiếp nên chỉ bàn thí nghiệm nội bộ được hiển thị.
 
-Scratch/Arcade có player chạy mẫu để luyện thuật toán; hiện mở editor riêng để sửa hoặc remix. PhET là thí nghiệm điện DC, không chạy code Arduino. GearsBot là môi trường robot ảo khác, không chạy nguyên API VEX/LEGO. Các lựa chọn chính hãng cần phần cứng/cấp truy cập tương ứng khi nền tảng yêu cầu.
-
-Bàn thí nghiệm nội bộ được chọn mặc định. Nền tảng ngoài chỉ có nút mở riêng khi chưa được kiểm chứng nhúng trực tiếp. Chỉ cấu hình đã xác minh đúng URL và origin website mới được tạo iframe. Các hướng dẫn/liên kết hướng dẫn nền tảng đã bỏ khỏi giao diện; nhật ký, quiz và tiến độ vẫn được giữ. Tài liệu nguồn và giới hạn kiểm chứng trực tiếp: [docs/lab-platforms.md](docs/lab-platforms.md).
+Không có nút mở nền tảng ở tab riêng, không có hướng dẫn nền tảng trong giao diện. Khung nhúng không được phép mở popup hoặc điều hướng trang chính. Lỗi tải khung sẽ gỡ nền tảng đó khỏi bộ chọn và trở về bàn thí nghiệm nội bộ. Quiz, nhật ký, PDF và AI được giữ nguyên. Hồ sơ nguồn và điều kiện kiểm chứng: [docs/lab-platforms.md](docs/lab-platforms.md).
 
 ## Cập nhật nội dung và PDF cùng lúc
 
@@ -67,4 +65,4 @@ python3 tests/content-validation.py
 
 Công cụ tạo PDF cần phông DejaVu Sans (`fonts-dejavu-core` trên Debian/Ubuntu), hoặc truyền `--symbol-font /duong/dan/DejaVuSans.ttf`. Font hỗ trợ ký hiệu khoa học, bên cạnh Be Vietnam Pro có sẵn trong dự án. Các file JS sinh ra đã được commit; người dùng website không cần Python hoặc công cụ build.
 
-`python3 scripts/build-learning-content.py --check` phát hiện dữ liệu/PDF chưa cập nhật. Kiểm thử nội dung đọc PDF thật, đối chiếu đủ 30 bài và kiểm tra dữ liệu AI trùng dữ liệu frontend. Kiểm thử trình duyệt chặn các dịch vụ ngoài, xác nhận luồng chọn lab/nhúng/mở riêng, không khẳng định máy chủ ngoài đang hoạt động hoặc cho phép nhúng ở mọi thời điểm.
+`python3 scripts/build-learning-content.py --check` phát hiện dữ liệu/PDF chưa cập nhật. Kiểm thử nội dung đọc PDF thật, đối chiếu đủ 30 bài và kiểm tra dữ liệu AI trùng dữ liệu frontend. Kiểm thử trình duyệt chặn các dịch vụ ngoài, xác nhận luồng chọn lab/ẩn nền tảng bị chặn và không mở tab ngoài, không khẳng định máy chủ ngoài đang hoạt động hoặc cho phép nhúng ở mọi thời điểm.

@@ -19,7 +19,7 @@ export const getFooterTemplate = () => `
         <section aria-labelledby="footer-contact">
           <h2 id="footer-contact">Kết nối</h2>
           <ul>
-            <li><a href="https://www.facebook.com/share/1Cks4cJt2F/" target="_blank" rel="noopener noreferrer">Fanpage Facebook<span class="visually-hidden"> (mở trong tab mới)</span></a></li>
+            <li><a href="https://www.facebook.com/share/1Cks4cJt2F/" rel="noopener noreferrer">Fanpage Facebook</a></li>
           </ul>
         </section>
       </div>

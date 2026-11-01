@@ -49,7 +49,6 @@
             const item = document.createElement('li');
             const link = textElement('a', source.title);
             link.href = url.href;
-            link.target = '_blank';
             link.rel = 'noopener noreferrer';
             item.append(link);
             links.append(item);

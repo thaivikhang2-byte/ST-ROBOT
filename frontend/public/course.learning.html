@@ -80,7 +80,6 @@
           <div class="lab-heading">
             <h2 id="labBoxTitle"></h2>
             <div class="lab-actions">
-              <a id="labExternalBtn" class="btn btn--primary btn--sm" target="_blank" rel="noopener noreferrer">Mở ứng dụng riêng ↗</a>
               <button id="labReloadBtn" type="button" onclick="reloadLabFrame()" hidden>Tải lại khung</button>
               <button id="labFullscreenBtn" type="button" onclick="fullscreenLabFrame()" hidden>Toàn màn hình</button>
             </div>
@@ -171,7 +170,7 @@ function renderCodeExamples(l) {
  };
  selector.onchange=update;update();
 }
-function courseLabKeys() { return window.STROBOT_COURSE_LABS[course.id] || ['local']; }
+function courseLabKeys() { return (window.STROBOT_COURSE_LABS[course.id] || ['local']).filter(key=>key==='local'||canEmbedPlatform(labs[key])); }
 function renderLabButtons() {
  $('labButtons').replaceChildren(...courseLabKeys().map(key=>{
   const button=document.createElement('button');
@@ -206,28 +205,23 @@ function selectLabPlatform(key) {
  $('localLab').hidden=key!=='local';
  document.querySelectorAll('#labButtons button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.labKey===key)));
  $('labBoxTitle').textContent=key==='local'?'Bàn thí nghiệm: '+lesson().title:cfg.name;
- $('labExternalBtn').hidden=cfg.mode==='local';
  $('labReloadBtn').hidden=!canEmbedPlatform(cfg);
  $('labFullscreenBtn').hidden=!canEmbedPlatform(cfg);
- if(cfg.mode==='local') {
-  $('labExternalBtn').removeAttribute('href');
-  return;
- }
- $('labExternalBtn').href=cfg.url;
+ if(cfg.mode==='local')return;
  if(!canEmbedPlatform(cfg))return;
  const f=document.createElement('iframe');
  f.title=cfg.name;f.src=cfg.embedUrl||cfg.url;
  f.allow='fullscreen; clipboard-write';
- f.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox allow-pointer-lock');
+ f.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-pointer-lock');
  f.referrerPolicy='strict-origin-when-cross-origin';f.loading='lazy';f.allowFullscreen=true;f.id='practiceFrame';
- f.addEventListener('error',()=>{f.remove();$('labReloadBtn').hidden=true;$('labFullscreenBtn').hidden=true;});
+ f.addEventListener('error',()=>{cfg.mode='disabled';renderLabButtons();selectLabPlatform('local');});
  $('frameHost').append(f);
 }
 function reloadLabFrame() { if(canEmbedPlatform(labs[frameKey]))selectLabPlatform(frameKey); }
 function fullscreenLabFrame() {
  const frame=$('practiceFrame');
- if(frame?.requestFullscreen)frame.requestFullscreen().catch(()=>toast('Thiết bị chưa hỗ trợ toàn màn hình. Bạn có thể mở ứng dụng riêng.'));
- else toast('Thiết bị chưa hỗ trợ toàn màn hình. Bạn có thể mở ứng dụng riêng.');
+ if(frame?.requestFullscreen)frame.requestFullscreen().catch(()=>toast('Thiết bị chưa hỗ trợ toàn màn hình.'));
+ else toast('Thiết bị chưa hỗ trợ toàn màn hình.');
 }
 
 function markLessonComplete(){let r=record();if(r.choice!==lesson().answer){toast('Cần trả lời đúng câu kiểm tra trước.');return}if((r.note||'').trim().length<60){toast('Ghi nhật ký ít nhất 60 ký tự: đầu vào, kết quả và giải thích.');$('journal').focus();return}r.done=true;save();renderLessons();toast('Đã đánh dấu hoàn thành tự học. Đây không phải xác nhận chấm lab ngoài hoặc chứng nhận năng lực.')}
