@@ -24,7 +24,7 @@ Các trang HTML ở thư mục gốc chuyển về `frontend/public/` và giữ 
 
 - 5 khóa × 6 bài: Arduino Uno, VEX IQ, Micro:bit, LEGO SPIKE Prime và VEXcode VR.
 - Lý thuyết, code mẫu, bài tập, quiz, nhật ký, điều kiện hoàn thành và tải PDF.
-- Khôi phục các lab gốc CircuitJS, AVR8js, MakeCode micro:bit và GearsBot; bổ sung Wokwi, PhET, Scratch và MakeCode Arcade bằng đường nhúng chính thức. Không có lựa chọn bắt mở tab riêng.
+- Khôi phục các lab gốc CircuitJS, AVR8js, MakeCode micro:bit và GearsBot; bổ sung Wokwi, PhET, Scratch và MakeCode Arcade bằng đường nhúng chính thức. Mỗi lab có thêm lựa chọn mở riêng ở tab ngoài; khung nhúng và mặc định cũ giữ nguyên.
 - Nội dung 30 bài có mục tiêu, kiến thức theo bước, ví dụ có đơn vị, lỗi thường gặp, tự kiểm tra và nguồn chính thức.
 - micro:bit có cả mã mẫu MakeCode JavaScript và MicroPython; chọn đúng môi trường trước khi sao chép.
 - Tìm/lọc bộ kit, thông số chi tiết, quiz ôn tập và chọn khóa từ trang đăng ký.
@@ -51,7 +51,7 @@ python3 tests/ui-smoke.py --base http://127.0.0.1:8000 --chromium /usr/bin/chrom
 
 Các nền tảng, URL và lựa chọn mặc định cũ được khôi phục theo bản `4b26e4a`: Arduino mở AVR8js (có thêm CircuitJS), micro:bit mở MakeCode, các khóa robot mở GearsBot. Bàn thí nghiệm nội bộ vẫn ở cuối danh sách như trước.
 
-Các mục mới dùng endpoint nhúng chính thức: Wokwi Uno, PhET mạch DC, Scratch Maze Starter và MakeCode Arcade. Công cụ chỉ có editor mở ngoài không được thêm. Không có nút mở tab riêng hay phần hướng dẫn nền tảng trong giao diện. Bản bổ sung có lỗi tải sẽ quay về lab gốc; không xóa/ẩn các nền tảng gốc chỉ vì môi trường kiểm tra không truy cập được chúng.
+Các mục mới dùng endpoint nhúng chính thức: Wokwi Uno, PhET mạch DC, Scratch Maze Starter và MakeCode Arcade. Công cụ chỉ có editor mở ngoài không được thêm. Mỗi lab có nút “Mở riêng ở tab ngoài” tùy chọn; không có phần hướng dẫn nền tảng trong giao diện. Nút mở editor/toàn trang tương ứng với lab đang chọn, còn bàn thí nghiệm nội bộ mở đúng khóa/bài hiện tại trong một tab mới. Bản bổ sung có lỗi tải sẽ quay về lab gốc; không xóa/ẩn các nền tảng gốc chỉ vì môi trường kiểm tra không truy cập được chúng.
 
 Lý thuyết 30 bài, code mẫu, quiz, nhật ký, PDF và AI được giữ nguyên. Nguồn xác nhận các đường nhúng và giới hạn kiểm thử: [docs/lab-platforms.md](docs/lab-platforms.md).
 

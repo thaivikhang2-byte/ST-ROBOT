@@ -15,7 +15,7 @@ The original in-page numerical/logic bench remains available as the last choice.
 
 ## Additional official iframe endpoints
 
-Only embed routes are configured. There is no separate-editor button, external-only platform choice, popup fallback or platform-help link in the website.
+Only embed routes are configured. There is no external-only platform choice or automatic popup fallback. Each selected lab has an explicit optional new-tab link; embedded URLs and original defaults remain unchanged. No platform-help link is rendered.
 
 | Addition | Configured iframe URL | Official source evidence |
 | --- | --- | --- |
@@ -26,13 +26,13 @@ Only embed routes are configured. There is no separate-editor button, external-o
 
 Scratch and Arcade frames run examples; they are not full VEX/LEGO hardware editors. PhET models DC circuits, not Arduino code. GearsBot remains an alternative robot environment rather than an exact VEX/LEGO emulator. These distinctions are retained in the lesson material.
 
-New frames cannot open popup tabs or navigate the top page. A new platform that raises a frame load error is removed for the current session and the original course lab is restored. Original platforms retain their pre-change iframe behavior and are not removed by this extra handling. An iframe load event alone is not proof of successful third-party execution.
+New frames cannot automatically open popup tabs or navigate the top page. The user can explicitly choose the parent page’s “Mở riêng ở tab ngoài” link with `target="_blank"` and `rel="noopener noreferrer"`. Wokwi/Scratch/Arcade links open their full editor pages; the local bench reopens the current course and lesson with `view=lab&lab=local`. A new platform that raises a frame load error is removed for the current session and the original course lab is restored. Original platforms retain their pre-change iframe behavior and are not removed by this extra handling. An iframe load event alone is not proof of successful third-party execution.
 
 ## Validation scope
 
 Official source documentation supports the added routes. Direct provider requests from this managed environment failed at the network proxy CONNECT stage with HTTP 403; that is not evidence that the provider rejects website embedding. It must not be used to remove the user's original working labs.
 
-The browser suite uses local iframe fixtures to verify all original URLs/defaults, the four added embed URLs, local benches, blocked-addition recovery, absence of external-tab buttons, responsive layout and existing course features. It does not claim live provider availability. The source list excludes full-editor-only candidates requiring a separate tab (VEX/LEGO vendor editors, Python Editor, Open Roberta) from the shipped lab menu.
+The browser suite uses local iframe fixtures to verify all original URLs/defaults, the four added embed URLs, local benches, blocked-addition recovery, optional new-tab links and preservation of the embedded view, responsive layout and existing course features. It does not claim live provider availability. The source list excludes full-editor-only candidates requiring a separate tab (VEX/LEGO vendor editors, Python Editor, Open Roberta) from the shipped lab menu.
 
 ## Atomic browser snapshot
 

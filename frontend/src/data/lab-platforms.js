@@ -1,5 +1,5 @@
 // Existing lab URLs/defaults are preserved from commit 4b26e4a.
-// New entries use official iframe endpoints; no external-editor fallback is provided.
+// Optional full-page links do not change the official iframe endpoints.
 window.STROBOT_LAB_PLATFORMS = {
     "circuit": {
         "name": "CircuitJS · Mạch điện",
@@ -40,7 +40,8 @@ window.STROBOT_LAB_PLATFORMS = {
         "url": "https://wokwi.com/share/embed/322062421191557714",
         "embedUrl": "https://wokwi.com/share/embed/322062421191557714",
         "sourceUrl": "https://docs.wokwi.com/",
-        "embedSupport": "official"
+        "embedSupport": "official",
+        "externalUrl": "https://wokwi.com/projects/322062421191557714"
     },
     "phet": {
         "name": "PhET · Mạch điện DC",
@@ -58,7 +59,8 @@ window.STROBOT_LAB_PLATFORMS = {
         "url": "https://scratch.mit.edu/projects/10128431/embed",
         "embedUrl": "https://scratch.mit.edu/projects/10128431/embed",
         "sourceUrl": "https://scratch.mit.edu/ideas",
-        "embedSupport": "official"
+        "embedSupport": "official",
+        "externalUrl": "https://scratch.mit.edu/projects/10128431/editor/"
     },
     "arcade": {
         "name": "MakeCode Arcade · Trò chơi",
@@ -67,7 +69,8 @@ window.STROBOT_LAB_PLATFORMS = {
         "url": "https://arcade.makecode.com/---run?id=_1yfTMtFAe5yC",
         "embedUrl": "https://arcade.makecode.com/---run?id=_1yfTMtFAe5yC",
         "sourceUrl": "https://arcade.makecode.com/share",
-        "embedSupport": "official"
+        "embedSupport": "official",
+        "externalUrl": "https://arcade.makecode.com/#pub:_1yfTMtFAe5yC"
     },
     "local": {
         "name": "Bàn thí nghiệm trong bài",

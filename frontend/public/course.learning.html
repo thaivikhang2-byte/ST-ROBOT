@@ -80,6 +80,7 @@
           <div class="lab-heading">
             <h2 id="labBoxTitle"></h2>
             <div class="lab-actions">
+              <a id="labExternalBtn" class="btn btn--primary btn--sm" target="_blank" rel="noopener noreferrer">Mở riêng ở tab ngoài ↗</a>
               <button id="labReloadBtn" type="button" onclick="reloadLabFrame()" hidden>Tải lại khung</button>
               <button id="labFullscreenBtn" type="button" onclick="fullscreenLabFrame()" hidden>Toàn màn hình</button>
             </div>
@@ -100,9 +101,9 @@
   <script type="module" src="../src/app.js"></script>
 <script src="../src/data/curriculum.js"></script>
 <script src="../src/data/lesson-pdfs.js"></script>
-<script id="lab-platform-data" data-lab-version="2c3df55997bb">
+<script id="lab-platform-data" data-lab-version="6d283b90475a">
 // Existing lab URLs/defaults are preserved from commit 4b26e4a.
-// New entries use official iframe endpoints; no external-editor fallback is provided.
+// Optional full-page links do not change the official iframe endpoints.
 window.STROBOT_LAB_PLATFORMS = {
     "circuit": {
         "name": "CircuitJS · Mạch điện",
@@ -143,7 +144,8 @@ window.STROBOT_LAB_PLATFORMS = {
         "url": "https://wokwi.com/share/embed/322062421191557714",
         "embedUrl": "https://wokwi.com/share/embed/322062421191557714",
         "sourceUrl": "https://docs.wokwi.com/",
-        "embedSupport": "official"
+        "embedSupport": "official",
+        "externalUrl": "https://wokwi.com/projects/322062421191557714"
     },
     "phet": {
         "name": "PhET · Mạch điện DC",
@@ -161,7 +163,8 @@ window.STROBOT_LAB_PLATFORMS = {
         "url": "https://scratch.mit.edu/projects/10128431/embed",
         "embedUrl": "https://scratch.mit.edu/projects/10128431/embed",
         "sourceUrl": "https://scratch.mit.edu/ideas",
-        "embedSupport": "official"
+        "embedSupport": "official",
+        "externalUrl": "https://scratch.mit.edu/projects/10128431/editor/"
     },
     "arcade": {
         "name": "MakeCode Arcade · Trò chơi",
@@ -170,7 +173,8 @@ window.STROBOT_LAB_PLATFORMS = {
         "url": "https://arcade.makecode.com/---run?id=_1yfTMtFAe5yC",
         "embedUrl": "https://arcade.makecode.com/---run?id=_1yfTMtFAe5yC",
         "sourceUrl": "https://arcade.makecode.com/share",
-        "embedSupport": "official"
+        "embedSupport": "official",
+        "externalUrl": "https://arcade.makecode.com/#pub:_1yfTMtFAe5yC"
     },
     "local": {
         "name": "Bàn thí nghiệm trong bài",
@@ -235,6 +239,11 @@ function initPage(){
  $('downloadPdf').onclick=downloadPdf;$('exportNotes').onclick=()=>downloadBlob(new Blob([JSON.stringify({course:course.id,records:state[course.id],exportedAt:new Date().toISOString()},null,2)],{type:'application/json'}),course.id+'-nhat-ky.json');
  $('copyLink').onclick=async()=>{try{await navigator.clipboard.writeText(new URL('course.learning.html?course='+course.id,location.href).href);toast('Đã sao chép đường dẫn khóa học.')}catch{toast('Đường dẫn khóa: course.learning.html?course='+course.id)}};
  document.addEventListener('keydown',e=>{if(e.key==='Escape')closePdfModal()});
+ if(qs.get('view')==='lab'||qs.has('lab')) {
+  const requestedLab=qs.get('lab');
+  if(courseLabKeys().includes(requestedLab))selectLabPlatform(requestedLab);
+  switchMainTab('lab');
+ }
 }
 function updateURL(){try{const u=new URL(location.href);u.searchParams.set('course',course.id);u.searchParams.set('lesson',lesson().id);history.replaceState(null,'',u)}catch{}}
 function renderLessons(){const records=state[course.id]||{};let n=course.lessons.filter(l=>records[l.id]?.done).length;$('progressText').textContent=n+'/6 bài tự học';$('lessonList').innerHTML=course.lessons.map((l,i)=>'<button class="lesson-item '+(i===currentLessonIndex?'selected':'')+'" aria-current="'+(i===currentLessonIndex?'step':'false')+'" onclick="loadLesson('+i+')"><span class="lesson-number">'+(records[l.id]?.done?'✓':i+1)+'</span><span>'+esc(l.title)+'<small>50 phút · Lý thuyết + thực hành</small></span></button>').join('')}
@@ -316,6 +325,14 @@ function selectLabPlatform(key) {
  $('localLab').hidden=key!=='local';
  document.querySelectorAll('#labButtons button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.labKey===key)));
  $('labBoxTitle').textContent=key==='local'?'Bàn thí nghiệm: '+lesson().title:cfg.name;
+ const external=$('labExternalBtn');
+ if(key==='local') {
+  const url=new URL(location.href);
+  url.searchParams.set('course',course.id);url.searchParams.set('lesson',lesson().id);
+  url.searchParams.set('view','lab');url.searchParams.set('lab','local');url.hash='';
+  external.href=url.href;
+ } else external.href=cfg.externalUrl||cfg.url;
+ external.setAttribute('aria-label','Mở '+cfg.name+' ở tab ngoài');
  $('labReloadBtn').hidden=!canEmbedPlatform(cfg);
  $('labFullscreenBtn').hidden=!canEmbedPlatform(cfg);
  if(cfg.mode==='local')return;

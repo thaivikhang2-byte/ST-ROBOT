@@ -461,8 +461,8 @@ with sync_playwright() as p:
             expect(page.locator('#practiceFrame')).to_have_attribute('src', original_urls[default])
             expect(page.locator('#labButtons button[data-lab-key="' + default + '"]')).to_have_attribute('aria-pressed', 'true')
             expect(page.locator('#localLab')).to_be_hidden()
-            expect(page.locator('#labExternalBtn, #labActivity, #labProviderDocs, #labBoxDesc, #frameNote')).to_have_count(0)
-            expect(page.locator('#labView a')).to_have_count(0)
+            expect(page.locator('#labActivity, #labProviderDocs, #labBoxDesc, #frameNote')).to_have_count(0)
+            expect(page.locator('#labView a')).to_have_count(1)
             require('Hướng dẫn nền tảng' not in page.locator('#labView').inner_text(), 'Platform help returned')
             expect(page.locator('#labButtons button')).to_have_count(len(keys))
             for key in keys:
@@ -471,6 +471,16 @@ with sync_playwright() as p:
                 button.click()
                 expect(button).to_have_attribute('aria-pressed', 'true')
                 expect(page.locator('#labButtons button[aria-pressed="true"]')).to_have_count(1)
+                separate = page.locator('#labExternalBtn')
+                expect(separate).to_be_visible()
+                expect(separate).to_have_attribute('target', '_blank')
+                require({'noopener', 'noreferrer'} <= set(separate.get_attribute('rel').split()), 'New-tab link lacks opener isolation')
+                if key == 'local':
+                    params = parse_qs(urlparse(separate.get_attribute('href')).query)
+                    require(params.get('course') == [course_id] and params.get('lesson') == [page.evaluate('lesson().id')], 'Local lab link lost the current course/lesson')
+                    require(params.get('view') == ['lab'] and params.get('lab') == ['local'], 'Local lab new tab must open the lab view')
+                else:
+                    expect(separate).to_have_attribute('href', cfg.get('externalUrl') or cfg['url'])
                 if key == 'local':
                     expect(page.locator('#localLab')).to_be_visible()
                     expect(page.locator('#practiceFrame')).to_have_count(0)
@@ -499,7 +509,7 @@ with sync_playwright() as p:
         original = page.evaluate('JSON.parse(JSON.stringify(labs.wokwi))')
         page.evaluate("labs.wokwi.mode='external';renderLabButtons();selectLabPlatform('wokwi')")
         expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_count(0)
-        expect(page.locator('#labExternalBtn')).to_have_count(0)
+        expect(page.locator('#labExternalBtn')).to_have_count(1)
         page.evaluate("labs.wokwi.mode='embed';labs.wokwi.embedSupport='unknown';renderLabButtons()")
         expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_count(0)
         page.evaluate('(cfg)=>{labs.wokwi=cfg;renderLabButtons()}', original)
@@ -518,9 +528,53 @@ with sync_playwright() as p:
             mobile_layouts[course_id] = no_overflow()
         page.set_viewport_size({'width': 1440, 'height': 1000})
         page.unroute('**/*', iframe_fixture)
-        return {'original_platforms_restored': 4, 'original_course_defaults_restored': 5, 'official_embed_additions': 4, 'selections_checked': checks, 'external_editor_choices': 0, 'popups': 0, 'failed_addition_returns_to_original_lab': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; iframe integration uses local fixtures'}
+        return {'original_platforms_restored': 4, 'original_course_defaults_restored': 5, 'official_embed_additions': 4, 'selections_checked': checks, 'optional_new_tab_links_checked': checks, 'popups': 0, 'failed_addition_returns_to_original_lab': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; iframe integration uses local fixtures'}
 
-    checked('original labs/defaults restored, official embeds added, no external-tab fallback', lab_platforms)
+    checked('original labs and embeds preserved with optional per-lab new-tab links', lab_platforms)
+
+    def optional_lab_tabs():
+        goto('course.learning.html?course=arduino&lesson=distance')
+        page.locator('#tabBtnLab').click()
+        cfg = page.evaluate('labs.wokwi')
+        embed_url = cfg.get('embedUrl') or cfg['url']
+        separate_url = cfg.get('externalUrl') or cfg['url']
+        def external_fixture(route):
+            route.fulfill(status=200, content_type='text/html', body='<html><title>Full-page lab fixture</title><body>Lab</body></html>')
+        context.route(embed_url, external_fixture)
+        context.route(separate_url, external_fixture)
+        try:
+            page.locator('#labButtons button[data-lab-key="wokwi"]').click()
+            with page.expect_popup() as opened:
+                page.locator('#labExternalBtn').click()
+            remote_tab = opened.value
+            remote_tab.wait_for_load_state('domcontentloaded')
+            expect(remote_tab).to_have_url(separate_url)
+            require(remote_tab.evaluate('window.opener === null'), 'External lab can access the original tab')
+            expect(page.locator('#practiceFrame')).to_have_attribute('src', embed_url)
+            expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_attribute('aria-pressed', 'true')
+            remote_tab.close()
+        finally:
+            context.unroute(embed_url, external_fixture)
+            context.unroute(separate_url, external_fixture)
+        page.locator('#labButtons button[data-lab-key="local"]').click()
+        local_url = page.locator('#labExternalBtn').get_attribute('href')
+        with page.expect_popup() as opened:
+            page.locator('#labExternalBtn').click()
+        local_tab = opened.value
+        local_tab.wait_for_load_state('domcontentloaded')
+        expect(local_tab.locator('#courseSelect')).to_have_value('arduino')
+        expect(local_tab.locator('#lessonTitle')).to_have_text(page.locator('#lessonTitle').inner_text())
+        expect(local_tab.locator('#labView')).to_be_visible()
+        expect(local_tab.locator('#localLab')).to_be_visible()
+        expect(local_tab.locator('#labButtons button[data-lab-key="local"]')).to_have_attribute('aria-pressed', 'true')
+        expect(local_tab.locator('#practiceFrame')).to_have_count(0)
+        require(local_tab.evaluate('window.opener === null'), 'Local lab popup is not isolated')
+        require(parse_qs(urlparse(local_url).query)['lesson'] == ['distance'], 'Local new tab changed the selected lesson')
+        local_tab.close()
+        expect(page.locator('#localLab')).to_be_visible()
+        return {'external_editor_new_tab': True, 'original_embed_preserved': True, 'local_lab_course_and_lesson_preserved': True, 'opener_isolated': True, 'live_provider_calls': 0}
+
+    checked('optional lab tabs open the right editor or same local lesson without replacing the embed', optional_lab_tabs)
 
     def persistence_pdf():
         goto('course.learning.html?course=arduino')
