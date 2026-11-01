@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """Local UI regression checks; all external calls are blocked and AI is mocked.
 Run: python3 tests/ui-smoke.py --base http://127.0.0.1:8000
-Requires Python Playwright and Chromium, and checkout served at BASE.
+Requires Python Playwright, pypdf and Chromium, and checkout served at BASE.
 No backend or credentials required. Results are written outside the checkout.
 """
 import argparse
+import io
 import json
 import pathlib
 import re
 import sys
 import traceback
+import unicodedata
 from urllib.parse import parse_qs, urlparse
 from playwright.sync_api import sync_playwright, expect
+from pypdf import PdfReader
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--base', default='http://127.0.0.1:8000')
@@ -30,6 +33,11 @@ reply_mode = {'home': 'ok', 'tutor': 'ok'}
 def require(value, message):
     if not value:
         raise AssertionError(message)
+
+
+def readable_text(value):
+    """Ignore layout whitespace while retaining Vietnamese diacritics and words."""
+    return re.sub(r'\s+', ' ', unicodedata.normalize('NFC', value)).strip().casefold()
 
 
 def checked(name, fn):
@@ -310,10 +318,11 @@ with sync_playwright() as p:
         goto('course.learning.html?course=arduino')
         expect(page.locator('#lessonList button')).to_have_count(6)
         expected_ids = ['arduino', 'vex-iq', 'microbit', 'lego-spike', 'vex-vr']
-        data = page.evaluate('COURSES.map(c => ({id:c.id, lessons:c.lessons.map(l=>({id:l.id,title:l.title,answer:l.answer}))}))')
+        data = page.evaluate('COURSES')
         require([c['id'] for c in data] == expected_ids, 'Original five courses changed')
         require(all(len(c['lessons']) == 6 for c in data), 'Original six lessons per course changed')
         checks = 0
+        code_variants_checked = 0
         for c in data:
             page.locator('#courseSelect').select_option(c['id'])
             expect(page.locator('#lessonList button')).to_have_count(6)
@@ -321,7 +330,58 @@ with sync_playwright() as p:
                 page.locator('#lessonList button').nth(i).click()
                 expect(page.locator('#lessonTitle')).to_have_text(lesson_data['title'])
                 require(page.locator('#theoryContent').inner_text().strip(), 'Missing lesson theory')
-                require(page.locator('#sampleCodeBox').inner_text().strip(), 'Missing original sample code')
+                lesson_key = c['id'] + '/' + lesson_data['id']
+                required_sections = ['objectives', 'concepts', 'example', 'misconceptions', 'self-check', 'sources']
+                for name in required_sections:
+                    expect(page.locator('#theoryContent [data-theory-section="' + name + '"]')).to_have_count(1)
+                require(len(lesson_data['objectives']) >= 2, 'Lesson lacks measurable objectives: ' + lesson_key)
+                objectives = page.locator('#theoryContent [data-theory-section="objectives"]').text_content()
+                for objective in lesson_data['objectives']:
+                    require(objective in objectives, 'Learning objective was not rendered: ' + lesson_key)
+                require(len(lesson_data['concepts']) >= 2, 'Lesson lacks structured explanation: ' + lesson_key)
+                concepts = readable_text(page.locator('#theoryContent [data-theory-section="concepts"]').text_content())
+                for concept in lesson_data['concepts']:
+                    require(readable_text(concept['title']) in concepts, 'Concept heading missing: ' + lesson_key)
+                    require(readable_text(concept['body']) in concepts, 'Concept explanation missing: ' + lesson_key)
+                for field, section in [('example', 'example'), ('misconceptions', 'misconceptions'), ('selfCheck', 'self-check')]:
+                    values = lesson_data[field] if isinstance(lesson_data[field], list) else [lesson_data[field]]
+                    require(values, 'Missing practical teaching section: ' + lesson_key + '/' + section)
+                    rendered = readable_text(page.locator('#theoryContent [data-theory-section="' + section + '"]').text_content())
+                    for value in values:
+                        require(readable_text(value) in rendered, 'Teaching content did not render: ' + lesson_key + '/' + section)
+                source_links = page.locator('#theoryContent [data-theory-section="sources"] a')
+                expect(source_links).to_have_count(len(lesson_data['sources']))
+                require(source_links.count() >= 1, 'Lesson has no reference material: ' + lesson_key)
+                for index, source in enumerate(lesson_data['sources']):
+                    href = source_links.nth(index).get_attribute('href')
+                    require(href == source['url'] and urlparse(href).scheme == 'https', 'Invalid reference URL: ' + lesson_key)
+                    require(not re.search(r'youtu(?:be|\.be)', href, re.I), 'YouTube is not allowed in teaching references')
+                require(page.locator('#sampleCodeBox').text_content() == lesson_data['code'], 'Primary sample code did not load/reset: ' + lesson_key)
+                selector = page.locator('#codeVariantSelect')
+                variants = lesson_data.get('codeVariants', [])
+                if c['id'] == 'microbit':
+                    require(any('micropython' in v['lang'].casefold() for v in variants), 'This micro:bit lesson lacks a MicroPython alternative: ' + lesson_key)
+                if variants:
+                    expect(selector).to_be_visible()
+                    expect(selector).to_have_value('primary')
+                    for variant in variants:
+                        selector.select_option(variant['id'])
+                        require(page.locator('#sampleCodeBox').text_content() == variant['code'], 'Selected code dialect did not render: ' + lesson_key + '/' + variant['id'])
+                        expect(page.locator('#codeLangLabel')).to_have_text(variant['lang'])
+                        # Intercept the clipboard at its browser API boundary; no OS permissions are needed.
+                        page.evaluate('''() => {
+                            window.__copiedSample = null;
+                            Object.defineProperty(navigator, 'clipboard', {
+                                configurable: true,
+                                value: { writeText: async text => { window.__copiedSample = text; } }
+                            });
+                        }''')
+                        page.locator('button[onclick="copySampleCode()"]').click()
+                        require(page.evaluate('window.__copiedSample') == variant['code'], 'Copy used the wrong selected code: ' + lesson_key)
+                        code_variants_checked += 1
+                    # Keep the variant selected so the next lesson also verifies primary reset.
+                else:
+                    expect(selector).to_be_hidden()
                 require(page.locator('#quizOptions input').count() >= 2, 'Missing lesson quiz')
                 require('lesson=' + lesson_data['id'] in page.url, 'Lesson deep link lost')
                 checks += 1
@@ -338,9 +398,88 @@ with sync_playwright() as p:
             page.locator('#tabBtnTheory').click()
             expect(page.locator('#theoryView')).to_be_visible()
             expect(page.locator('#labView')).to_be_hidden()
-        return {'original_courses': len(data), 'rendered_lessons': checks, 'interactive_local_benches': len(data)}
+        require(code_variants_checked >= 6, 'MicroPython alternatives are missing from some micro:bit lessons')
+        return {'original_courses': len(data), 'rendered_lessons': checks, 'structured_theory_lessons': checks, 'code_variants_rendered_and_copied': code_variants_checked, 'official_reference_links': sum(len(l['sources']) for c in data for l in c['lessons']), 'interactive_local_benches': len(data)}
 
     checked('all original learning courses, lesson content, tabs and local lab benches', learning)
+
+    def lab_platforms():
+        goto('course.learning.html?course=arduino')
+        registry = page.evaluate('window.STROBOT_LAB_PLATFORMS')
+        assignments = page.evaluate('window.STROBOT_COURSE_LABS')
+        require(isinstance(registry, dict) and len(registry) >= 8, 'The new platform catalog did not expand beyond the original four external labs')
+        require(set(assignments) == {'arduino', 'vex-iq', 'microbit', 'lego-spike', 'vex-vr'}, 'Lab assignments must cover all five courses')
+        checks = []
+        modes = {'embed': 0, 'external': 0, 'local': 0}
+        for course_id, keys in assignments.items():
+            require(len(keys) >= 4 and len(set(keys)) == len(keys), 'Course needs at least four distinct practice options: ' + course_id)
+            require(keys[-1] == 'local', 'Local bench should remain last for keyboard/legacy entry: ' + course_id)
+            page.locator('#courseSelect').select_option(course_id)
+            page.locator('#tabBtnLab').click()
+            expect(page.locator('#localLab')).to_be_visible()
+            expect(page.locator('#practiceFrame')).to_have_count(0)
+            expect(page.locator('#labButtons button[data-lab-key="local"]')).to_have_attribute('aria-pressed', 'true')
+            buttons = page.locator('#labButtons button[data-lab-key]')
+            require(buttons.evaluate_all('(items) => items.map(b => b.dataset.labKey)') == keys, 'Rendered platform list differs from course assignments')
+            for key in keys:
+                require(key in registry, 'Course references unknown platform: ' + key)
+                cfg = registry[key]
+                button = page.locator('#labButtons button[data-lab-key="' + key + '"]')
+                button.click()
+                expect(button).to_have_attribute('aria-pressed', 'true')
+                expect(page.locator('#labButtons button[aria-pressed="true"]')).to_have_count(1)
+                expect(page.locator('#labBoxTitle')).to_contain_text('Bàn thí nghiệm' if key == 'local' else cfg['name'])
+                mode = cfg['mode']
+                modes[mode] += 1
+                if mode == 'local':
+                    expect(page.locator('#localLab')).to_be_visible()
+                    expect(page.locator('#practiceFrame')).to_have_count(0)
+                    expect(page.locator('#labExternalBtn')).to_be_hidden()
+                    expect(page.locator('#labReloadBtn')).to_be_hidden()
+                    require(page.locator('#benchResult').inner_text().strip(), 'Offline bench result missing')
+                else:
+                    require(urlparse(cfg['url']).scheme == 'https', 'Platform link must use HTTPS: ' + key)
+                    require(not re.search(r'youtu(?:be|\.be)', cfg['url'], re.I), 'YouTube is not a lab platform')
+                    expect(page.locator('#labExternalBtn')).to_be_visible()
+                    expect(page.locator('#labExternalBtn')).to_have_attribute('href', cfg['url'])
+                    require(cfg.get('sourceUrl', '').startswith('https://'), 'Platform lacks evidence/reference link: ' + key)
+                    require(cfg.get('guides', {}).get(course_id), 'Missing course-specific lab instructions: ' + course_id + '/' + key)
+                    require(readable_text(cfg['guides'][course_id]) in readable_text(page.locator('#labView').text_content()), 'Course-specific instructions are not visible in the lab area: ' + course_id + '/' + key)
+                    expect(page.locator('#localLab')).to_be_hidden()
+                    if mode == 'external':
+                        expect(page.locator('#practiceFrame')).to_have_count(0)
+                        expect(page.locator('#labReloadBtn')).to_be_hidden()
+                    elif mode == 'embed':
+                        frame = page.locator('#practiceFrame')
+                        expect(frame).to_have_count(1)
+                        expect(frame).to_have_attribute('title', cfg['name'])
+                        expect(frame).to_have_attribute('src', cfg.get('embedUrl') or cfg['url'])
+                        sandbox = set((frame.get_attribute('sandbox') or '').split())
+                        require('allow-scripts' in sandbox, 'Embedded programming environment cannot run its scripts: ' + key)
+                        require(not sandbox.intersection({'allow-top-navigation', 'allow-top-navigation-by-user-activation'}), 'Embedded provider can navigate the top page: ' + key)
+                        require('fullscreen' in (frame.get_attribute('allow') or ''), 'Embedded simulator lacks fullscreen capability: ' + key)
+                        expect(page.locator('#labReloadBtn')).to_be_visible()
+                        page.locator('#labReloadBtn').click()
+                        expect(page.locator('#practiceFrame')).to_have_attribute('src', cfg.get('embedUrl') or cfg['url'])
+                    else:
+                        require(False, 'Unrecognized lab mode: ' + str(mode))
+                checks.append(course_id + '/' + key)
+            # Changing lessons should recover local practice even if a provider failed to load.
+            page.locator('#lessonList button').nth(1).click()
+            page.locator('#tabBtnLab').click()
+            expect(page.locator('#localLab')).to_be_visible()
+            expect(page.locator('#practiceFrame')).to_have_count(0)
+        require(modes['embed'] > 0 and modes['external'] > 0, 'Both embeddable and external-only providers must be handled')
+        page.set_viewport_size({'width': 390, 'height': 844})
+        mobile_layouts = {}
+        for course_id in assignments:
+            page.locator('#courseSelect').select_option(course_id)
+            page.locator('#tabBtnLab').click()
+            mobile_layouts[course_id] = no_overflow()
+        page.set_viewport_size({'width': 1440, 'height': 1000})
+        return {'registered_platforms': len(registry), 'course_platform_selections': len(checks), 'selection_modes': modes, 'offline_default': True, 'iframe_contract_checked': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; external traffic blocked'}
+
+    checked('course-specific lab choices, embed safety, external-only and offline recovery', lab_platforms)
 
     def persistence_pdf():
         goto('course.learning.html?course=arduino')
@@ -382,6 +521,44 @@ with sync_playwright() as p:
         return {'quiz_and_note_gates': True, 'reload_persistence': True, 'pdf_bytes': len(pdf), 'notes_export': True}
 
     checked('learning completion gates, persisted journal, actual PDF and notes export', persistence_pdf)
+
+    def curriculum_pdfs():
+        goto('course.learning.html?course=arduino')
+        curriculum = page.evaluate('COURSES')
+        documents = {}
+        checked_lessons = 0
+        for current in curriculum:
+            page.locator('#courseSelect').select_option(current['id'])
+            page.locator('button[onclick="openPdfModal()"]').first.click()
+            expect(page.locator('#pdfModal')).to_be_visible()
+            with page.expect_download() as info:
+                page.locator('#downloadPdf').click()
+            download = info.value
+            require(download.suggested_filename == current['id'] + '-giao-trinh-6-bai.pdf', 'PDF belongs to a different course')
+            raw = pathlib.Path(download.path()).read_bytes()
+            require(raw.startswith(b'%PDF-'), 'Missing PDF signature for ' + current['id'])
+            reader = PdfReader(io.BytesIO(raw))
+            extracted = readable_text('\n'.join(p.extract_text() or '' for p in reader.pages))
+            require(len(reader.pages) >= 6, 'PDF lacks the six full lessons: ' + current['id'])
+            require(readable_text(current['name']) in extracted, 'PDF course heading missing')
+            for item in current['lessons']:
+                context_name = current['id'] + '/' + item['id']
+                require(readable_text(item['title']) in extracted, 'PDF omits lesson title: ' + context_name)
+                # Read the downloaded PDF, rather than trusting a generated filename or a size.
+                require(readable_text(item['objectives'][0]) in extracted, 'PDF has stale/missing objectives: ' + context_name)
+                for concept in item['concepts']:
+                    require(readable_text(concept['title']) in extracted, 'PDF misses a concept: ' + context_name)
+                    excerpt = readable_text(concept['body'])[:100]
+                    require(excerpt in extracted, 'PDF theory does not match the current lesson: ' + context_name)
+                require(readable_text(item['selfCheck'][0]) in extracted, 'PDF misses self-check: ' + context_name)
+                require(readable_text(item['sources'][0]['title']) in extracted, 'PDF misses official reference: ' + context_name)
+                checked_lessons += 1
+            documents[current['id']] = {'pages': len(reader.pages), 'bytes': len(raw), 'readable_characters': len(extracted)}
+            page.keyboard.press('Escape')
+            expect(page.locator('#pdfModal')).to_be_hidden()
+        return {'downloaded_documents': documents, 'updated_lessons_verified': checked_lessons, 'vietnamese_text_extracted': True}
+
+    checked('all course PDFs contain the current Vietnamese lesson content', curriculum_pdfs)
 
     def tutor_ai():
         goto('course.learning.html?course=microbit')

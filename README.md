@@ -24,7 +24,9 @@ Các trang HTML ở thư mục gốc chuyển về `frontend/public/` và giữ 
 
 - 5 khóa × 6 bài: Arduino Uno, VEX IQ, Micro:bit, LEGO SPIKE Prime và VEXcode VR.
 - Lý thuyết, code mẫu, bài tập, quiz, nhật ký, điều kiện hoàn thành và tải PDF.
-- Phòng lab tương tác nội bộ và liên kết simulator bên ngoài của bản GitHub.
+- 14 lựa chọn thực hành: 8 cấu hình khung nhúng, 5 công cụ mở riêng và bàn thí nghiệm nội bộ; mỗi khóa có 5–6 lựa chọn phù hợp.
+- Nội dung 30 bài có mục tiêu, kiến thức theo bước, ví dụ có đơn vị, lỗi thường gặp, tự kiểm tra và nguồn chính thức.
+- micro:bit có cả mã mẫu MakeCode JavaScript và MicroPython; chọn đúng môi trường trước khi sao chép.
 - Tìm/lọc bộ kit, thông số chi tiết, quiz ôn tập và chọn khóa từ trang đăng ký.
 - AI trang chủ và AI Tutor tiếp tục gọi dịch vụ đã cấu hình tại `st-robot.onrender.com`; giao diện mới không thay endpoint hay gửi khóa bí mật từ trình duyệt.
 - Chế độ sáng/tối và menu điện thoại.
@@ -33,14 +35,36 @@ Tiến độ và nhật ký lưu trong trình duyệt. Biểu mẫu đăng ký h
 
 ## AI server
 
-Mã `ai-server/` được giữ nguyên. Để chạy riêng: `cd ai-server` rồi `npm start` (Node >=22). Cần cấu hình `WOKU_API_KEY` an toàn ở phía máy chủ để có phản hồi thật, cùng `ALLOWED_ORIGIN` phù hợp với website. Frontend vẫn dùng endpoint triển khai cũ; khởi động server local không tự đổi endpoint đó.
+Mã API `ai-server/server.mjs` được giữ nguyên; giáo trình AI và giáo trình hiển thị được đồng bộ từ `ai-server/curriculum.json`. Để chạy riêng: `cd ai-server` rồi `npm start` (Node >=22). Cần cấu hình `WOKU_API_KEY` an toàn ở phía máy chủ để có phản hồi thật, cùng `ALLOWED_ORIGIN` phù hợp với website. Frontend vẫn dùng endpoint triển khai cũ; khởi động server local không tự đổi endpoint đó.
 
 ## Kiểm tra giao diện
 
-Bộ smoke test dùng Python + Playwright và Chromium. Sau khi phục vụ thư mục dự án qua Python như trên:
+Bộ smoke test dùng Python, Playwright, pypdf và Chromium. Sau khi phục vụ thư mục dự án qua Python như trên:
 
 ```sh
 python3 tests/ui-smoke.py --base http://127.0.0.1:8000 --chromium /usr/bin/chromium
 ```
 
 Đổi `--chromium` theo nơi cài trình duyệt nếu cần. Test chặn kết nối ngoài và giả lập cả hai API AI; không gọi dịch vụ AI trả phí. Test kiểm tra giao diện, danh mục, đường dẫn cũ, kit, quiz, đăng ký, 30 bài học, lab nội bộ, lưu nhật ký, tải PDF, AI, menu và bố cục điện thoại. Các simulator bên ngoài và phản hồi AI thật phụ thuộc dịch vụ đang triển khai, không được xác nhận bởi test giả lập.
+
+## Phòng lab mới
+
+Arduino có CircuitJS, AVR8js, Wokwi và PhET. micro:bit có MakeCode, Python Editor, Arcade và Scratch. Các khóa robot có GearsBot, Scratch, Open Roberta và công cụ chính thức VEX/LEGO phù hợp; Arcade được bổ sung cho VEX IQ và VEXcode VR.
+
+Khung nhúng của Scratch/Arcade chạy mẫu để luyện thuật toán; mở editor riêng để sửa hoặc remix. PhET là thí nghiệm điện DC, không chạy code Arduino. GearsBot là môi trường robot ảo khác, không chạy nguyên API VEX/LEGO. Các lựa chọn chính hãng cần phần cứng/cấp truy cập tương ứng khi nền tảng yêu cầu.
+
+Bàn thí nghiệm nội bộ được chọn mặc định. Chỉ sau khi chọn một nền tảng ngoài, website mới tạo iframe hoặc hiển thị nút mở editor riêng. Có nút tải lại/toàn màn hình và hướng dẫn thực hành; nhật ký, quiz và tiến độ vẫn do ST-Robot lưu như trước. Tài liệu nguồn và giới hạn kiểm chứng trực tiếp: [docs/lab-platforms.md](docs/lab-platforms.md).
+
+## Cập nhật nội dung và PDF cùng lúc
+
+Chỉ sửa giáo trình gốc ở `ai-server/curriculum.json`, giữ nguyên ID khóa/bài để bảo toàn link và tiến độ. Tạo lại dữ liệu trình duyệt, thẻ khóa học và 5 PDF bằng:
+
+```sh
+python3 -m pip install -r scripts/requirements-content.txt
+python3 scripts/build-learning-content.py
+python3 tests/content-validation.py
+```
+
+Công cụ tạo PDF cần phông DejaVu Sans (`fonts-dejavu-core` trên Debian/Ubuntu), hoặc truyền `--symbol-font /duong/dan/DejaVuSans.ttf`. Font hỗ trợ ký hiệu khoa học, bên cạnh Be Vietnam Pro có sẵn trong dự án. Các file JS sinh ra đã được commit; người dùng website không cần Python hoặc công cụ build.
+
+`python3 scripts/build-learning-content.py --check` phát hiện dữ liệu/PDF chưa cập nhật. Kiểm thử nội dung đọc PDF thật, đối chiếu đủ 30 bài và kiểm tra dữ liệu AI trùng dữ liệu frontend. Kiểm thử trình duyệt chặn các dịch vụ ngoài, xác nhận luồng chọn lab/nhúng/mở riêng, không khẳng định máy chủ ngoài đang hoạt động hoặc cho phép nhúng ở mọi thời điểm.
