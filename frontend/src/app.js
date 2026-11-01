@@ -9,7 +9,7 @@ import { ROUTES } from './constants/routes.js';
 // Module Controllers
 import { HomeController } from './modules/home/HomeController.js';
 import { KitController } from './modules/kit/KitController.js';
-import { QuizController } from './modules/quiz/QuizController.js';
+import { QuizController } from './modules/quiz/QuizController.js?v=quiz-20261101-v2';
 import { GioiThieuController } from './modules/gioithieu/GioiThieuController.js';
 import { DangKyController } from './modules/dangky/DangKyController.js';
 import { CatalogController } from './modules/hoclieu/CatalogController.js';

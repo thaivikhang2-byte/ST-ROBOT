@@ -1,63 +1,53 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <script>
-    if (!window.location.pathname.endsWith('/') && !window.location.pathname.endsWith('.html')) {
-      document.write('<base href="' + window.location.pathname + '/">');
-    }
-  </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kiểm tra năng lực tư duy logic &amp; Thuật toán — ST-Robot</title>
-  <meta name="description" content="Đánh giá kiến thức lập trình, điều khiển robot và tư duy logic thuật toán trên nền tảng ST-Robot LMS.">
+  <title>Kiểm tra theo khóa học — ST-Robot</title>
+  <meta name="description" content="Chọn khóa và bài học STEM Robotics để ôn tập đúng nội dung, xem giải thích đáp án và biết bài cần ôn lại.">
   <link rel="stylesheet" href="../src/assets/css/variables.css">
   <link rel="stylesheet" href="../src/assets/css/base.css">
   <link rel="stylesheet" href="../src/assets/css/layout.css">
   <link rel="stylesheet" href="../src/assets/css/components.css">
-  <link rel="stylesheet" href="../src/assets/css/pages/quiz.css">
+  <link rel="stylesheet" href="../src/assets/css/pages/quiz.css?v=quiz-20261101-v2">
 </head>
 <body>
   <a href="#main" class="skip-link">Chuyển đến nội dung chính</a>
-  <div id="scrollProgress" aria-hidden="true"></div>
-  <header id="navbar-container"></header>
-
-  <main id="main" tabindex="-1" class="quiz-container">
-    <div class="quiz-header-banner">
-      <span class="section-badge">🎯 Đánh giá năng lực</span>
-      <h1 class="section-title">Hệ thống đánh giá kiến thức thuật toán</h1>
-      <p class="section-desc">Hệ thống tự động thiết lập bộ đề thi thử ngẫu nhiên từ kho câu hỏi chuyên ngành cấu trúc mạch số và logic lập trình robot.</p>
-    </div>
-
-    <div class="quiz-box">
-      <div id="quizIntroArea">
-        <div class="quiz-intro-icon" aria-hidden="true">🎲</div>
-        <h3>Thử thách tư duy hệ thống</h3>
-        <p>Bộ câu hỏi đa dạng đo lường khả năng phản xạ giải thuật điều khiển tự động.</p>
-        <button class="btn btn--primary" id="btnInitQuiz" type="button">Bắt đầu tạo đề thi ngẫu nhiên</button>
-      </div>
-
-      <div id="quizActiveGame" style="display: none;">
-        <h2 id="targetQuestionPlaceholder"></h2>
-        <div id="answerOptionsArea"></div>
-        <div id="feedbackBox" class="alert" style="display: none;" role="status"></div>
-        <button class="btn btn--primary" id="forwardBtn" style="display: none;" type="button">Chuyển sang câu hỏi tiếp theo</button>
-      </div>
-
-      <div id="quizSummaryArea" style="display: none;">
-        <h3>Báo cáo kết quả bài làm</h3>
-        <p id="totalScoreText"></p>
-        <div class="cluster" style="justify-content: center; gap: var(--space-3); margin-top: var(--space-4);">
-          <button class="btn btn--primary" id="btnRestartQuiz" type="button">Thử thách đề thi mới</button>
-          <button class="btn" id="btnBackIntro" type="button">Trở lại màn hình ban đầu</button>
+  <div id="scrollProgress" aria-hidden="true"></div><header id="navbar-container"></header>
+  <main id="main" class="quiz-container" tabindex="-1">
+    <header class="quiz-header-banner"><span class="section-badge">Ôn tập theo nội dung đã học</span><h1>Kiểm tra kiến thức</h1><p>Chọn đúng khóa, luyện từng bài hoặc ôn cả khóa. Mỗi câu đều có đáp án và giải thích để bạn hiểu cách làm.</p></header>
+    <ol class="quiz-steps" aria-label="Các bước làm bài"><li data-quiz-step="setup" aria-current="step"><span>1</span> Chọn nội dung</li><li data-quiz-step="questions"><span>2</span> Làm bài</li><li data-quiz-step="results"><span>3</span> Xem kết quả</li></ol>
+    <section id="quizIntroArea" class="quiz-box" aria-labelledby="quizSetupTitle">
+      <div class="quiz-section-head"><h2 id="quizSetupTitle" tabindex="-1">Bạn muốn kiểm tra phần nào?</h2><p>Chọn khóa học trước, sau đó chọn một bài cụ thể hoặc tất cả bài trong khóa.</p></div>
+      <form id="quizSetupForm">
+        <div class="quiz-setup-grid">
+          <div class="field"><label class="label" for="quizCourseSelect">Khóa học <span aria-hidden="true">*</span></label><select class="select" id="quizCourseSelect" required><option value="">— Chọn khóa học —</option></select></div>
+          <div class="field"><label class="label" for="quizLessonSelect">Phạm vi kiến thức</label><select class="select" id="quizLessonSelect" disabled><option value="all">Chọn khóa học trước</option></select></div>
+          <div class="field"><label class="label" for="quizQuestionCount">Số câu hỏi</label><select class="select" id="quizQuestionCount" disabled><option value="">—</option></select></div>
         </div>
-      </div>
-    </div>
+        <div id="quizScopeSummary" class="quiz-scope-summary" aria-live="polite">Chưa chọn khóa học. Câu hỏi sẽ chỉ lấy từ nội dung bạn chọn.</div>
+        <p id="quizSetupError" class="quiz-error" role="alert" hidden></p>
+        <div class="quiz-setup-footer"><p>Mỗi câu có một đáp án đúng. Chọn đáp án rồi bấm <strong>Xác nhận</strong> để xem giải thích.</p><button id="btnInitQuiz" class="btn btn--primary" type="submit" disabled>Bắt đầu làm bài</button></div>
+      </form>
+      <section class="quiz-history" aria-labelledby="quizHistoryTitle"><h3 id="quizHistoryTitle">Các lượt làm gần đây</h3><div id="quizHistory"><p>Chọn khóa học để xem kết quả của bạn.</p></div><p class="quiz-small">Kết quả lưu trên trình duyệt này, phục vụ tự ôn tập.</p></section>
+    </section>
+    <section id="quizActiveGame" class="quiz-box" aria-labelledby="targetQuestionPlaceholder" hidden>
+      <div class="quiz-session-top"><p id="quizSessionScope"></p><button id="quizExitBtn" class="btn btn--sm" type="button">Chọn lại nội dung</button></div>
+      <div class="quiz-progress-head"><span id="quizProgressText" aria-live="polite"></span><span id="quizAnsweredText"></span></div><progress id="quizProgress" max="1" value="0" aria-label="Số câu đã xác nhận"></progress>
+      <p id="quizQuestionLesson" class="quiz-topic"></p><h2 id="targetQuestionPlaceholder" tabindex="-1"></h2>
+      <form id="quizAnswerForm"><fieldset class="quiz-answer-fieldset" aria-labelledby="targetQuestionPlaceholder"><legend class="visually-hidden">Chọn một đáp án</legend><div id="answerOptionsArea"></div></fieldset><button id="confirmAnswerBtn" class="btn btn--primary" type="submit" disabled>Xác nhận đáp án</button></form>
+      <div id="feedbackBox" class="quiz-feedback" role="status" tabindex="-1" hidden></div>
+      <div class="quiz-question-nav"><button id="backQuestionBtn" class="btn" type="button" disabled>← Câu trước</button><button id="forwardBtn" class="btn btn--primary" type="button" disabled>Câu tiếp theo →</button></div>
+    </section>
+    <section id="quizSummaryArea" class="quiz-box" aria-labelledby="quizResultTitle" hidden>
+      <div class="quiz-result-head"><span class="section-badge">Đã hoàn thành lượt ôn tập</span><h2 id="quizResultTitle" tabindex="-1">Kết quả của bạn</h2><p id="quizResultScope"></p><div id="quizScorePercent" class="quiz-score"></div><p id="totalScoreText"></p></div>
+      <div id="quizResultTopics" class="quiz-result-topics"></div><p id="quizStorageNotice" class="quiz-small" role="status"></p>
+      <div class="quiz-result-actions"><button id="btnRestartQuiz" class="btn btn--primary" type="button">Làm lại cùng phạm vi</button><button id="btnBackIntro" class="btn" type="button">Chọn khóa hoặc bài khác</button></div>
+      <section class="quiz-review" aria-labelledby="quizReviewTitle"><h3 id="quizReviewTitle">Xem lại từng câu</h3><p>Mở một câu để xem đáp án đã chọn, đáp án đúng và giải thích. Liên kết ôn bài dẫn về đúng nội dung khóa học.</p><div id="quizReviewList"></div></section>
+    </section>
   </main>
-
-  <div id="footer-container"></div>
-  <div id="backtotop-container"></div>
-  <div id="chatbox-container"></div>
-
-  <script type="module" src="../src/app.js"></script>
+  <dialog id="quizExitDialog" class="dialog" aria-labelledby="quizExitTitle"><div class="dialog-body"><h2 id="quizExitTitle">Chọn lại nội dung kiểm tra?</h2><p>Lượt đang làm sẽ kết thúc và không được ghi vào kết quả gần đây.</p></div><div class="dialog-foot"><button id="quizContinueBtn" class="btn" type="button">Tiếp tục làm bài</button><button id="quizDiscardBtn" class="btn btn--primary" type="button">Chọn lại nội dung</button></div></dialog>
+  <div id="footer-container"></div><div id="backtotop-container"></div><div id="chatbox-container"></div>
+  <script type="module" src="../src/app.js?v=quiz-20261101-v2"></script>
 </body>
 </html>

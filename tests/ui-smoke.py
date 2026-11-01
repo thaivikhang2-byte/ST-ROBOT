@@ -55,6 +55,11 @@ def checked(name, fn):
             page.screenshot(path='/tmp/strobot-smoke-failure-' + str(len(results)) + '.png', full_page=True)
         except Exception:
             pass
+    finally:
+        # Keep a failed assertion in one fixture group from changing the next group.
+        fixtures['stale_registry'] = None
+        fixtures['frame_urls'] = set()
+        fixtures['popup_urls'] = set()
 
 
 with sync_playwright() as p:
@@ -64,9 +69,24 @@ with sync_playwright() as p:
     page.set_default_timeout(7000)
     page.on('pageerror', lambda e: page_errors.append(str(e)))
 
+    # One route handler owns every request. Fixture state changes between groups;
+    # page/context fallback layers can otherwise race during iframe replacement.
+    fixtures = {'stale_registry': None, 'stale_registry_requests': [], 'frame_urls': set(), 'popup_urls': set()}
+
     def route_request(route):
         request = route.request
         parsed = urlparse(request.url)
+        request_url = request.url.split('#', 1)[0]
+        if fixtures['stale_registry'] is not None and parsed.path.endswith('/src/data/lab-platforms.js'):
+            fixtures['stale_registry_requests'].append(request.url)
+            route.fulfill(status=200, content_type='text/javascript', body=fixtures['stale_registry'])
+            return
+        if request.resource_type == 'document' and request_url in fixtures['popup_urls']:
+            route.fulfill(status=200, content_type='text/html', body='<html><title>Full-page lab fixture</title><body>Lab</body></html>')
+            return
+        if request.resource_type == 'document' and request_url in fixtures['frame_urls']:
+            route.fulfill(status=200, content_type='text/html', body='<html><title>Lab integration fixture</title><body><canvas id="labFixture"></canvas></body></html>')
+            return
         if parsed.path in ['/api/home-chat', '/api/tutor']:
             kind = 'home' if parsed.path.endswith('home-chat') else 'tutor'
             if request.method == 'OPTIONS':
@@ -230,36 +250,138 @@ with sync_playwright() as p:
 
     def quiz():
         goto('quiz.html')
+        page.evaluate('localStorage.removeItem("strobot.quiz.history.v1")')
+        page.reload(wait_until='domcontentloaded')
+        bank = page.evaluate("""async () => {
+            const data = await import(new URL('../src/data/quiz.js?v=quiz-20261101-v2', location.href));
+            return { courses: data.quizCourses, questions: data.quizQuestions };
+        }""")
+        by_id = {question['id']: question for question in bank['questions']}
+        require(len(bank['courses']) == 5 and len(by_id) == 90, 'Scoped quiz bank is incomplete')
+        expect(page.locator('#quizIntroArea')).to_be_visible()
+        expect(page.locator('#quizCourseSelect')).to_have_value('')
+        expect(page.locator('#btnInitQuiz')).to_be_disabled()
+        expect(page.locator('#quizCourseSelect option')).to_have_count(6)
+        # Every course exposes its own six lessons, not a generic question category.
+        for course in bank['courses']:
+            page.locator('#quizCourseSelect').select_option(course['id'])
+            expect(page.locator('#quizScopeSummary')).to_contain_text(course['name'])
+            expect(page.locator('#quizLessonSelect option')).to_have_count(7)
+            for option, lesson in zip(page.locator('#quizLessonSelect option').all()[1:], course['lessons']):
+                require(option.get_attribute('value') == lesson['id'], 'Lesson selector crossed course boundaries')
+                require(lesson['title'] in option.inner_text(), 'Lesson option lacks a meaningful title')
+            page.locator('#quizLessonSelect').select_option(course['lessons'][0]['id'])
+            expect(page.locator('#quizQuestionCount')).to_have_value('3')
+            expect(page.locator('#quizScopeSummary')).to_contain_text(course['lessons'][0]['title'])
+            page.locator('#quizLessonSelect').select_option('all')
+            require(page.locator('#quizQuestionCount option').evaluate_all('(items)=>items.map(o=>o.value)') == ['6', '12', '18'], 'Whole-course assessment sizes are unclear')
+
+        page.locator('#quizCourseSelect').select_option('arduino')
+        page.locator('#quizLessonSelect').select_option('all')
+        page.locator('#quizQuestionCount').select_option('6')
+        expect(page.locator('#btnInitQuiz')).to_be_enabled()
         page.locator('#btnInitQuiz').click()
-        expect(page.locator('#quizActiveGame')).to_be_visible()
-        count = 0
-        while page.locator('#quizActiveGame').is_visible() and count < 100:
-            expect(page.locator('#targetQuestionPlaceholder')).to_contain_text('Câu hỏi')
-            expect(page.locator('#feedbackBox')).to_be_hidden()
-            expect(page.locator('#forwardBtn')).to_be_hidden()
-            options = page.locator('#answerOptionsArea button')
-            require(options.count() >= 2, 'Quiz options missing')
-            options.first.click()
-            expect(page.locator('#feedbackBox')).to_be_visible()
-            expect(page.locator('#forwardBtn')).to_be_visible()
-            count += 1
-            page.locator('#forwardBtn').click()
-        require(0 < count < 100, 'Quiz failed to finish with actual questions')
-        expect(page.locator('#quizSummaryArea')).to_be_visible()
-        expect(page.locator('#totalScoreText')).to_contain_text('/ ' + str(count))
+
+        def complete_round(count, course_id, lesson_id='all', first_wrong=False, revisit=False):
+            observed = []
+            expect(page.locator('#quizActiveGame')).to_be_visible()
+            for index in range(count):
+                question_id = page.locator('#quizActiveGame').get_attribute('data-question-id')
+                require(question_id in by_id, 'Active question has no stable bank ID')
+                question = by_id[question_id]
+                require(question['courseId'] == course_id, 'Quiz asks about a different course')
+                require(lesson_id == 'all' or question['lessonId'] == lesson_id, 'Quiz asks about an unselected lesson')
+                expect(page.locator('#targetQuestionPlaceholder')).to_contain_text(question['q'])
+                expect(page.locator('#quizQuestionLesson')).to_contain_text(next(l['title'] for c in bank['courses'] if c['id'] == course_id for l in c['lessons'] if l['id'] == question['lessonId']))
+                expect(page.locator('#confirmAnswerBtn')).to_be_disabled()
+                expect(page.locator('#forwardBtn')).to_be_disabled()
+                expect(page.locator('#feedbackBox')).to_be_hidden()
+                if index == 0:
+                    expect(page.locator('#backQuestionBtn')).to_be_disabled()
+                    page.locator('#forwardBtn').dispatch_event('click')
+                    require(page.locator('#quizActiveGame').get_attribute('data-question-id') == question_id, 'Next skipped an unanswered question')
+                choice = (question['ans'] + 1) % len(question['opts']) if first_wrong and index == 0 else question['ans']
+                radio = page.locator('#answerOptionsArea input[name="answer"][value="' + str(choice) + '"]')
+                radio.check()
+                expect(radio).to_be_checked()
+                expect(page.locator('#confirmAnswerBtn')).to_be_enabled()
+                expect(page.locator('#forwardBtn')).to_be_disabled()
+                expect(page.locator('#feedbackBox')).to_be_hidden()
+                page.locator('#confirmAnswerBtn').click()
+                expect(page.locator('#feedbackBox')).to_be_visible()
+                expect(page.locator('#feedbackBox')).to_contain_text(question['exp'])
+                expect(page.locator('#forwardBtn')).to_be_enabled()
+                require(page.locator('#answerOptionsArea input').evaluate_all('(items)=>items.every(item=>item.disabled)'), 'Confirmed answers can still be changed')
+                expect(page.locator('#answerOptionsArea .answer-correct')).to_have_count(1)
+                if first_wrong and index == 0:
+                    expect(page.locator('#answerOptionsArea .answer-wrong')).to_have_count(1)
+                require(float(page.locator('#quizProgress').get_attribute('value')) == index + 1, 'Confirmed-answer progress is incorrect')
+                observed.append((question, choice))
+                if revisit and index == 1:
+                    page.locator('#backQuestionBtn').click()
+                    require(page.locator('#quizActiveGame').get_attribute('data-question-id') == observed[0][0]['id'], 'Back did not restore the previous question')
+                    expect(page.locator('#answerOptionsArea input[value="' + str(observed[0][1]) + '"]')).to_be_checked()
+                    require(page.locator('#answerOptionsArea input').evaluate_all('(items)=>items.every(item=>item.disabled)'), 'Revisiting unlocked the confirmed answer')
+                    page.locator('#quizAnswerForm').dispatch_event('submit')
+                    require(float(page.locator('#quizProgress').get_attribute('value')) == 2, 'Reviewing or re-submitting added progress/points')
+                    page.locator('#forwardBtn').click()
+                    require(page.locator('#quizActiveGame').get_attribute('data-question-id') == question_id, 'Forward lost the answered question')
+                if index == count - 1:
+                    expect(page.locator('#forwardBtn')).to_contain_text('Xem kết quả')
+                page.locator('#forwardBtn').click()
+            expect(page.locator('#quizSummaryArea')).to_be_visible()
+            correct = count - (1 if first_wrong else 0)
+            expect(page.locator('#totalScoreText')).to_contain_text(re.compile(str(correct) + r'\s*/\s*' + str(count)))
+            expect(page.locator('#quizScorePercent')).to_contain_text(str(round(correct * 100 / count)))
+            expect(page.locator('#quizResultScope')).to_contain_text(next(c['name'] for c in bank['courses'] if c['id'] == course_id))
+            reviews = page.locator('#quizReviewList details[data-question-id]')
+            expect(reviews).to_have_count(count)
+            for question, choice in observed:
+                review = page.locator('#quizReviewList details[data-question-id="' + question['id'] + '"]')
+                expect(review).to_have_attribute('data-correct', str(choice == question['ans']).lower())
+                text = review.text_content()
+                require(question['q'] in text and question['exp'] in text, 'Result omits the question or explanation')
+                require(question['opts'][choice] in text and question['opts'][question['ans']] in text, 'Result does not identify selected and correct answers')
+                params = parse_qs(urlparse(review.locator('a[href*="course.learning.html"]').first.get_attribute('href')).query)
+                require(params.get('course') == [course_id] and params.get('lesson') == [question['lessonId']], 'Review sends learner to the wrong lesson')
+            return observed
+
+        first = complete_round(6, 'arduino', first_wrong=True, revisit=True)
+        require(len({q['lessonId'] for q, _ in first}) == 6, 'Whole-course quiz did not cover all six lessons')
+        saved = page.evaluate('JSON.parse(localStorage.getItem("strobot.quiz.history.v1"))')
+        require(len(saved) == 1 and saved[0]['correct'] == 5 and saved[0]['total'] == 6, 'Completed score was not saved once')
         page.locator('#btnRestartQuiz').click()
-        expect(page.locator('#quizActiveGame')).to_be_visible()
-        expect(page.locator('#targetQuestionPlaceholder')).to_contain_text('Câu hỏi 1:')
-        # Complete restarted round so intro return is exercised through visible UI.
-        for _ in range(count):
-            page.locator('#answerOptionsArea button').first.click()
-            page.locator('#forwardBtn').click()
+        complete_round(6, 'arduino')
         page.locator('#btnBackIntro').click()
         expect(page.locator('#quizIntroArea')).to_be_visible()
+        expect(page.locator('#quizHistory')).to_contain_text(re.compile(r'6\s*/\s*6'))
+        page.set_viewport_size({'width': 390, 'height': 844})
+        page.locator('#quizLessonSelect').select_option('led')
+        expect(page.locator('#quizQuestionCount')).to_have_value('3')
         no_overflow()
-        return {'questions_per_round': count, 'completed_rounds': 2, 'intro_return': True}
+        page.locator('#btnInitQuiz').click()
+        no_overflow()
+        complete_round(3, 'arduino', 'led')
+        no_overflow()
+        page.locator('#btnBackIntro').click()
+        page.reload(wait_until='domcontentloaded')
+        page.locator('#quizCourseSelect').select_option('arduino')
+        page.locator('#quizLessonSelect').select_option('led')
+        expect(page.locator('#quizHistory')).to_contain_text(re.compile(r'3\s*/\s*3'))
+        previous_count = page.evaluate('JSON.parse(localStorage.getItem("strobot.quiz.history.v1")).length')
+        page.evaluate("() => { window.__quizOriginalSetItem=Storage.prototype.setItem; Storage.prototype.setItem=function(){throw new DOMException('Storage unavailable','QuotaExceededError')}; return true; }")
+        try:
+            page.locator('#btnInitQuiz').click()
+            complete_round(3, 'arduino', 'led')
+            require(page.evaluate('JSON.parse(localStorage.getItem("strobot.quiz.history.v1")).length') == previous_count, 'Failed storage write was represented as a saved result')
+            if page.locator('#quizStorageNotice').count():
+                require(page.locator('#quizStorageNotice').inner_text().strip(), 'Failed save should display its actual limitation')
+        finally:
+            page.evaluate('Storage.prototype.setItem=window.__quizOriginalSetItem;delete window.__quizOriginalSetItem')
+        page.set_viewport_size({'width': 1440, 'height': 1000})
+        return {'mapped_questions': len(by_id), 'courses_in_selector': 5, 'whole_course_questions': 6, 'lesson_questions': 3, 'completed_rounds': 4, 'explicit_confirmation': True, 'locked_answers': True, 'revisit_no_double_score': True, 'review_lesson_links': True, 'history_persists': True, 'storage_failure_handled': True, 'mobile_states_no_overflow': True}
 
-    checked('quiz complete round, feedback, restart and intro return', quiz)
+    checked('scoped quiz selection, confirmation, results, lesson review and saved history', quiz)
 
     def registration():
         goto('dangky.html')
@@ -405,10 +527,8 @@ with sync_playwright() as p:
 
     def stale_lab_registry():
         stale_requests = []
-        def old_registry(route):
-            stale_requests.append(route.request.url)
-            route.fulfill(status=200, content_type='text/javascript', body='window.STROBOT_LAB_PLATFORMS={local:{name:"Old local-only bench",mode:"local",languages:"offline"}};window.STROBOT_COURSE_LABS={arduino:["local"]};')
-        page.route('**/src/data/lab-platforms.js*', old_registry)
+        fixtures['stale_registry_requests'] = stale_requests
+        fixtures['stale_registry'] = 'window.STROBOT_LAB_PLATFORMS={local:{name:"Old local-only bench",mode:"local",languages:"offline"}};window.STROBOT_COURSE_LABS={arduino:["local"]};'
         goto('course.learning.html?course=arduino&build=cache-regression')
         expect(page.locator('#lab-platform-data')).to_have_count(1)
         expect(page.locator('script[src*="lab-platforms.js"]')).to_have_count(0)
@@ -418,7 +538,7 @@ with sync_playwright() as p:
             expect(page.locator('#labButtons button[data-lab-key="' + key + '"]')).to_have_count(1)
         expect(page.locator('#practiceFrame')).to_have_attribute('src', 'https://www.falstad.com/circuit/avr8js/')
         require(not stale_requests, 'The page still loads a separately cached lab registry')
-        page.unroute('**/src/data/lab-platforms.js*', old_registry)
+        fixtures['stale_registry'] = None
         return {'old_registry_requests': len(stale_requests), 'arduino_choices': 5, 'original_default': 'avr', 'atomic_lab_snapshot': True}
 
     checked('old cached lab registry cannot hide the restored platforms', stale_lab_registry)
@@ -441,14 +561,8 @@ with sync_playwright() as p:
             require(registry[key]['embedSupport'] == 'existing', 'Original lab can be disabled by a new verification gate: ' + key)
         # Local fixture tests the iframe integration only, not provider availability.
         # There are no live external requests or paid AI calls in this suite.
-        frame_urls = {cfg.get('embedUrl') or cfg.get('url') for cfg in registry.values() if cfg['mode'] == 'embed'}
-        def iframe_fixture(route):
-            request = route.request
-            if request.resource_type == 'document' and request.frame.parent_frame is not None and request.url.split('#')[0] in {u.split('#')[0] for u in frame_urls}:
-                route.fulfill(status=200, content_type='text/html', body='<html><title>Lab integration fixture</title><body><canvas id="labFixture"></canvas></body></html>')
-            else:
-                route.fallback()
-        page.route('**/*', iframe_fixture)
+        frame_urls = {(cfg.get('embedUrl') or cfg.get('url')).split('#', 1)[0] for cfg in registry.values() if cfg['mode'] == 'embed'}
+        fixtures['frame_urls'] = frame_urls
         popups = []
         on_popup = lambda popup: popups.append(popup)
         page.on('popup', on_popup)
@@ -527,7 +641,7 @@ with sync_playwright() as p:
             page.locator('#tabBtnLab').click()
             mobile_layouts[course_id] = no_overflow()
         page.set_viewport_size({'width': 1440, 'height': 1000})
-        page.unroute('**/*', iframe_fixture)
+        fixtures['frame_urls'] = set()
         return {'original_platforms_restored': 4, 'original_course_defaults_restored': 5, 'official_embed_additions': 4, 'selections_checked': checks, 'optional_new_tab_links_checked': checks, 'popups': 0, 'failed_addition_returns_to_original_lab': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; iframe integration uses local fixtures'}
 
     checked('original labs and embeds preserved with optional per-lab new-tab links', lab_platforms)
@@ -538,10 +652,8 @@ with sync_playwright() as p:
         cfg = page.evaluate('labs.wokwi')
         embed_url = cfg.get('embedUrl') or cfg['url']
         separate_url = cfg.get('externalUrl') or cfg['url']
-        def external_fixture(route):
-            route.fulfill(status=200, content_type='text/html', body='<html><title>Full-page lab fixture</title><body>Lab</body></html>')
-        context.route(embed_url, external_fixture)
-        context.route(separate_url, external_fixture)
+        fixtures['frame_urls'].add(embed_url.split('#', 1)[0])
+        fixtures['popup_urls'].add(separate_url.split('#', 1)[0])
         try:
             page.locator('#labButtons button[data-lab-key="wokwi"]').click()
             with page.expect_popup() as opened:
@@ -554,8 +666,8 @@ with sync_playwright() as p:
             expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_attribute('aria-pressed', 'true')
             remote_tab.close()
         finally:
-            context.unroute(embed_url, external_fixture)
-            context.unroute(separate_url, external_fixture)
+            fixtures['frame_urls'].discard(embed_url.split('#', 1)[0])
+            fixtures['popup_urls'].discard(separate_url.split('#', 1)[0])
         page.locator('#labButtons button[data-lab-key="local"]').click()
         local_url = page.locator('#labExternalBtn').get_attribute('href')
         with page.expect_popup() as opened:

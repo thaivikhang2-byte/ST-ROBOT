@@ -79,3 +79,17 @@ python3 scripts/build-lab-snapshot.py --check
 ```
 
 Bộ kiểm thử giả lập máy chủ trả danh sách lab cũ và xác nhận trang mới không tải file rời đó, đồng thời vẫn hiện đủ 5 lựa chọn Arduino và tự mở AVR8js.
+
+## Kiểm tra kiến thức theo khóa học
+
+Trang Kiểm tra có 90 câu hỏi: 18 câu/khóa và 3 câu/bài, phủ đủ 5 khóa và 30 bài. Người học chọn khóa, chọn một bài hoặc cả khóa rồi chọn số câu. Đề cả khóa có 6/12/18 câu, phân bổ đều cho 6 bài; đề một bài có 3 câu. Chọn đáp án rồi xác nhận để xem đúng/sai và giải thích; kết quả có điểm, thống kê theo bài và liên kết ôn lại đúng nội dung. Tối đa 20 lượt hoàn thành lưu trên trình duyệt; mỗi phạm vi hiển thị 3 lượt gần nhất.
+
+30 câu gốc lấy từ giáo trình đã duyệt. 60 câu bổ sung nằm trong `frontend/src/data/quiz-extra.json`; không chỉnh trực tiếp file sinh `frontend/src/data/quiz.js`. Khi cập nhật ngân hàng câu hỏi:
+
+```sh
+python3 scripts/build-quiz-bank.py
+python3 scripts/build-quiz-bank.py --check
+node tests/quiz-service.mjs
+```
+
+Bộ kiểm thử xác nhận câu hỏi không lẫn khóa/bài, phân bổ đề đều, chấm điểm không cộng lặp, khóa câu đã xác nhận, xem lại lời giải và lưu kết quả theo đúng phạm vi. Các module giao diện quiz dùng cùng mã phiên bản trên URL để tránh tải lẫn phiên bản cũ sau triển khai.
