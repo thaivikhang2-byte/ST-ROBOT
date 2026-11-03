@@ -1,0 +1,137 @@
+import assert from 'node:assert/strict';
+import { ReviewService, REVIEW_STORAGE_KEY, MAX_REVIEW_ATTEMPTS } from '../frontend/src/modules/quiz/ReviewService.js';
+import { QuizService, QUIZ_HISTORY_KEY } from '../frontend/src/modules/quiz/QuizService.js';
+import { quizQuestions } from '../frontend/src/data/quiz.js';
+
+const memory = () => {
+    const values = new Map();
+    return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) };
+};
+const storage = memory();
+let time = Date.parse('2026-11-03T00:00:00.000Z');
+const service = new ReviewService({ storage, now: () => time });
+const questions = quizQuestions.filter(question => question.courseId === 'arduino');
+const q = questions[0];
+const sameLesson = questions.filter(question => question.lessonId === q.lessonId);
+const right = question => ({ questionId: question.id, choice: question.ans });
+const wrong = question => ({ questionId: question.id, choice: (question.ans + 1) % question.opts.length });
+const save = (id, answers, options = {}) => service.recordCompletedAttempt({ completed: true, id, courseId: 'arduino', mode: 'quiz', answers, ...options });
+
+assert.equal(service.plan('arduino').items.length, 0);
+assert.ok(service.plan('arduino').lessons.every(lesson => lesson.insufficient));
+assert.equal(save('aborted', [wrong(q)], { completed: false }).saved, false);
+assert.equal(service.evidence('arduino').attempts.length, 0);
+assert.equal(save('invalid', [{ questionId: q.id, choice: null }]).saved, false);
+assert.equal(save('duplicate-question', [wrong(q), wrong(q)]).saved, false);
+assert.equal(save('other-course', [{ questionId: quizQuestions.find(item => item.courseId === 'microbit').id, choice: 0 }]).saved, false);
+assert.equal(save('held-out-assessment', [{ questionId: 'assessment:arduino:1', choice: 0 }]).saved, false);
+assert.throws(() => service.plan('unknown'), RangeError);
+assert.throws(() => service.plan('arduino', 0), RangeError);
+assert.throws(() => service.plan('arduino', 19), RangeError);
+assert.ok(save('attempt-1', [wrong(q)]).saved);
+assert.equal(save('attempt-1', [wrong(q)]).duplicate, true);
+assert.equal(service.evidence('arduino').attempts.length, 1);
+let plan = service.plan('arduino');
+assert.equal(plan.items[0].question.id, q.id);
+assert.equal(plan.items[0].reasonType, 'wrong');
+assert.equal(plan.items.length, 3);
+assert.ok(plan.items.slice(1).every(item => item.reasonType === 'unseen' && item.question.lessonId === q.lessonId));
+assert.equal(new Set(plan.items.map(item => item.question.id)).size, plan.items.length);
+assert.ok(plan.items.every(item => item.question.courseId === 'arduino'));
+assert.deepEqual(plan, service.plan('arduino'), 'Selection must be deterministic');
+assert.equal(service.plan('microbit').items.length, 0);
+assert.equal(plan.lessons.find(lesson => lesson.id === q.lessonId).attempts, 1);
+assert.equal(plan.lessons.find(lesson => lesson.id === q.lessonId).latestWrong, 1);
+
+// Latest response resolves an error; due dates use the actual completed time.
+time += 1000;
+assert.ok(save('attempt-2', [right(q)], { mode: 'review' }).saved);
+plan = service.plan('arduino');
+assert.equal(plan.items.length, 0);
+assert.equal(plan.nextDueAt, new Date(time + 86400000).toISOString());
+assert.equal(plan.lessons.find(lesson => lesson.id === q.lessonId).latestWrong, 0);
+time += 86400000;
+assert.equal(service.plan('arduino').items[0].reasonType, 'due');
+assert.ok(save('attempt-3', [right(q)], { mode: 'review' }).saved);
+assert.equal(service.plan('arduino').nextDueAt, new Date(time + 3 * 86400000).toISOString());
+time += 3 * 86400000;
+assert.ok(save('attempt-4', [right(q)], { mode: 'review' }).saved);
+assert.equal(service.plan('arduino').nextDueAt, new Date(time + 7 * 86400000).toISOString());
+time += 1000;
+assert.ok(save('attempt-5', [wrong(q)], { mode: 'review' }).saved);
+assert.equal(service.evidence('arduino').evidence.get(q.id).streak, 0);
+assert.equal(service.plan('arduino').items[0].reasonType, 'wrong');
+// All three answers must have evidence before a lesson stops saying insufficient.
+assert.ok(save('attempt-6', sameLesson.map(right)).saved);
+plan = service.plan('arduino');
+assert.equal(plan.lessons.find(lesson => lesson.id === q.lessonId).insufficient, false);
+assert.equal(plan.lessons.find(lesson => lesson.id === q.lessonId).distinct, 3);
+assert.equal(plan.lessons.find(lesson => lesson.id === q.lessonId).attempts, 8);
+
+// Selection order: current error, unseen siblings, then a different overdue item.
+const precedenceStorage = memory();
+let precedenceTime = Date.parse('2026-11-01T00:00:00.000Z');
+const precedence = new ReviewService({ storage: precedenceStorage, now: () => precedenceTime });
+const anotherLesson = questions.find(question => question.lessonId !== q.lessonId);
+precedence.recordCompletedAttempt({ completed: true, id: 'old', courseId: 'arduino', mode: 'quiz', answers: [right(anotherLesson)] });
+precedenceTime += 2 * 86400000;
+precedence.recordCompletedAttempt({ completed: true, id: 'new', courseId: 'arduino', mode: 'quiz', answers: [wrong(q)] });
+assert.deepEqual(precedence.plan('arduino').items.map(item => item.reasonType), ['wrong', 'unseen', 'unseen', 'due']);
+assert.equal(precedence.plan('arduino', 1).items[0].question.id, q.id);
+
+const exported = service.exportCourse('arduino');
+assert.equal(exported.type, 'strobot-practice-backup');
+assert.equal(exported.attempts.length, 6);
+assert.ok(exported.attempts.every(attempt => attempt.courseId === 'arduino'));
+exported.attempts[0].answers[0].choice = -1;
+assert.notEqual(service.exportCourse('arduino').attempts[0].answers[0].choice, -1, 'Export must not mutate storage');
+const other = quizQuestions.find(question => question.courseId === 'microbit');
+assert.ok(service.recordCompletedAttempt({ completed: true, id: 'microbit-1', courseId: 'microbit', mode: 'quiz', answers: [wrong(other)] }).saved);
+const quiz = new QuizService({ storage });
+quiz.saveResult({ id: 'ordinary-1', courseId: 'arduino', lessonId: 'all', correct: 1, total: 6, percentage: 17, createdAt: new Date(time).toISOString() });
+quiz.saveResult({ id: 'ordinary-2', courseId: 'microbit', lessonId: 'all', correct: 1, total: 6, percentage: 17, createdAt: new Date(time).toISOString() });
+storage.setItem('strobot.original.course.v3', 'journal-preserved');
+assert.ok(service.clearCourse('arduino'));
+assert.ok(quiz.deleteHistory('arduino'));
+assert.equal(service.evidence('arduino').attempts.length, 0);
+assert.equal(service.evidence('microbit').attempts.length, 1);
+assert.equal(quiz.getHistory('arduino').length, 0);
+assert.equal(quiz.getHistory('microbit').length, 1);
+assert.equal(storage.getItem('strobot.original.course.v3'), 'journal-preserved');
+
+// Corrupt storage and blocked browser storage never break ordinary quiz logic.
+const corrupt = memory(); corrupt.setItem(REVIEW_STORAGE_KEY, '{broken');
+const recovered = new ReviewService({ storage: corrupt, now: () => time });
+assert.equal(recovered.plan('arduino').status, 'corrupt');
+assert.equal(recovered.recordCompletedAttempt({ completed: true, id: 'recovery', courseId: 'arduino', mode: 'quiz', answers: [right(q)] }).replacedCorruptData, true);
+assert.equal(recovered.plan('arduino').status, 'ok');
+const raw = JSON.parse(corrupt.getItem(REVIEW_STORAGE_KEY));
+raw.attempts.push({ ...raw.attempts[0], id: 'invalid-choice', answers: [{ questionId: q.id, choice: 999 }] });
+raw.attempts.push(raw.attempts[0]);
+corrupt.setItem(REVIEW_STORAGE_KEY, JSON.stringify(raw));
+assert.equal(recovered.evidence('arduino').attempts.length, 1);
+assert.equal(recovered.plan('arduino').status, 'corrupt');
+// Device clock corrections must not make an older answer replace the latest response.
+const correctedClockStorage = memory();
+let correctedTime = time;
+const correctedClock = new ReviewService({ storage: correctedClockStorage, now: () => correctedTime });
+correctedClock.recordCompletedAttempt({ completed: true, id: 'before-clock-change', courseId: 'arduino', mode: 'quiz', answers: [right(q)] });
+correctedTime -= 2 * 86400000;
+correctedClock.recordCompletedAttempt({ completed: true, id: 'after-clock-change', courseId: 'arduino', mode: 'quiz', answers: [wrong(q)] });
+assert.equal(correctedClock.plan('arduino').items[0].reasonType, 'wrong');
+const invalidClock = new ReviewService({ storage: memory(), now: () => NaN });
+assert.equal(invalidClock.recordCompletedAttempt({ completed: true, id: 'invalid-clock', courseId: 'arduino', mode: 'quiz', answers: [right(q)] }).saved, false);
+const blocked = new ReviewService({ storage: { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } }, now: () => time });
+assert.equal(blocked.plan('arduino').status, 'blocked');
+assert.equal(blocked.recordCompletedAttempt({ completed: true, id: 'blocked', courseId: 'arduino', mode: 'quiz', answers: [right(q)] }).saved, false);
+assert.equal(blocked.clearCourse('arduino'), false);
+assert.throws(() => blocked.exportCourse('arduino'));
+const noStorage = new ReviewService({ storage: null });
+assert.equal(noStorage.plan('arduino').status, 'blocked');
+const boundedStorage = memory();
+const bounded = new ReviewService({ storage: boundedStorage, now: () => time++ });
+for (let i = 0; i < MAX_REVIEW_ATTEMPTS + 5; i++) assert.ok(bounded.recordCompletedAttempt({ completed: true, id: `bounded-${i}`, courseId: 'arduino', mode: 'quiz', answers: [right(q)] }).saved);
+assert.equal(bounded.read().attempts.length, MAX_REVIEW_ATTEMPTS);
+assert.equal(bounded.read().attempts[0].id, 'bounded-5');
+assert.equal(JSON.parse(storage.getItem(QUIZ_HISTORY_KEY)).length, 1, 'Adaptive evidence must not overwrite ordinary history');
+console.log('PASS adaptive review: completed-only validated evidence, deterministic priority, real due dates, deduplication, course isolation, bounded storage, JSON export, targeted deletion and unavailable/corrupt storage');

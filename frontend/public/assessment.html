@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đánh giá trước và sau học — ST-Robot</title>
+  <meta name="description" content="Đánh giá thử nghiệm kiến thức Arduino trước và sau học, lưu theo mã ẩn danh và xuất dữ liệu để đối chiếu.">
+  <link rel="stylesheet" href="../src/assets/css/variables.css">
+  <link rel="stylesheet" href="../src/assets/css/base.css">
+  <link rel="stylesheet" href="../src/assets/css/layout.css">
+  <link rel="stylesheet" href="../src/assets/css/components.css">
+  <link rel="stylesheet" href="../src/assets/css/pages/assessment.css?v=study-20261103-v1">
+</head>
+<body>
+  <a class="skip-link" href="#main">Chuyển đến nội dung chính</a>
+  <div id="scrollProgress" aria-hidden="true"></div><header id="navbar-container"></header>
+  <main id="main" class="assessment-container" tabindex="-1">
+    <header class="assessment-heading"><p class="assessment-eyebrow">Theo dõi việc học bằng kết quả thực tế</p><h1>Đánh giá trước và sau học</h1><p>Hai lượt kiểm tra riêng cho 6 bài Arduino Uno. Giữ nguyên mã học sinh để ghép kết quả; không cần tài khoản hay thông tin cá nhân.</p></header>
+    <aside class="assessment-note"><strong>Dành cho đợt học có người phụ trách.</strong><p>Mỗi lượt có 12 câu. Hai đề A và B cùng phân bố nội dung, chưa được hiệu chuẩn độ khó tương đương. Người phụ trách phân nhóm học, sắp lịch kiểm tra và cân bằng thứ tự AB/BA trước khi bắt đầu. Kết quả chỉ mô tả đợt thử nghiệm này.</p></aside>
+    <p id="assessmentNotice" role="status" aria-live="polite"></p>
+    <section id="assessmentSetup" class="assessment-card" aria-labelledby="assessmentSetupTitle">
+      <h2 id="assessmentSetupTitle">Bắt đầu bằng một mã ẩn danh</h2>
+      <p class="assessment-muted">Ví dụ HS001. Không nhập họ tên, số điện thoại hay email. Nhóm và thứ tự đề sẽ giữ nguyên sau khi tạo mã.</p>
+      <form id="assessmentCreateForm">
+        <div class="assessment-fields">
+          <div class="field"><label class="label" for="assessmentCode">Mã học sinh</label><input class="input" id="assessmentCode" required minlength="3" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9_-]{2,23}" autocomplete="off" spellcheck="false" placeholder="HS001"></div>
+          <div class="field"><label class="label" for="assessmentGroup">Nhóm được phân công</label><select class="select" id="assessmentGroup" required><option value="">— Chọn nhóm —</option><option value="fixed">Học theo thứ tự cố định</option><option value="adaptive">Ôn tập theo lỗi</option></select></div>
+          <div class="field"><label class="label" for="assessmentOrder">Thứ tự đề được phân công</label><select class="select" id="assessmentOrder" required><option value="">— Chọn thứ tự —</option><option value="AB">A trước · B sau</option><option value="BA">B trước · A sau</option></select></div>
+        </div>
+        <button class="btn btn--primary" type="submit">Tạo mã đánh giá</button>
+      </form>
+    </section>
+    <section class="assessment-card" aria-labelledby="assessmentSavedTitle">
+      <h2 id="assessmentSavedTitle">Tiếp tục trên thiết bị này</h2>
+      <form id="assessmentOpenForm" class="assessment-open"><label class="label" for="assessmentSavedCode">Mã đã lưu</label><select class="select" id="assessmentSavedCode"><option value="">Chưa có mã đã lưu</option></select><button class="btn" id="assessmentOpenBtn" type="submit" disabled>Mở mã đã lưu</button></form>
+      <button class="btn" id="assessmentNewParticipant" type="button">Tạo mã cho người tiếp theo</button>
+      <p class="assessment-muted">Mỗi học sinh dùng đúng mã của mình. Trang này không xác thực danh tính; người phụ trách cần giám sát khi dùng chung máy.</p>
+    </section>
+    <section id="assessmentParticipant" class="assessment-card" aria-labelledby="assessmentParticipantTitle" hidden>
+      <h2 id="assessmentParticipantTitle" tabindex="-1"></h2><p id="assessmentParticipantMeta"></p>
+      <ol id="assessmentStages" class="assessment-stages"></ol>
+      <div id="assessmentNextStep"></div><div id="assessmentIndividualResult"></div>
+      <button class="btn assessment-danger" id="assessmentDeleteParticipant" type="button">Xóa dữ liệu mã này</button>
+    </section>
+    <section id="assessmentGame" class="assessment-card" aria-labelledby="assessmentGameTitle" hidden>
+      <h2 id="assessmentGameTitle" tabindex="-1"></h2>
+      <p>Chọn một đáp án cho mỗi câu; có thể sửa trước khi nộp. Đáp án và điểm được giữ lại đến khi hoàn thành cả hai lượt để tránh ảnh hưởng bài sau học. Không tra cứu tài liệu hoặc dùng trợ lý AI trong lúc kiểm tra.</p>
+      <p class="assessment-muted">Thời gian tính từ lúc bắt đầu đến lúc nộp, gồm cả lúc rời trang hoặc tải lại. Lượt quá 24 giờ hoặc có đồng hồ không hợp lệ vẫn giữ điểm nhưng loại thời gian khỏi thống kê.</p>
+      <p id="assessmentProgress" role="status"></p>
+      <form id="assessmentAnswerForm"><div id="assessmentQuestions"></div><button id="assessmentSubmitBtn" class="btn btn--primary" type="submit" disabled>Nộp bài</button></form>
+    </section>
+    <section class="assessment-card" aria-labelledby="assessmentDataTitle">
+      <h2 id="assessmentDataTitle">Dữ liệu của đợt học</h2><p>Chỉ lưu trên trình duyệt này, không tự gửi lên máy chủ. Xuất CSV để tập hợp dữ liệu từ các máy; tải JSON để giữ bản sao đầy đủ. Trang chưa hỗ trợ nhập lại bản sao. Điểm đúng/sai trong CSV chỉ xuất cho mã đã hoàn thành cả hai lượt.</p>
+      <div class="assessment-actions"><button id="assessmentExportCsv" class="btn btn--primary" type="button">Xuất CSV từng câu</button><button id="assessmentExportJson" class="btn" type="button">Tải bản sao JSON</button><button id="assessmentDeleteAll" class="btn assessment-danger" type="button">Xóa toàn bộ dữ liệu đánh giá</button></div>
+      <details id="assessmentReport"><summary>Xem tổng hợp dành cho người phụ trách</summary><div id="assessmentReportContent"></div></details>
+      <p class="assessment-muted">Dữ liệu đánh giá tách riêng lịch sử ôn tập. Xóa ở đây không xóa nhật ký học hoặc kết quả quiz. Tối đa 200 mã trên một trình duyệt.</p>
+    </section>
+  </main>
+  <dialog id="assessmentDeleteDialog" class="dialog" aria-labelledby="assessmentDeleteTitle"><div class="dialog-body"><h2 id="assessmentDeleteTitle">Xóa dữ liệu đánh giá?</h2><p id="assessmentDeleteDescription"></p><p>Nếu cần giữ kết quả, chọn Hủy rồi xuất CSV hoặc JSON trước. Thao tác xóa không thể hoàn tác.</p></div><div class="dialog-foot"><button id="assessmentCancelDelete" class="btn" type="button">Hủy</button><button id="assessmentConfirmDelete" class="btn assessment-danger" type="button">Xóa dữ liệu đã chọn</button></div></dialog>
+  <div id="footer-container"></div><div id="backtotop-container"></div>
+  <script type="module" src="../src/app.js?v=learning-20261103-v1"></script>
+</body>
+</html>

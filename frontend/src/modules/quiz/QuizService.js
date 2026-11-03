@@ -1,4 +1,4 @@
-import { quizCourses, quizQuestions } from '../../data/quiz.js?v=quiz-20261101-v2';
+import { quizCourses, quizQuestions } from '../../data/quiz.js?v=quiz-20261103-v3';
 
 export const QUIZ_HISTORY_KEY = 'strobot.quiz.history.v1';
 const clone = question => ({ ...question, opts: [...question.opts] });
@@ -70,6 +70,13 @@ export class QuizService {
         } catch { return []; }
     }
     getHistory(courseId, lessonId = 'all') { return this.readHistory().filter(r => r.courseId === courseId && r.lessonId === lessonId); }
+    deleteHistory(courseId) {
+        if (!this.storage || !this.getCourses().some(course => course.id === courseId)) return false;
+        try {
+            this.storage.setItem(QUIZ_HISTORY_KEY, JSON.stringify(this.readHistory().filter(record => record.courseId !== courseId)));
+            return true;
+        } catch { return false; }
+    }
     saveResult(snapshot) {
         if (!this.storage || !this.validResult(snapshot)) return false;
         try {

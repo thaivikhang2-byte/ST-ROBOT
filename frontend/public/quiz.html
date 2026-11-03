@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="../src/assets/css/base.css">
   <link rel="stylesheet" href="../src/assets/css/layout.css">
   <link rel="stylesheet" href="../src/assets/css/components.css">
-  <link rel="stylesheet" href="../src/assets/css/pages/quiz.css?v=quiz-20261101-v2">
+  <link rel="stylesheet" href="../src/assets/css/pages/quiz.css?v=quiz-20261103-v3">
 </head>
 <body>
   <a href="#main" class="skip-link">Chuyển đến nội dung chính</a>
@@ -29,11 +29,27 @@
         <p id="quizSetupError" class="quiz-error" role="alert" hidden></p>
         <div class="quiz-setup-footer"><p>Mỗi câu có một đáp án đúng. Chọn đáp án rồi bấm <strong>Xác nhận</strong> để xem giải thích.</p><button id="btnInitQuiz" class="btn btn--primary" type="submit" disabled>Bắt đầu làm bài</button></div>
       </form>
+      <section class="quiz-adaptive" aria-labelledby="reviewTitle">
+        <h3 id="reviewTitle">Ôn theo lỗi của tôi</h3>
+        <p>Ưu tiên câu có lần trả lời gần nhất chưa đúng, rồi câu chưa luyện trong cùng bài, sau đó câu đã đến ngày ôn lại. Mỗi lượt tối đa 6 câu trong khóa đã chọn.</p>
+        <p class="quiz-small">Hồ sơ lưu trên trình duyệt này. Nếu đổi người dùng trên máy chung, hãy tải dữ liệu cần giữ rồi xóa hồ sơ của khóa trước khi bắt đầu.</p>
+        <div id="reviewPlanStatus" class="quiz-scope-summary" aria-live="polite">Chọn khóa học để xem gợi ý.</div>
+        <button id="btnAdaptiveReview" class="btn btn--primary" type="button" disabled>Ôn theo lỗi của tôi</button>
+        <details class="review-evidence-details"><summary>Xem dữ liệu từng bài và cách hẹn ôn</summary>
+          <p class="quiz-small">Đây là gợi ý luyện tập từ ngân hàng nhỏ, không phải đánh giá năng lực. Chỉ tính lượt đã hoàn thành; thoát giữa chừng không ghi nhận. Sau một lần đúng, hẹn ôn sau 1 ngày; đúng liên tiếp lần hai: 3 ngày; từ lần ba: 7 ngày. Trả lời sai thì ưu tiên ôn ngay. Còn dưới 3 câu khác nhau trong một bài: chưa đủ dữ liệu.</p>
+          <div id="reviewEvidence"></div>
+          <p class="quiz-small">Giữ tối đa 120 lượt hoàn thành gần nhất trên trình duyệt. Các số liệu dưới đây chỉ tính các lượt còn lưu.</p>
+        </details>
+        <div class="review-data-actions"><button id="btnExportReview" class="btn btn--sm" type="button" disabled>Tải dữ liệu ôn của khóa này (JSON)</button><button id="btnDeleteReview" class="btn btn--sm" type="button" disabled>Xóa dữ liệu kiểm tra &amp; ôn của khóa này</button></div>
+        <p id="reviewDataNotice" class="quiz-small" role="status"></p>
+        <p class="quiz-small">Muốn đo kết quả trước và sau khi học? <a href="assessment.html">Mở đánh giá trước – sau</a>. Câu hỏi đánh giá được lưu tách khỏi hồ sơ ôn tập.</p>
+      </section>
       <section class="quiz-history" aria-labelledby="quizHistoryTitle"><h3 id="quizHistoryTitle">Các lượt làm gần đây</h3><div id="quizHistory"><p>Chọn khóa học để xem kết quả của bạn.</p></div><p class="quiz-small">Kết quả lưu trên trình duyệt này, phục vụ tự ôn tập.</p></section>
     </section>
     <section id="quizActiveGame" class="quiz-box" aria-labelledby="targetQuestionPlaceholder" hidden>
       <div class="quiz-session-top"><p id="quizSessionScope"></p><button id="quizExitBtn" class="btn btn--sm" type="button">Chọn lại nội dung</button></div>
       <div class="quiz-progress-head"><span id="quizProgressText" aria-live="polite"></span><span id="quizAnsweredText"></span></div><progress id="quizProgress" max="1" value="0" aria-label="Số câu đã xác nhận"></progress>
+      <p id="quizQuestionReason" class="review-question-reason" hidden></p>
       <p id="quizQuestionLesson" class="quiz-topic"></p><h2 id="targetQuestionPlaceholder" tabindex="-1"></h2>
       <form id="quizAnswerForm"><fieldset class="quiz-answer-fieldset" aria-labelledby="targetQuestionPlaceholder"><legend class="visually-hidden">Chọn một đáp án</legend><div id="answerOptionsArea"></div></fieldset><button id="confirmAnswerBtn" class="btn btn--primary" type="submit" disabled>Xác nhận đáp án</button></form>
       <div id="feedbackBox" class="quiz-feedback" role="status" tabindex="-1" hidden></div>
@@ -42,12 +58,14 @@
     <section id="quizSummaryArea" class="quiz-box" aria-labelledby="quizResultTitle" hidden>
       <div class="quiz-result-head"><span class="section-badge">Đã hoàn thành lượt ôn tập</span><h2 id="quizResultTitle" tabindex="-1">Kết quả của bạn</h2><p id="quizResultScope"></p><div id="quizScorePercent" class="quiz-score"></div><p id="totalScoreText"></p></div>
       <div id="quizResultTopics" class="quiz-result-topics"></div><p id="quizStorageNotice" class="quiz-small" role="status"></p>
+      <section class="review-next" aria-labelledby="reviewNextTitle"><h3 id="reviewNextTitle">Bước ôn tiếp theo</h3><p id="reviewSaveNotice" class="quiz-small" role="status"></p><p id="reviewNextStatus"></p><button id="btnReviewNext" class="btn btn--primary" type="button" disabled>Ôn theo lỗi của tôi</button></section>
       <div class="quiz-result-actions"><button id="btnRestartQuiz" class="btn btn--primary" type="button">Làm lại cùng phạm vi</button><button id="btnBackIntro" class="btn" type="button">Chọn khóa hoặc bài khác</button></div>
       <section class="quiz-review" aria-labelledby="quizReviewTitle"><h3 id="quizReviewTitle">Xem lại từng câu</h3><p>Mở một câu để xem đáp án đã chọn, đáp án đúng và giải thích. Liên kết ôn bài dẫn về đúng nội dung khóa học.</p><div id="quizReviewList"></div></section>
     </section>
   </main>
   <dialog id="quizExitDialog" class="dialog" aria-labelledby="quizExitTitle"><div class="dialog-body"><h2 id="quizExitTitle">Chọn lại nội dung kiểm tra?</h2><p>Lượt đang làm sẽ kết thúc và không được ghi vào kết quả gần đây.</p></div><div class="dialog-foot"><button id="quizContinueBtn" class="btn" type="button">Tiếp tục làm bài</button><button id="quizDiscardBtn" class="btn btn--primary" type="button">Chọn lại nội dung</button></div></dialog>
+  <dialog id="reviewDeleteDialog" class="dialog" aria-labelledby="reviewDeleteTitle"><div class="dialog-body"><h2 id="reviewDeleteTitle">Xóa dữ liệu của khóa này?</h2><p id="reviewDeleteDescription"></p><p>Nhật ký học, các khóa khác và dữ liệu đánh giá trước – sau được giữ nguyên. Hãy tải bản JSON trước nếu muốn giữ hồ sơ ôn tập.</p></div><div class="dialog-foot"><button id="btnCancelDeleteReview" class="btn" type="button">Giữ dữ liệu</button><button id="btnConfirmDeleteReview" class="btn btn--primary" type="button">Xóa dữ liệu khóa này</button></div></dialog>
   <div id="footer-container"></div><div id="backtotop-container"></div><div id="chatbox-container"></div>
-  <script type="module" src="../src/app.js?v=quiz-20261101-v2"></script>
+  <script type="module" src="../src/app.js?v=quiz-20261103-v3"></script>
 </body>
 </html>

@@ -93,3 +93,33 @@ node tests/quiz-service.mjs
 ```
 
 Bộ kiểm thử xác nhận câu hỏi không lẫn khóa/bài, phân bổ đề đều, chấm điểm không cộng lặp, khóa câu đã xác nhận, xem lại lời giải và lưu kết quả theo đúng phạm vi. Các module giao diện quiz dùng cùng mã phiên bản trên URL để tránh tải lẫn phiên bản cũ sau triển khai.
+
+## Ôn tập theo lỗi
+
+Trên trang **Kiểm tra**, hoàn thành một lượt rồi chọn **Ôn theo lỗi của tôi**. Mỗi lượt chọn tối đa 6 câu trong đúng khóa: ưu tiên câu có đáp án gần nhất chưa đúng, câu chưa làm trong bài đang có lỗi, rồi câu đã đến ngày ôn lại. Mỗi câu hiện lý do được chọn. Sau các lần đúng liên tiếp, lịch ôn lần lượt là 1, 3 và 7 ngày; trả lời sai thì ưu tiên ôn ngay.
+
+Hồ sơ lưu đáp án từng câu của tối đa 120 lượt hoàn thành gần nhất. Lượt bỏ dở không được ghi nhận; lịch sử điểm cũ không tự chuyển thành dữ liệu lỗi từng câu. Có nút tải JSON và xóa dữ liệu kiểm tra, ôn tập riêng của khóa đã chọn. Nhật ký học, các khóa khác và dữ liệu đánh giá trước–sau được giữ lại.
+
+Hồ sơ ôn thuộc trình duyệt đang sử dụng, chưa liên kết với tài khoản hoặc đồng bộ giữa các máy. Khi đổi người học trên máy chung, tải dữ liệu cần giữ rồi xóa hồ sơ của khóa trước khi bắt đầu.
+
+## Đánh giá trước và sau khi học
+
+Mở liên kết **Đánh giá trước – sau** trên trang Kiểm tra, hoặc trang `assessment.html`. Chức năng này dành cho một đợt dùng thử sáu bài Arduino:
+
+- Hai đề A/B có tổng cộng 24 câu riêng, mỗi đề 12 câu, hai câu cho mỗi bài; không đưa vào ngân hàng luyện tập.
+- Mã người tham gia ẩn danh, nhóm học theo thứ tự/ôn theo lỗi và thứ tự A→B/B→A được chọn trước khi làm bài.
+- Bài đang làm được lưu để tiếp tục sau khi tải lại trang. Chỉ làm bài sau học khi đã nộp bài trước học; không làm lại một giai đoạn dưới cùng mã.
+- Không hiện điểm, đáp án hoặc lời giải trước khi hoàn thành cả hai giai đoạn.
+- Báo cáo chỉ ghép các mã đủ hai bài, hiển thị số mã chưa đủ cặp, điểm trung bình và mức thay đổi theo điểm phần trăm. Có xuất CSV từng câu và bản sao JSON, xóa một mã hoặc toàn bộ dữ liệu đánh giá sau khi xác nhận.
+
+Hai đề cân bằng phạm vi nội dung nhưng chưa được hiệu chuẩn độ khó. Điểm tăng không tự chứng minh tác dụng của chức năng; cần khảo sát thật với điều kiện học được kiểm soát. Xem [hướng dẫn tổ chức và đọc kết quả](docs/learning-evaluation.md) trước khi dùng cho đề tài.
+
+Kiểm thử các chức năng mới:
+
+```sh
+node tests/adaptive-review.mjs
+node tests/assessment-service.mjs
+python3 tests/learning-evidence-smoke.py --base http://127.0.0.1:5500 --chromium /usr/bin/chromium
+```
+
+Lệnh kiểm tra trình duyệt cần website đang chạy bằng `node start-web.cjs`. Các kiểm thử không gọi AI hoặc dịch vụ trả phí; kết quả ghi ngoài thư mục dự án.

@@ -79,3 +79,18 @@
 .review-body .review-explanation { padding:12px; background:var(--color-surface-muted); border-radius:var(--radius-sm); }
 @media(max-width:48rem) { .quiz-setup-grid { grid-template-columns:1fr; gap:6px; } .quiz-container { padding-block:var(--space-6); } .quiz-setup-footer .btn { width:100%; } .quiz-session-top p { max-width:100%; } }
 @media(max-width:30rem) { .quiz-steps { gap:12px; justify-content:space-between; } .quiz-steps li { font-size:.6875rem; gap:5px; } .quiz-steps li span { width:24px; height:24px; } .answer-btn { padding:12px; gap:9px; } .quiz-result-actions .btn { width:100%; } .quiz-question-nav .btn { font-size:.8125rem; } }
+.quiz-adaptive { margin-top:28px; padding:24px 0 0; border-top:1px solid var(--color-border); }
+.quiz-adaptive h3,.review-next h3 { font-size:var(--text-lg); }
+.quiz-adaptive > p,.review-next > p { font-size:var(--text-sm); line-height:1.75; }
+.review-evidence-details { margin-top:20px; }
+.review-evidence-details > summary { cursor:pointer; font-weight:600; padding-block:8px; }
+.review-evidence-list { list-style:none; padding:0; margin:0; }
+.review-evidence-list li { padding:14px 0; border-bottom:1px solid var(--color-border); }
+.review-evidence-list a { font-weight:600; }
+.review-evidence-list p { margin:6px 0 0; font-size:var(--text-sm); }
+.review-evidence-list .quiz-small { font-size:var(--text-xs); }
+.review-data-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
+.review-question-reason,.review-next { background:var(--color-primary-soft); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:16px; }
+.review-question-reason { color:var(--color-text); font-size:var(--text-sm); line-height:1.7; }
+.review-next { margin-top:22px; }
+@media(max-width:30rem) { .review-data-actions .btn { width:100%; white-space:normal; } }

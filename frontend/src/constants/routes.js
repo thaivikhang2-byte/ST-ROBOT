@@ -5,6 +5,7 @@ export const ROUTES = {
     KIT: PathResolver.page('kit.html'),
     GIOI_THIEU: PathResolver.page('gioithieu.html'),
     QUIZ: PathResolver.page('quiz.html'),
+    ASSESSMENT: PathResolver.page('assessment.html'),
     HOC_LIEU: PathResolver.page('hoclieu.html'),
     COURSE_LEARNING: PathResolver.page('course.learning.html'),
     DANG_KY: PathResolver.page('dangky.html')

@@ -4,12 +4,13 @@ import { Chatbox } from './components/chatbox/index.js';
 import { BackToTop } from './components/backtotop/index.js';
 import { ThemeService } from './services/ThemeService.js';
 import { Router } from './router/Router.js';
-import { ROUTES } from './constants/routes.js';
+import { ROUTES } from './constants/routes.js?v=learning-20261103-v1';
 
 // Module Controllers
 import { HomeController } from './modules/home/HomeController.js';
 import { KitController } from './modules/kit/KitController.js';
-import { QuizController } from './modules/quiz/QuizController.js?v=quiz-20261101-v2';
+import { QuizController } from './modules/quiz/QuizController.js?v=quiz-20261103-v3';
+import { AssessmentController } from './modules/assessment/AssessmentController.js?v=study-20261103-v1';
 import { GioiThieuController } from './modules/gioithieu/GioiThieuController.js';
 import { DangKyController } from './modules/dangky/DangKyController.js';
 import { CatalogController } from './modules/hoclieu/CatalogController.js';
@@ -28,6 +29,7 @@ class App {
             { path: ROUTES.KIT, controller: KitController },
             { path: ROUTES.GIOI_THIEU, controller: GioiThieuController },
             { path: ROUTES.QUIZ, controller: QuizController },
+            { path: ROUTES.ASSESSMENT, controller: AssessmentController },
             { path: ROUTES.DANG_KY, controller: DangKyController },
             { path: ROUTES.HOC_LIEU, controller: CatalogController }
         ]);
