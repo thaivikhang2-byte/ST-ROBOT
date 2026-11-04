@@ -1,4 +1,4 @@
-import { courses } from '../../data/courses.js';
+import { courses } from '../../data/courses.js?v=lesson-code-v5';
 import { renderCourses } from '../../components/courses/CourseCard.js';
 
 export class CatalogController {

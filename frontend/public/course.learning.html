@@ -59,7 +59,7 @@
           </div>
           <section class="ws-card glass-panel">
             <h2>Các bước thực hành &amp; code mẫu</h2>
-            <div class="ws-grid-2"><ol id="practiceSteps"></ol><div class="code-box"><div class="code-box-head"><span id="codeLangLabel">Mã nguồn mẫu</span><select id="codeVariantSelect" aria-label="Môi trường của mã mẫu" hidden></select><button type="button" onclick="copySampleCode()">Sao chép</button></div><pre id="sampleCodeBox"></pre></div></div>
+            <div class="ws-grid-2"><ol id="practiceSteps"></ol><div class="code-box"><div class="code-box-head"><span id="codeLangLabel">Mã nguồn mẫu</span><select id="codeVariantSelect" aria-label="Môi trường của mã mẫu" hidden></select><button type="button" onclick="copySampleCode()">Sao chép</button></div><pre id="sampleCodeBox" class="notranslate" translate="no" lang="en"></pre></div></div>
           </section>
           <section class="ws-card glass-panel"><h2>Hướng dẫn sử dụng phòng lab</h2><p id="labGuide"></p></section>
           <section class="ws-card glass-panel" id="assessment">
@@ -85,6 +85,11 @@
               <button id="labFullscreenBtn" type="button" onclick="fullscreenLabFrame()" hidden>Toàn màn hình</button>
             </div>
           </div>
+          <div id="microbitEditorTools" class="ws-card" hidden>
+            <p id="microbitEditorStatus" role="status" aria-live="polite"></p>
+            <p class="small">Sửa mã và chạy mô phỏng ngay trong khung. Chờ thông báo “Đã lưu” trước khi đổi bài; mỗi bài giữ một dự án riêng trên trình duyệt này.</p>
+            <div class="lab-actions"><button id="microbitDownloadBtn" type="button" disabled onclick="downloadMicrobitSource()">Tải mã đã lưu (.py)</button><button id="microbitResetBtn" type="button" onclick="document.getElementById('microbitResetDialog').showModal()">Nạp lại mã bài học</button></div>
+          </div>
           <div id="frameHost"></div><div id="localLab" hidden></div>
         </div>
       </section>
@@ -98,12 +103,14 @@
   <div role="dialog" aria-modal="true" aria-label="Giáo trình PDF" aria-hidden="true" id="pdfModal" class="hidden">
     <div class="pdf-panel"><div class="pdf-head"><span id="modalPdfTitle">Tài liệu giáo trình ST-Robot</span><div class="pdf-actions"><button type="button" id="downloadPdf" class="btn--primary">Tải giáo trình PDF · 6 bài</button><button type="button" onclick="closePdfModal()">Đóng</button></div></div><div class="pdf-body"><div id="printablePdfArea"><h2 id="pdfDocHeading">Tiêu đề bài học</h2><p class="small">Tài liệu tự học có bài tập và đáp án đối chiếu</p><div id="pdfDocBody"></div></div></div></div>
   </div>
-  <script type="module" src="../src/app.js?v=copy-v4"></script>
-<script src="../src/data/curriculum.js?v=copy-v4"></script>
-<script src="../src/data/lesson-pdfs.js?v=copy-v4"></script>
-<script id="lab-platform-data" data-lab-version="6d283b90475a">
-// Existing lab URLs/defaults are preserved from commit 4b26e4a.
-// Optional full-page links do not change the official iframe endpoints.
+  <dialog id="microbitResetDialog" class="dialog" aria-labelledby="microbitResetTitle"><div class="dialog-body"><h2 id="microbitResetTitle">Nạp lại mã mẫu của bài này?</h2><p>Mã đã chỉnh sửa của bài đang mở sẽ được thay bằng mã mẫu. Hãy tải bản cần giữ trước khi tiếp tục. Dự án của các bài khác được giữ nguyên.</p></div><div class="dialog-foot"><button id="microbitCancelReset" type="button" class="btn" onclick="document.getElementById('microbitResetDialog').close()">Giữ mã hiện tại</button><button id="microbitConfirmReset" type="button" class="btn btn--primary" onclick="resetMicrobitSource()">Nạp mã mẫu</button></div></dialog>
+  <script type="module" src="../src/app.js?v=lesson-code-v5"></script>
+  <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=lesson-code-v5'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
+<script src="../src/data/curriculum.js?v=lesson-code-v5"></script>
+<script src="../src/data/lesson-pdfs.js?v=lesson-code-v5"></script>
+<script id="lab-platform-data" data-lab-version="76d59149ba2b">
+// Platform URLs use provider-supported embed modes.
+// The micro:bit editor uses the official controller protocol for editable projects.
 window.STROBOT_LAB_PLATFORMS = {
     "circuit": {
         "name": "CircuitJS · Mạch điện",
@@ -128,6 +135,17 @@ window.STROBOT_LAB_PLATFORMS = {
         "url": "https://makecode.microbit.org/#editor",
         "sourceUrl": "https://makecode.microbit.org/docs",
         "embedSupport": "existing"
+    },
+    "python": {
+        "name": "micro:bit Python Editor",
+        "mode": "embed",
+        "languages": "MicroPython · Soạn thảo · Mô phỏng · Tải HEX",
+        "url": "https://python.microbit.org/v/3/?controller=1&flag=noWelcome&l=en",
+        "embedUrl": "https://python.microbit.org/v/3/?controller=1&flag=noWelcome&l=en",
+        "externalUrl": "https://python.microbit.org/v/3/",
+        "sourceUrl": "https://github.com/microbit-foundation/python-editor-v3/blob/v3.1.17/src/fs/host.ts",
+        "embedSupport": "official",
+        "controller": "microbit-python"
     },
     "gears": {
         "name": "GearsBot · Robot 3D",
@@ -192,7 +210,7 @@ window.STROBOT_COURSE_LABS = {
         "local"
     ],
     "microbit": [
-        "makecode",
+        "python",
         "scratch",
         "arcade",
         "local"
@@ -226,6 +244,7 @@ const STORAGE='strobot.original.course.v3';let state={};try{state=JSON.parse(loc
 const qs=new URLSearchParams(location.search),aliases={vex:'vex-iq',vexiq:'vex-iq',vexcode:'vex-vr',vexvr:'vex-vr',spike:'lego-spike',lego:'lego-spike','micro:bit':'microbit',arduino_uno:'arduino'};
 let requested=(qs.get('course')||qs.get('courseId')||qs.get('khoa')||location.hash.slice(1)||'').toLowerCase();requested=aliases[requested]||requested;
 let course=COURSES.find(c=>c.id===requested)||COURSES.find(c=>c.id===state.last)||COURSES[0],currentLessonIndex=0,pdfURL=null,frameKey='',busy=false;
+let microbitEditor=null;
 const labs=window.STROBOT_LAB_PLATFORMS;
 function lesson(){return course.lessons[currentLessonIndex]}function record(){state[course.id]??={};const id=lesson().id;state[course.id][id]??={note:'',choice:null,done:false};return state[course.id][id]}
 function save(){try{state.last=course.id;localStorage.setItem(STORAGE,JSON.stringify(state));$('saveNotice').textContent='Đã lưu trên trình duyệt này.';return true}catch{$('saveNotice').textContent='Không lưu được: hãy tải nhật ký để tránh mất dữ liệu.';return false}}
@@ -248,6 +267,7 @@ function initPage(){
 function updateURL(){try{const u=new URL(location.href);u.searchParams.set('course',course.id);u.searchParams.set('lesson',lesson().id);history.replaceState(null,'',u)}catch{}}
 function renderLessons(){const records=state[course.id]||{};let n=course.lessons.filter(l=>records[l.id]?.done).length;$('progressText').textContent=n+'/6 bài tự học';$('lessonList').innerHTML=course.lessons.map((l,i)=>'<button class="lesson-item '+(i===currentLessonIndex?'selected':'')+'" aria-current="'+(i===currentLessonIndex?'step':'false')+'" onclick="loadLesson('+i+')"><span class="lesson-number">'+(records[l.id]?.done?'✓':i+1)+'</span><span>'+esc(l.title)+'<small>50 phút · Lý thuyết + thực hành</small></span></button>').join('')}
 function loadLesson(i) {
+ microbitEditor?.destroy();microbitEditor=null;
  currentLessonIndex=Number.isInteger(i)&&course.lessons[i]?i:0;
  const l=lesson(),r=record();
  $('courseName').textContent='Khóa học: '+course.name;
@@ -318,6 +338,8 @@ function canEmbedPlatform(cfg) {
   && /^https:\/\//.test(cfg.embedUrl||cfg.url||'');
 }
 function selectLabPlatform(key) {
+ microbitEditor?.destroy();microbitEditor=null;
+ $('microbitEditorTools').hidden=true;
  if(!courseLabKeys().includes(key)||!labs[key])key='local';
  frameKey=key;
  const cfg=labs[key];
@@ -339,12 +361,26 @@ function selectLabPlatform(key) {
  if(!canEmbedPlatform(cfg))return;
  const f=document.createElement('iframe');
  f.title=cfg.name;f.src=cfg.embedUrl||cfg.url;
- f.allow='fullscreen; clipboard-write';
+ f.allow=cfg.controller==='microbit-python'?'fullscreen; clipboard-write; autoplay; microphone; usb':'fullscreen; clipboard-write';
  if(cfg.embedSupport!=='existing')f.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-pointer-lock');
  f.referrerPolicy='strict-origin-when-cross-origin';f.loading='lazy';f.allowFullscreen=true;f.id='practiceFrame';
  f.addEventListener('error',()=>{if(cfg.embedSupport!=='existing'){cfg.mode='blocked';renderLabButtons();selectLabPlatform(defaultLabKey());}});
  $('frameHost').append(f);
+ if(cfg.controller==='microbit-python') {
+  $('microbitEditorTools').hidden=false;
+  $('microbitDownloadBtn').disabled=true;
+  const starter=/MicroPython/i.test(lesson().lang)?lesson().code:lesson().codeVariants?.find(v=>/MicroPython/i.test(v.lang))?.code;
+  if(starter && window.STROBOT_MICROBIT_BRIDGE) {
+   microbitEditor=new window.STROBOT_MICROBIT_BRIDGE().attach(f,{courseId:course.id,lessonId:lesson().id,code:starter,title:lesson().title,onStatus:(message,status)=>{
+    $('microbitEditorStatus').textContent=message;$('microbitEditorStatus').dataset.state=status;
+    $('microbitDownloadBtn').disabled=typeof microbitEditor?.getSource()!=='string';
+    $('microbitResetBtn').disabled=typeof microbitEditor?.getSource()!=='string';
+   }});
+  } else $('microbitEditorStatus').textContent='Hãy tải lại trang để nạp trình soạn thảo và mã của bài học.';
+ }
 }
+function downloadMicrobitSource(){const code=microbitEditor?.getSource();if(typeof code==='string')downloadBlob(new Blob([code],{type:'text/x-python;charset=utf-8'}),'microbit-'+lesson().id+'.py')}
+function resetMicrobitSource(){if(microbitEditor?.clearSavedProject()){document.getElementById('microbitResetDialog').close();selectLabPlatform('python')}}
 function reloadLabFrame() { if(canEmbedPlatform(labs[frameKey]))selectLabPlatform(frameKey); }
 function fullscreenLabFrame() {
  const frame=$('practiceFrame');

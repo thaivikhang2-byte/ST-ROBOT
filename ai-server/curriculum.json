@@ -580,7 +580,7 @@
           "Trong nền tảng robot đã chọn, kiểm tra hai chiều motor ở tốc độ thấp; chỉ cho robot chạy thẳng khi hai bên đều tạo chiều tiến.",
           "Nếu có VEX IQ thật: tắt nguồn khi kiểm tra cơ khí/cổng, đặt robot ở vùng trống, chạy 200 mm chậm ba lượt và đo độ lệch. Luôn có cách dừng thủ công."
         ],
-        "code": "KHỞI TẠO cấu hình robot và giới hạn tốc độ\nKIỂM TRA chiều tiến của hai bánh\nTIẾN 200 mm ở tốc độ thấp\nDỪNG\nĐO quãng đường và độ lệch thực tế",
+        "code": "from math import pi, sqrt\nfrom time import time, sleep\nfrom ev3dev2.motor import MoveTank, OUTPUT_A, OUTPUT_B\nfrom ev3dev2.sensor import INPUT_4\nfrom ev3dev2.sensor.virtual import GPSSensor\n\ntank = MoveTank(OUTPUT_A, OUTPUT_B)\ngps = GPSSensor(INPUT_4)\nWHEEL_DIAMETER_MM = 56.0\nTRACK_WIDTH_MM = 152.0\nSPEED = 25\n\ndef move_wheels(left_speed, right_speed, degrees, timeout_s=8.0):\n    start_left = tank.left_motor.position\n    start_right = tank.right_motor.position\n    deadline = time() + timeout_s\n    tank.on_for_degrees(left_speed, right_speed, degrees,\n                        brake=True, block=False)\n    try:\n        sleep(0.05)\n        while time() < deadline:\n            if tank.left_motor.is_stalled or tank.right_motor.is_stalled:\n                raise RuntimeError(\"Motor stalled; check the course\")\n            if not (tank.left_motor.is_running or tank.right_motor.is_running):\n                left_done = abs(tank.left_motor.position - start_left)\n                right_done = abs(tank.right_motor.position - start_right)\n                if min(left_done, right_done) >= degrees - 5:\n                    return\n            sleep(0.02)\n        raise RuntimeError(\"Motion timeout; reset before retrying\")\n    finally:\n        tank.off(brake=True)\n\ndef forward(distance_mm):\n    degrees = 360.0 * distance_mm / (pi * WHEEL_DIAMETER_MM)\n    move_wheels(SPEED, SPEED, degrees)\n\ndef turn_right(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(SPEED, -SPEED, degrees)\n\ndef turn_left(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(-SPEED, SPEED, degrees)\n\nstart = gps.position\ntry:\n    forward(200)\n    end = gps.position\n    displacement_mm = 10 * sqrt((end[0] - start[0]) ** 2\n                                + (end[1] - start[1]) ** 2)\n    print(\"Requested distance (mm):\", 200)\n    print(\"GPS displacement (mm):\", round(displacement_mm, 1))\n    print(\"Wheel angles (deg):\", tank.left_motor.position,\n          tank.right_motor.position)\nfinally:\n    tank.off(brake=True)\n",
         "q": "Bộ phận nào thực thi chương trình điều khiển?",
         "opts": [
           "Bánh xe",
@@ -590,7 +590,7 @@
         "answer": 1,
         "why": "Brain là bộ điều khiển thực thi chương trình. Motor tạo chuyển động và bánh xe truyền lực; chúng không thay vai trò xử lý chương trình của Brain.",
         "sim": "grid",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot (ev3dev2)",
         "time": 50,
         "exercise": "Trên lưới, robot từ (0,0) hướng đông: tiến 3 ô, rẽ phải, tiến 2 ô. Ghi đủ trạng thái (x,y,hướng) sau mỗi nhóm lệnh. Giải thích vì sao kết quả lưới không xác nhận quãng đường thật của VEX IQ.",
         "solution": "Sau ba ô: (3,0,đông). Rẽ phải: (3,0,nam). Tiến hai ô: (3,2,nam). Lệnh rẽ tại chỗ chỉ đổi hướng. Muốn đổi ô thành mm phải định nghĩa tỷ lệ và kiểm tra kích thước/hiệu chuẩn của robot thật.",
@@ -618,7 +618,7 @@
           ]
         ],
         "prereq": "Biết chiều trái/phải theo robot, thao tác chạy–dừng và đọc đơn vị mm, cm. Chưa cần có robot thật để làm bài trên lưới.",
-        "labGuide": "Dùng bàn lưới để luyện thứ tự lệnh và hướng; Reset trước mỗi lượt. Ở GearsBot, dùng robot mặc định và xem cấu hình motor/cảm biến trước khi chạy Blocks. Đây không phải bộ giả lập VEX IQ, nên không dán API VEX trực tiếp vào Python của GearsBot. Cấu hình và nạp VEX IQ thật trong VEXcode IQ đúng thế hệ thiết bị.",
+        "labGuide": "Trong GearsBot, chọn robot Single Sensor Line Follower (singleFollower), mở Python và dán toàn bộ chương trình. Robot dùng bánh trái A, bánh phải B; đường kính bánh 56 mm, khoảng cách hai bánh 152 mm. Chọn sân rộng, phẳng; Reset trước mỗi lượt rồi Run. Chương trình chạy thẳng 200 mm ở tốc độ 25%, ghi độ dời GPS và góc motor. GPS của GearsBot trả về cm nên code nhân 10 để đổi sang mm. So sánh yêu cầu với kết quả đo, lặp ba lượt để quan sát sai số; đây là phép thử trên robot GearsBot.",
         "objectives": [
           "Mô tả đường đi của thông tin từ chương trình trên Brain đến động cơ và chuyển động robot.",
           "Phân biệt bộ điều khiển, cơ cấu chấp hành và cảm biến; cấu hình đúng cổng và chiều động cơ.",
@@ -655,6 +655,18 @@
           {
             "title": "VEXcode IQ thế hệ 2 — tài liệu Python chính thức",
             "url": "https://api.vex.com/iq2/home/python/"
+          },
+          {
+            "title": "GEARS — cấu hình Single Sensor Line Follower",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GEARS — API ev3dev2.motor trong simulator",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GEARS — API GPS và đơn vị tọa độ",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/virtual.py"
           }
         ]
       },
@@ -670,7 +682,7 @@
           "Dự đoán kết quả của bốn lần rẽ phải liên tiếp và của một đường hình vuông. Chạy và kiểm tra cả vị trí lẫn hướng.",
           "Nếu có kit: đo ba lượt quay 90° ở tốc độ thấp; ghi sai số từng lượt, không lấy một lượt đẹp nhất làm kết luận."
         ],
-        "code": "TRẠNG THÁI = (0, 0, ĐÔNG)\nTIẾN 1 ô     # (1, 0, ĐÔNG)\nRẼ PHẢI 90°  # (1, 0, NAM)\nTIẾN 1 ô     # (1, 1, NAM)\nDỪNG",
+        "code": "from math import pi, sqrt\nfrom time import time, sleep\nfrom ev3dev2.motor import MoveTank, OUTPUT_A, OUTPUT_B\nfrom ev3dev2.sensor import INPUT_4\nfrom ev3dev2.sensor.virtual import GPSSensor\n\ntank = MoveTank(OUTPUT_A, OUTPUT_B)\ngps = GPSSensor(INPUT_4)\nWHEEL_DIAMETER_MM = 56.0\nTRACK_WIDTH_MM = 152.0\nSPEED = 25\n\ndef move_wheels(left_speed, right_speed, degrees, timeout_s=8.0):\n    start_left = tank.left_motor.position\n    start_right = tank.right_motor.position\n    deadline = time() + timeout_s\n    tank.on_for_degrees(left_speed, right_speed, degrees,\n                        brake=True, block=False)\n    try:\n        sleep(0.05)\n        while time() < deadline:\n            if tank.left_motor.is_stalled or tank.right_motor.is_stalled:\n                raise RuntimeError(\"Motor stalled; check the course\")\n            if not (tank.left_motor.is_running or tank.right_motor.is_running):\n                left_done = abs(tank.left_motor.position - start_left)\n                right_done = abs(tank.right_motor.position - start_right)\n                if min(left_done, right_done) >= degrees - 5:\n                    return\n            sleep(0.02)\n        raise RuntimeError(\"Motion timeout; reset before retrying\")\n    finally:\n        tank.off(brake=True)\n\ndef forward(distance_mm):\n    degrees = 360.0 * distance_mm / (pi * WHEEL_DIAMETER_MM)\n    move_wheels(SPEED, SPEED, degrees)\n\ndef turn_right(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(SPEED, -SPEED, degrees)\n\ndef turn_left(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(-SPEED, SPEED, degrees)\n\ntry:\n    forward(200)\n    turn_right(90)\n    forward(200)\n    print(\"Commands: forward 200 mm, right 90 deg, forward 200 mm\")\n    print(\"GPS endpoint (cm):\", gps.position[:2])\n    print(\"Right-turn wheel target (deg):\",\n          round(90 * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM, 1))\nfinally:\n    tank.off(brake=True)\n",
         "q": "Sau tiến–phải–tiến, robot từ (0,0) hướng đông tới…",
         "opts": [
           "(2,0)",
@@ -680,7 +692,7 @@
         "answer": 1,
         "why": "Tiến đầu tiên tăng x từ 0 lên 1. Rẽ phải đổi hướng đông thành nam nhưng giữ nguyên vị trí. Tiến cuối tăng y lên 1, nên đích là (1,1).",
         "sim": "grid",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot (ev3dev2)",
         "time": 50,
         "exercise": "Robot đo được các góc 88°, 91°, 89° khi yêu cầu 90°. Tính sai số có dấu của mỗi lượt và sai số trung bình. Giải thích vì sao trung bình nhỏ chưa có nghĩa từng lượt đều chính xác.",
         "solution": "Sai số đo − mục tiêu lần lượt −2°, +1°, −1°; trung bình −2/3° ≈ −0,67°. Sai số trung bình có thể triệt tiêu một phần giữa dương và âm; vẫn phải báo từng lượt hoặc mức phân tán. Trong lưới lý tưởng, bốn rẽ 90° về hướng ban đầu; robot thật có thể còn sai lệch.",
@@ -708,7 +720,7 @@
           ]
         ],
         "prereq": "Hoàn thành bài Cấu trúc và truyền động; biết một vòng là 360°, góc vuông là 90° và quy ước tọa độ của bàn lưới.",
-        "labGuide": "Dùng bàn lưới để kiểm tra logic đổi hướng. Đo góc quay và ảnh hưởng của ma sát bằng robot hoặc nền tảng có mô hình chuyển động tương ứng. Trong GearsBot, dùng lệnh theo cấu hình của nền tảng; với kit VEX IQ, cấu hình Drivetrain trong VEXcode IQ đúng thế hệ thiết bị.",
+        "labGuide": "Trong GearsBot, chọn robot Single Sensor Line Follower (singleFollower), mở Python và dán toàn bộ chương trình. Robot dùng bánh trái A, bánh phải B; đường kính bánh 56 mm, khoảng cách hai bánh 152 mm. Chọn sân rộng, phẳng; Reset trước mỗi lượt rồi Run. Code thực hiện tiến 200 mm, quay phải tại chỗ 90° rồi tiến 200 mm. Góc quay mỗi bánh được tính từ kích thước robot, khác góc quay thân. Đọc vị trí cuối ở console; giữ cùng sân và điểm đầu khi đo góc thực tế bằng công cụ đo của sân.",
         "objectives": [
           "Theo dõi đồng thời vị trí và hướng khi robot tiến, rẽ trái hoặc rẽ phải.",
           "Giải thích vì sao góc quay thân robot khác góc quay của từng bánh.",
@@ -745,6 +757,18 @@
           {
             "title": "VEXcode IQ thế hệ 2 — tài liệu Python chính thức",
             "url": "https://api.vex.com/iq2/home/python/"
+          },
+          {
+            "title": "GEARS — cấu hình Single Sensor Line Follower",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GEARS — API ev3dev2.motor trong simulator",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GEARS — API GPS và đơn vị tọa độ",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/virtual.py"
           }
         ]
       },
@@ -760,7 +784,7 @@
           "Thêm một hàng dữ liệu không hợp lệ trong bảng thiết kế và nêu phản ứng dừng/báo lỗi; mini lab số học không thay thế mô phỏng lỗi cảm biến thật.",
           "Nếu có kit: chạy chậm trên sân trống, tăng khoảng dự phòng trước khi tăng tốc. Ghi quãng đường từ lúc phát lệnh dừng tới khi robot đứng yên."
         ],
-        "code": "LẶP với giới hạn thời gian:\n  đọc d và trạng thái hợp lệ\n  NẾU dữ liệu không hợp lệ:\n    DỪNG; báo lỗi\n  NGƯỢC LẠI NẾU d < T:\n    DỪNG\n  NGƯỢC LẠI:\n    TIẾN CHẬM\n  chờ một chu kỳ lấy mẫu ngắn\nDỪNG khi hết thời gian",
+        "code": "from time import time, sleep\nfrom ev3dev2.motor import MoveTank, OUTPUT_A, OUTPUT_B\nfrom ev3dev2.sensor import INPUT_2\nfrom ev3dev2.sensor.lego import UltrasonicSensor\n\ntank = MoveTank(OUTPUT_A, OUTPUT_B)\ndistance_sensor = UltrasonicSensor(INPUT_2)\nTHRESHOLD_CM = 20.0\nTIME_LIMIT_S = 10.0\nreason = \"time_limit\"\nlast_distance_cm = None\n\ndef read_distance_cm():\n    value = distance_sensor.distance_centimeters\n    if not 0 < value <= 255:\n        raise ValueError(\"Invalid ultrasonic reading\")\n    return value\n\ntry:\n    deadline = time() + TIME_LIMIT_S\n    while time() < deadline:\n        last_distance_cm = read_distance_cm()\n        if last_distance_cm < THRESHOLD_CM:\n            reason = \"obstacle_threshold\"\n            break\n        tank.on(15, 15)\n        sleep(0.05)\nfinally:\n    tank.off(brake=True)\n\nprint(\"Stop reason:\", reason)\nprint(\"Last distance (cm):\", last_distance_cm)\n",
         "q": "Với 25 < 30, robot thực hiện nhánh nào?",
         "opts": [
           "Dừng",
@@ -770,7 +794,7 @@
         "answer": 0,
         "why": "25 < 30 là đúng nên thực hiện nhánh dừng. Đáp án này phụ thuộc điều kiện đã nêu; ở đúng ngưỡng, dấu < và ≤ cho hai hành vi khác nhau.",
         "sim": "sensor",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot (ev3dev2)",
         "time": 50,
         "exercise": "Dùng T = 30 cm: dự đoán d = 29, 30, 31 cm với dấu <. Đổi d từ cm sang mm rồi tính lại để kiểm tra tính nhất quán. Nêu điều gì cần thay đổi nếu muốn robot dừng cả khi d = T.",
         "solution": "29 cm dừng; 30 và 31 cm tiến theo quy tắc <. Khi dùng mm: d = 290, 300, 310 mm, T = 300 mm cho kết quả tương tự. Muốn dừng cả khi bằng ngưỡng, dùng d ≤ T và cập nhật ca biên. Trên robot thật cần tính/đo độ trễ và quãng đường hãm.",
@@ -798,7 +822,7 @@
           ]
         ],
         "prereq": "Biết câu điều kiện nếu–ngược lại và so sánh <, ≤; phân biệt cm và mm. Hoàn thành bài chuyển động và góc quay.",
-        "labGuide": "Bàn cảm biến nội bộ minh họa một phép so sánh, không tính hãm, độ trễ hay va chạm. Khi dùng robot 3D, chọn đúng cảm biến đang gắn rồi thực hiện chu kỳ đọc–quyết định–điều khiển. Với VEX IQ thật, kiểm tra cảm biến thuộc đúng thế hệ và dùng API tương ứng; không dán giả mã này như chương trình hoàn chỉnh.",
+        "labGuide": "Trong GearsBot, chọn robot Single Sensor Line Follower (singleFollower), mở Python và dán toàn bộ chương trình. Robot dùng bánh trái A, bánh phải B; đường kính bánh 56 mm, khoảng cách hai bánh 152 mm. Chọn sân rộng, phẳng; Reset trước mỗi lượt rồi Run. Cảm biến siêu âm nằm ở INPUT_2. Đặt một hộp trước robot trên sân, chạy và đọc khoảng cách dừng ở console. Ngưỡng là 20 cm với dấu <; đổi thành 30 để làm bài tập. Giá trị 255 cm là hết tầm đo mặc định. Chương trình dừng sau tối đa 10 giây hoặc khi đọc lỗi; tốc độ, độ trễ và quãng hãm vẫn ảnh hưởng khoảng cách dừng thực tế.",
         "objectives": [
           "Viết điều kiện dừng dựa trên khoảng cách với ngưỡng và đơn vị rõ ràng.",
           "Kiểm thử ba trường hợp dưới, bằng và trên ngưỡng cùng trường hợp dữ liệu không hợp lệ.",
@@ -835,6 +859,18 @@
           {
             "title": "VEXcode IQ thế hệ 2 — tài liệu Python chính thức",
             "url": "https://api.vex.com/iq2/home/python/"
+          },
+          {
+            "title": "GEARS — cấu hình Single Sensor Line Follower",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GEARS — API ev3dev2.motor trong simulator",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GEARS — API cảm biến siêu âm",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
         ]
       },
@@ -850,7 +886,7 @@
           "Thiết kế tuyến B có cùng đích, chạy với cùng điều kiện và cùng cách đếm. Ghi cả lượt sai, không sửa bảng sau khi biết kết quả.",
           "Chọn một thay đổi, nêu dự đoán cải thiện rồi thử lại; nếu có kit thật hãy đo ba lượt ở tốc độ thấp trên sân an toàn."
         ],
-        "code": "ĐẶT đặc tả và tiêu chí trước khi thử\nVỚI mỗi phương án A, B:\n  ĐẶT LẠI cùng điểm đầu, hướng đầu\n  CHẠY với giới hạn số lệnh\n  GHI đến đích?, vượt biên?, số tiến, số rẽ\nCHỌN phương án đạt yêu cầu với chi phí phù hợp",
+        "code": "from math import pi, sqrt\nfrom time import time, sleep\nfrom ev3dev2.motor import MoveTank, OUTPUT_A, OUTPUT_B\nfrom ev3dev2.sensor import INPUT_4\nfrom ev3dev2.sensor.virtual import GPSSensor\n\ntank = MoveTank(OUTPUT_A, OUTPUT_B)\ngps = GPSSensor(INPUT_4)\nWHEEL_DIAMETER_MM = 56.0\nTRACK_WIDTH_MM = 152.0\nSPEED = 25\n\ndef move_wheels(left_speed, right_speed, degrees, timeout_s=8.0):\n    start_left = tank.left_motor.position\n    start_right = tank.right_motor.position\n    deadline = time() + timeout_s\n    tank.on_for_degrees(left_speed, right_speed, degrees,\n                        brake=True, block=False)\n    try:\n        sleep(0.05)\n        while time() < deadline:\n            if tank.left_motor.is_stalled or tank.right_motor.is_stalled:\n                raise RuntimeError(\"Motor stalled; check the course\")\n            if not (tank.left_motor.is_running or tank.right_motor.is_running):\n                left_done = abs(tank.left_motor.position - start_left)\n                right_done = abs(tank.right_motor.position - start_right)\n                if min(left_done, right_done) >= degrees - 5:\n                    return\n            sleep(0.02)\n        raise RuntimeError(\"Motion timeout; reset before retrying\")\n    finally:\n        tank.off(brake=True)\n\ndef forward(distance_mm):\n    degrees = 360.0 * distance_mm / (pi * WHEEL_DIAMETER_MM)\n    move_wheels(SPEED, SPEED, degrees)\n\ndef turn_right(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(SPEED, -SPEED, degrees)\n\ndef turn_left(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(-SPEED, SPEED, degrees)\n\n# The grid's east direction is the robot's initial forward direction.\nROUTE_NAME = \"A\"\nROUTES = {\"A\": \"F F F R F F\", \"B\": \"F R F L F F R F\"}\nCELL_MM = 100\nDIRECTIONS = [(1, 0), (0, 1), (-1, 0), (0, -1)]\nNAMES = [\"east\", \"south\", \"west\", \"north\"]\nx, y, heading = 0, 0, 0\nforward_count = 0\nturn_count = 0\n\ntry:\n    for command in ROUTES[ROUTE_NAME].split():\n        if command == \"F\":\n            dx, dy = DIRECTIONS[heading]\n            next_x, next_y = x + dx, y + dy\n            if not (0 <= next_x < 5 and 0 <= next_y < 4):\n                raise ValueError(\"Route leaves the declared grid\")\n            forward(CELL_MM)\n            x, y = next_x, next_y\n            forward_count += 1\n        elif command == \"R\":\n            turn_right()\n            heading = (heading + 1) % 4\n            turn_count += 1\n        elif command == \"L\":\n            turn_left()\n            heading = (heading - 1) % 4\n            turn_count += 1\n        else:\n            raise ValueError(\"Unknown command\")\n        print(command, \"->\", x, y, NAMES[heading])\n    print(\"Logical goal reached:\", (x, y, heading) == (3, 2, 1))\n    print(\"Forward commands:\", forward_count, \"turns:\", turn_count)\n    print(\"Measured GPS endpoint (cm):\", gps.position[:2])\nfinally:\n    tank.off(brake=True)\n",
         "q": "Để so sánh hai thuật toán, cần giữ nguyên…",
         "opts": [
           "Điểm đầu, hướng đầu và đích",
@@ -860,7 +896,7 @@
         "answer": 0,
         "why": "Điểm đầu, hướng đầu và đích quyết định yêu cầu của bài toán. Giữ chúng cùng nhau giúp khác biệt kết quả phản ánh giải pháp, thay vì thay đổi đề bài.",
         "sim": "grid",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot (ev3dev2)",
         "time": 50,
         "exercise": "Một tuyến đến đúng đích sau 6 hành động. Tuyến kia dùng 5 hành động nhưng kết thúc ở (3,1). Tuyến nào đáp ứng nhiệm vụ? Sau đó thử thay hướng đầu thành bắc nhưng giữ nguyên chương trình và giải thích kết quả.",
         "solution": "Chỉ tuyến 6 hành động đến đúng đích đáp ứng nhiệm vụ; ít lệnh hơn không bù được lỗi đích. Đổi hướng đầu mà giữ chương trình làm đổi hướng các bước tiến, nên phải chạy/dự đoán lại; đó không phải điều kiện thử tương đương.",
@@ -888,7 +924,7 @@
           ]
         ],
         "prereq": "Hoàn thành ba bài chuyển động, góc quay và cảm biến. Biết ghi bảng (lần thử, chương trình, điều kiện, kết quả).",
-        "labGuide": "Dùng bàn lưới để kiểm tra tuyến và hướng. Trong môi trường robot 3D có thể tái tạo tuyến ở quy mô khác nhưng phải đặt lại điểm đầu và ghi đơn vị mới. Nếu nền tảng không có sân VEX IQ giống thật, hãy gọi đó là bài tập chuyển giao thuật toán, không coi kết quả mô phỏng là xác nhận nhiệm vụ VEX IQ ngoài đời.",
+        "labGuide": "Trong GearsBot, chọn robot Single Sensor Line Follower (singleFollower), mở Python và dán toàn bộ chương trình. Robot dùng bánh trái A, bánh phải B; đường kính bánh 56 mm, khoảng cách hai bánh 152 mm. Chọn sân rộng, phẳng; Reset trước mỗi lượt rồi Run. Chương trình chạy một tuyến với mỗi ô dài 100 mm, vừa ghi trạng thái lưới vừa xuất tọa độ GPS. Hướng đông của lưới được quy ước là hướng robot lúc xuất phát; tọa độ lưới và GPS có hệ quy chiếu riêng. Tuyến A và B cùng đến (3,2,nam) trên mô hình. Chạy A, ghi kết quả; đổi ROUTE_NAME thành \"B\", Reset rồi chạy lại. Kiểm tra vị trí đo và va chạm để đánh giá chuyển động trên sân, bên cạnh kết quả logic.",
         "objectives": [
           "Chuyển một nhiệm vụ sa bàn thành điều kiện đầu, đích và tiêu chí thành công có thể kiểm tra.",
           "Thiết kế, thử và so sánh hai chuỗi lệnh trong cùng điều kiện.",
@@ -925,6 +961,18 @@
           {
             "title": "VEXcode IQ thế hệ 2 — tài liệu Python chính thức",
             "url": "https://api.vex.com/iq2/home/python/"
+          },
+          {
+            "title": "GEARS — cấu hình Single Sensor Line Follower",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GEARS — API ev3dev2.motor trong simulator",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GEARS — API GPS và đơn vị tọa độ",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/virtual.py"
           }
         ]
       },
@@ -940,7 +988,7 @@
           "Trong mô phỏng có thể kiểm tra chuyển động theo thông số robot của nền tảng. Bàn lưới nội bộ không đo vòng bánh hay độ trượt.",
           "Nếu có phần cứng: chạy ba lượt ở cùng tốc độ và mặt sàn, đo quãng đường, tính trung bình rồi thử một thay đổi hiệu chuẩn. Ghi cả trước và sau."
         ],
-        "code": "from math import pi\n\ndiameter_mm = 56.0\ndistance_mm = 500.0\nmotor_turns_per_wheel_turn = 1.0\nwheel_turns = distance_mm / (pi * diameter_mm)\nwheel_degrees = 360 * wheel_turns\nmotor_turns = wheel_turns * motor_turns_per_wheel_turn\nprint(round(wheel_turns, 3), round(wheel_degrees, 1))\nprint(round(motor_turns, 3))",
+        "code": "from math import pi\n\ndiameter_mm = 56.0\ndistance_mm = 500.0\nmotor_turns_per_wheel_turn = 1.0\nwheel_turns = distance_mm / (pi * diameter_mm)\nwheel_degrees = 360 * wheel_turns\nmotor_turns = wheel_turns * motor_turns_per_wheel_turn\nprint(round(wheel_turns, 3), round(wheel_degrees, 1))\nprint(round(motor_turns, 3))\n",
         "q": "D tăng gấp đôi, cùng quãng đường thì số vòng…",
         "opts": [
           "Gấp đôi",
@@ -951,7 +999,7 @@
         "why": "D tăng gấp đôi làm chu vi πD tăng gấp đôi. Với cùng s, n = s/(πD) giảm một nửa; điều này nói về số vòng bánh, chưa tính truyền động motor.",
         "sim": "grid",
         "time": 50,
-        "lang": "Python thuần — chỉ tính toán; không điều khiển hoặc kết nối motor",
+        "lang": "Python 3 · tính toán quãng đường",
         "exercise": "Với D = 70 mm, tính số vòng bánh cho 350 mm và 700 mm. Nếu ba lượt yêu cầu 500 mm đo được 478, 480, 482 mm, tính trung bình và hệ số thử hiệu chỉnh. Nêu một yếu tố cần giữ nguyên khi đo lại.",
         "solution": "Chu vi ≈ 219,91 mm. Số vòng lần lượt ≈ 1,592 và 3,183. Trung bình đo 480 mm; k = 500/480 ≈ 1,042. Giữ cùng tốc độ, tải, mặt sàn và cách đo; hệ số chỉ là giả thuyết cần kiểm tra, không phải hiệu chỉnh đúng cho mọi trường hợp.",
         "checks": [
@@ -978,7 +1026,7 @@
           ]
         ],
         "prereq": "Biết chu vi đường tròn, đổi cm ↔ mm và phân biệt góc quay bánh với góc thân robot. Đọc được kết quả ba lần đo.",
-        "labGuide": "Dùng editor Python cho đoạn tính toán thuần; không cần robot. GearsBot có robot và kích thước riêng, nên chỉ đối chiếu công thức sau khi kiểm tra cấu hình của nó. Đối với VEX IQ thật, nhập thông số bánh/truyền động trong VEXcode IQ đúng cấu hình và đo lại trên sân.",
+        "labGuide": "Dán code vào editor Python của GearsBot hoặc Python 3 rồi Run; kết quả nằm trong console và chương trình chỉ tính toán. Thử diameter_mm = 70, distance_mm = 350 rồi 700. Ghi rõ đường kính và tỷ số truyền trước khi dùng kết quả cho robot; với GearsBot Single Sensor Line Follower, bánh mặc định là 56 mm và truyền động trực tiếp.",
         "objectives": [
           "Tính số vòng và góc quay bánh cần thiết từ quãng đường với đơn vị thống nhất.",
           "Giải thích vai trò tỉ số truyền giữa trục motor và bánh xe.",
@@ -1015,6 +1063,10 @@
           {
             "title": "VEXcode IQ thế hệ 2 — tài liệu Python chính thức",
             "url": "https://api.vex.com/iq2/home/python/"
+          },
+          {
+            "title": "Python 3 — hàm có sẵn và kiểu dữ liệu",
+            "url": "https://docs.python.org/3/library/functions.html"
           }
         ]
       },
@@ -1030,7 +1082,7 @@
           "Trong mô phỏng có cảm biến hướng hoặc robot thật, chạy chậm với Kp nhỏ. Kiểm tra robot tiến về mục tiêu; sửa dấu nếu ngược.",
           "Giữ cùng tình trạng đầu khi thử các Kp khác nhau; ghi sai lệch theo thời gian, số lần vượt mục tiêu và trường hợp bão hòa. Bổ sung điều kiện dừng."
         ],
-        "code": "def wrap_deg(angle):\n    return (angle + 180) % 360 - 180\n\ndef clamp(value, low=-100, high=100):\n    return max(low, min(high, value))\n\ndef wheel_commands(target_ccw, measured_ccw, base=30, kp=0.5):\n    error = wrap_deg(target_ccw - measured_ccw)\n    correction = kp * error\n    return clamp(base - correction), clamp(base + correction)\n\nprint(wheel_commands(0, -10))  # (25.0, 35.0)\nprint(wrap_deg(179 - (-179)))  # -2",
+        "code": "def wrap_deg(angle):\n    return (angle + 180) % 360 - 180\n\ndef clamp(value, low=-100, high=100):\n    return max(low, min(high, value))\n\ndef wheel_commands(target_ccw, measured_ccw, base=30, kp=0.5):\n    error = wrap_deg(target_ccw - measured_ccw)\n    correction = kp * error\n    return clamp(base - correction), clamp(base + correction)\n\nprint(wheel_commands(0, -10))  # (25.0, 35.0)\nprint(wrap_deg(179 - (-179)))  # -2\n",
         "q": "Tăng Kp luôn làm hệ thống tốt hơn?",
         "opts": [
           "Có",
@@ -1041,7 +1093,7 @@
         "why": "Tăng Kp làm hiệu chỉnh mạnh hơn nhưng có thể gây bão hòa, vượt mục tiêu và dao động khi có quán tính/độ trễ. Chất lượng phải được kiểm tra bằng dữ liệu, không chỉ nhìn hệ số lớn.",
         "sim": "grid",
         "time": 50,
-        "lang": "Python thuần — tính lệnh bánh theo góc tăng ngược kim đồng hồ; chưa gọi API robot",
+        "lang": "Python 3 · tính lệnh điều khiển P",
         "exercise": "Tính lệnh khi mục tiêu 0°, đo +20°, v = 30%, Kp = 0,5. Sau đó thử Kp = 10 và giải thích vì sao clamp không làm hệ thống tự ổn định. Chỉ ra thành phần nào còn thiếu nếu muốn gọi đây là PID.",
         "solution": "e = −20°, u = −10 nên lệnh trái 40%, phải 20%. Với Kp = 10, lệnh thô 230% và −170%, bị chặn thành +100% và −100%; bão hòa bảo vệ miền lệnh nhưng vẫn có thể gây quay mạnh/dao động. P chưa có I và D; thêm tên PID không làm xuất hiện hai thành phần đó.",
         "checks": [
@@ -1068,7 +1120,7 @@
           ]
         ],
         "prereq": "Hiểu chuyển động vi sai, góc quay, độ trễ và clamp/giới hạn giá trị. Cần phân biệt hướng trên lưới với số đo heading trên thiết bị.",
-        "labGuide": "Chạy phần tính toán P trong editor Python trước. Đánh giá phản hồi trên nền tảng có số đo hướng và lệnh riêng cho hai bánh; ghi cấu hình, đơn vị, quy ước dấu và chuỗi sai số theo thời gian. Dùng bàn lưới cho logic tuyến; thử VEX IQ thật bằng API đúng thế hệ và giữ tốc độ thấp.",
+        "labGuide": "Dán code vào editor Python của GearsBot hoặc Python 3 để kiểm tra công thức P; console in lệnh trái/phải và sai lệch góc. Quy ước trong code là góc dương ngược chiều kim đồng hồ, tốc độ theo %. Đổi measured_ccw và kp theo bài tập để xem tác dụng của clamp. Đây là phần tính lệnh; khi nối cảm biến và motor cần khớp quy ước dấu của nền tảng, đo sai số theo thời gian và có điều kiện dừng.",
         "objectives": [
           "Tính sai lệch góc ngắn nhất và tín hiệu điều khiển P theo quy ước dấu được công bố.",
           "Giải thích bão hòa, dao động và vai trò tốc độ nền trong điều khiển hướng.",
@@ -1105,6 +1157,10 @@
           {
             "title": "VEXcode IQ thế hệ 2 — tài liệu Python chính thức",
             "url": "https://api.vex.com/iq2/home/python/"
+          },
+          {
+            "title": "Python 3 — hàm có sẵn và kiểu dữ liệu",
+            "url": "https://docs.python.org/3/library/functions.html"
           }
         ]
       }
@@ -1117,7 +1173,9 @@
     "tag": "LẬP TRÌNH SÁNG TẠO",
     "desc": "Ma trận LED, sự kiện nút bấm, cảm biến và sản phẩm tương tác.",
     "tools": [
-      "makecode"
+      "MicroPython",
+      "micro:bit Python Editor",
+      "MakeCode JavaScript"
     ],
     "lessons": [
       {
@@ -1133,7 +1191,7 @@
           "Thêm basic.clearScreen() rồi vẽ chữ L; đếm số điểm không trùng.",
           "Đối chiếu hình và bảng tọa độ; lưu link dự án hoặc ảnh kèm giải thích."
         ],
-        "code": "basic.clearScreen()\nled.plot(2, 2)\nled.plot(1, 2)\nled.plot(3, 2)\nled.plot(2, 1)\nled.plot(2, 3)\n",
+        "code": "from microbit import *\n\ndisplay.clear()\npoints = [(2, 2), (1, 2), (3, 2), (2, 1), (2, 3)]\nfor x, y in points:\n    display.set_pixel(x, y, 9)  # brightness: 0..9, coordinates: 0..4\n",
         "q": "Tọa độ tâm ma trận 5 × 5 là…",
         "opts": [
           "(0,0)",
@@ -1143,7 +1201,7 @@
         "answer": 1,
         "why": "Với chỉ số 0,1,2,3,4 trên mỗi trục, chỉ số giữa là 2 nên tâm nằm tại (2,2).",
         "sim": "matrix",
-        "lang": "MakeCode JavaScript",
+        "lang": "MicroPython · micro:bit Python Editor",
         "time": 50,
         "exercise": "Viết danh sách tọa độ tạo chữ L bằng cột trái và hàng dưới. Đếm LED không trùng và giải thích vì sao (5,0) nằm ngoài ma trận.",
         "solution": "Các điểm: (0,0),(0,1),(0,2),(0,3),(0,4),(1,4),(2,4),(3,4),(4,4): 9 điểm. x và y chỉ nhận chỉ số hợp lệ 0..4; x = 5 nằm ngoài cột cuối.",
@@ -1172,7 +1230,7 @@
           ]
         ],
         "prereq": "Biết đếm từ 0, nhận biết trái/phải và trên/dưới; chưa cần có micro:bit thật.",
-        "labGuide": "Bàn thí nghiệm ma trận dùng để dự đoán điểm sáng. MakeCode chạy đúng API JavaScript mẫu; nếu chọn Python editor chính thức, phải chuyển sang API MicroPython như display.set_pixel(x,y,brightness), không dán nguyên code MakeCode.",
+        "labGuide": "Mở micro:bit Python Editor trong khung lab. Mã MicroPython của bài được nạp sẵn; chọn Run để quan sát 25 LED, rồi sửa tọa độ và chạy lại. display.set_pixel dùng tọa độ 0–4 và độ sáng 0–9. Biến thể MakeCode JavaScript dùng trong MakeCode.",
         "objectives": [
           "Xác định đúng gốc tọa độ và phạm vi x,y = 0..4.",
           "Chuyển một hình đơn giản thành danh sách điểm không trùng.",
@@ -1216,15 +1274,18 @@
           {
             "title": "MicroPython micro:bit — ma trận và read_light_level",
             "url": "https://microbit-micropython.readthedocs.io/en/v2-docs/display.html"
+          },
+          {
+            "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
+            "url": "https://python.microbit.org/v/3/"
           }
         ],
         "codeVariants": [
           {
-            "id": "micropython",
-            "label": "MicroPython · Python Editor",
-            "lang": "MicroPython · micro:bit",
-            "code": "from microbit import *\n\ndisplay.clear()\npoints = [(2, 2), (1, 2), (3, 2), (2, 1), (2, 3)]\nfor x, y in points:\n    display.set_pixel(x, y, 9)  # brightness: 0..9, coordinates: 0..4\n",
-            "note": "API display.set_pixel của MicroPython khác led.plot của MakeCode; độ sáng hợp lệ của pixel là 0..9. Kết quả hình chữ thập tương đương, không cần microphone hoặc tính năng riêng V2."
+            "id": "makecode-js",
+            "label": "MakeCode JavaScript",
+            "lang": "MakeCode JavaScript",
+            "code": "basic.clearScreen()\nled.plot(2, 2)\nled.plot(1, 2)\nled.plot(3, 2)\nled.plot(2, 1)\nled.plot(2, 3)\n"
           }
         ]
       },
@@ -1241,7 +1302,7 @@
           "Giữ A rồi thử các lần nhấn rời; mô tả quan sát thay vì giả định giống nhau.",
           "Giải thích phần code nào đăng ký phản hồi và phần nào thực sự thay đổi màn hình."
         ],
-        "code": "basic.clearScreen()\ninput.onButtonPressed(Button.A, function () {\n    basic.showIcon(IconNames.Heart)\n})\ninput.onButtonPressed(Button.B, function () {\n    basic.clearScreen()\n})\n",
+        "code": "from microbit import *\n\ndisplay.clear()\nwhile True:\n    # Edge-latched presses, not a repeated test of the held state.\n    if button_a.was_pressed():\n        display.show(Image.HEART)\n    if button_b.was_pressed():\n        display.clear()\n    # If both were latched in one poll, B wins in this example.\n    sleep(20)\n",
         "q": "Đoạn trong sự kiện nút A chạy khi nào?",
         "opts": [
           "Chỉ khi tắt nguồn",
@@ -1251,7 +1312,7 @@
         "answer": 1,
         "why": "Phần thân được gọi khi MakeCode phát sự kiện bấm nút A, không phải tự chạy mỗi giây hay khi tắt nguồn.",
         "sim": "matrix",
-        "lang": "MakeCode JavaScript",
+        "lang": "MicroPython · micro:bit Python Editor",
         "time": 50,
         "exercise": "Với màn hình trống ban đầu, dự đoán trạng thái cuối của A,B,A và B,B. Viết thêm một phản hồi khác cho A mà không biến nó thành vòng lặp.",
         "solution": "A,B,A kết thúc ở trái tim; B,B vẫn trống. Có thể đổi A sang biểu tượng khác bằng một lệnh hiển thị trong trình xử lý A. Muốn đếm số lần bấm phải dùng biến, đó là nội dung bài bộ đếm.",
@@ -1280,7 +1341,7 @@
           ]
         ],
         "prereq": "Đã hiểu trạng thái ma trận và các lệnh hiển thị/xóa màn hình trong MakeCode.",
-        "labGuide": "Dùng MakeCode để kích hoạt nút A/B và quan sát chương trình sự kiện. Dùng bàn thí nghiệm nội bộ để đối chiếu quy tắc đếm và đặt lại; ghi tên môi trường cùng chuỗi thao tác đã thử.",
+        "labGuide": "Trong Python Editor, chạy chương trình rồi bấm A/B trên micro:bit mô phỏng. A hiện trái tim, B xóa màn hình; nếu hai nút cùng được ghi nhận trong một lượt đọc thì B được ưu tiên. Đổi thứ tự thao tác để kiểm tra trạng thái cuối.",
         "objectives": [
           "Mô tả khi nào lệnh ngoài trình xử lý và trong trình xử lý chạy.",
           "Gán hành vi A hiển thị, B xóa rồi kiểm tra nhiều thứ tự.",
@@ -1324,15 +1385,18 @@
           {
             "title": "MicroPython micro:bit — nút bấm và get_presses",
             "url": "https://microbit-micropython.readthedocs.io/en/v2-docs/button.html"
+          },
+          {
+            "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
+            "url": "https://python.microbit.org/v/3/"
           }
         ],
         "codeVariants": [
           {
-            "id": "micropython",
-            "label": "MicroPython · Python Editor",
-            "lang": "MicroPython · micro:bit",
-            "code": "from microbit import *\n\ndisplay.clear()\nwhile True:\n    # Edge-latched presses, not a repeated test of the held state.\n    if button_a.was_pressed():\n        display.show(Image.HEART)\n    if button_b.was_pressed():\n        display.clear()\n    # If both were latched in one poll, B wins in this example.\n    sleep(20)\n",
-            "note": "MicroPython kiểm tra các lần bấm đã ghi nhận trong vòng lặp, khác trình xử lý sự kiện MakeCode. was_pressed trả một giá trị đúng/sai và xóa cờ đã đọc; không dùng nó để đếm chính xác nhiều lần bấm giữa hai lượt đọc. Ví dụ quy định B ưu tiên nếu cả hai cờ cùng có trong một lượt."
+            "id": "makecode-js",
+            "label": "MakeCode JavaScript",
+            "lang": "MakeCode JavaScript",
+            "code": "basic.clearScreen()\ninput.onButtonPressed(Button.A, function () {\n    basic.showIcon(IconNames.Heart)\n})\ninput.onButtonPressed(Button.B, function () {\n    basic.clearScreen()\n})\n"
           }
         ]
       },
@@ -1349,7 +1413,7 @@
           "Nếu có bo thật, chờ cảm biến khởi tạo rồi ghi nhiều lần đọc ở ít nhất hai vị trí.",
           "Đề xuất ngưỡng từ bảng số liệu và ghi giới hạn của phép phân loại."
         ],
-        "code": "input.lightLevel() // Khoi dong phep doc truoc vong lap\nbasic.pause(200)\nbasic.forever(function () {\n    let level = input.lightLevel()\n    if (level < 80) {\n        basic.showIcon(IconNames.Heart, 0)\n    } else {\n        basic.clearScreen()\n    }\n    basic.pause(100)\n})\n",
+        "code": "from microbit import *\n\n# Prime the first light reading; the matrix also senses light.\ndisplay.read_light_level()\nsleep(200)\nwhile True:\n    level = display.read_light_level()  # relative value 0..255, not lux\n    if level < 80:\n        display.show(Image.HEART)\n    else:\n        display.clear()\n    sleep(100)\n",
         "q": "Giá trị lightLevel 0–255 được hiểu là…",
         "opts": [
           "Lux đã hiệu chuẩn",
@@ -1359,7 +1423,7 @@
         "answer": 1,
         "why": "API trả một mức sáng tương đối trên thang 0..255. Thang số này không được gắn trực tiếp với đơn vị lux đã hiệu chuẩn.",
         "sim": "light",
-        "lang": "MakeCode JavaScript",
+        "lang": "MicroPython · micro:bit Python Editor",
         "time": 50,
         "exercise": "Với điều kiện lightLevel < 50, lập bảng 49,50,51. Từ hai nhóm đo giả định 20..35 và 120..160, đề xuất một ngưỡng và nêu dữ liệu còn cần kiểm tra.",
         "solution": "49 thỏa nhánh tối; 50 và 51 không thỏa. Có thể thử 80 vì nằm giữa hai nhóm trong dữ liệu đã cho; cần kiểm tra thêm ở vị trí, thời gian, bo và điều kiện sử dụng mới, không coi đó là một giá trị lux.",
@@ -1388,7 +1452,7 @@
           ]
         ],
         "prereq": "Biết if/else, so sánh < và lệnh hiển thị; hoàn thành bài ma trận.",
-        "labGuide": "MakeCode cho điều chỉnh mức sáng simulator; bàn thí nghiệm trong trang kiểm tra phép so sánh số và ngưỡng. Nếu dùng micro:bit thật, kết quả phụ thuộc vị trí, che sáng và quá trình khởi tạo của phép đọc.",
+        "labGuide": "Chạy mã MicroPython trong Python Editor và điều chỉnh ánh sáng của simulator. Thử các mức 79, 80 và 81 với ngưỡng 80. display.read_light_level trả mức tương đối 0–255; ghi riêng quan sát trên mô phỏng và phép thử với bo mạch.",
         "objectives": [
           "Phân biệt thang lightLevel 0..255 với đơn vị độ rọi lux.",
           "Dự đoán hai nhánh ở dưới, bằng và trên ngưỡng.",
@@ -1432,15 +1496,18 @@
           {
             "title": "MicroPython micro:bit — ma trận và read_light_level",
             "url": "https://microbit-micropython.readthedocs.io/en/v2-docs/display.html"
+          },
+          {
+            "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
+            "url": "https://python.microbit.org/v/3/"
           }
         ],
         "codeVariants": [
           {
-            "id": "micropython",
-            "label": "MicroPython · Python Editor",
-            "lang": "MicroPython · micro:bit",
-            "code": "from microbit import *\n\n# Prime the first light reading; the matrix also senses light.\ndisplay.read_light_level()\nsleep(200)\nwhile True:\n    level = display.read_light_level()  # relative value 0..255, not lux\n    if level < 80:\n        display.show(Image.HEART)\n    else:\n        display.clear()\n    sleep(100)\n",
-            "note": "display.read_light_level trả mức sáng tương đối 0..255, không phải lux. Chỉ dùng trong simulator nếu phiên bản editor thực sự mô phỏng API này; kết quả ánh sáng của phòng thật cần thử trên bo. Không yêu cầu microphone V2."
+            "id": "makecode-js",
+            "label": "MakeCode JavaScript",
+            "lang": "MakeCode JavaScript",
+            "code": "input.lightLevel() // Khoi dong phep doc truoc vong lap\nbasic.pause(200)\nbasic.forever(function () {\n    let level = input.lightLevel()\n    if (level < 80) {\n        basic.showIcon(IconNames.Heart, 0)\n    } else {\n        basic.clearScreen()\n    }\n    basic.pause(100)\n})\n"
           }
         ]
       },
@@ -1457,7 +1524,7 @@
           "Bấm B hai lần rồi A; đối chiếu kết quả 0,0,1.",
           "Khởi động lại simulator, ghi trạng thái trở về 0 và giải thích vì sao chưa có lưu trữ lâu dài."
         ],
-        "code": "let count = 0\nbasic.showNumber(count)\ninput.onButtonPressed(Button.A, function () {\n    count += 1\n    basic.showNumber(count)\n})\ninput.onButtonPressed(Button.B, function () {\n    count = 0\n    basic.showNumber(count)\n})\n",
+        "code": "from microbit import *\n\ncount = 0\ndisplay.show(str(count))\nwhile True:\n    # get_presses consumes the number of A presses since the last read.\n    presses = button_a.get_presses()\n    reset = button_b.was_pressed()\n    if reset:\n        count = 0\n    elif presses:\n        count += presses\n    if reset or presses:\n        # Non-blocking display keeps the polling loop responsive.\n        display.scroll(str(count), wait=False, loop=False)\n    # B has priority if A and B arrived within the same polling interval.\n    sleep(20)\n",
         "q": "Sau A, A, B, A từ số 0, bộ đếm là…",
         "opts": [
           "0",
@@ -1467,7 +1534,7 @@
         "answer": 1,
         "why": "A tăng từ 0 lên 1 rồi 2; B đặt lại 0; A cuối tăng lên 1. Phải xét thứ tự thao tác, không chỉ đếm tổng số chữ A.",
         "sim": "counter",
-        "lang": "MakeCode JavaScript",
+        "lang": "MicroPython · micro:bit Python Editor",
         "time": 50,
         "exercise": "Lập bảng cho khởi động → A → A → B → B → A; thử sửa nhầm count = 0 vào sự kiện A rồi giải thích lỗi trước khi khôi phục.",
         "solution": "Các trạng thái lần lượt 0,1,2,0,0,1. Nếu gán 0 rồi tăng 1 trong mỗi lần A thì A luôn kết thúc ở 1; chương trình không còn tích lũy số lần bấm.",
@@ -1496,7 +1563,7 @@
           ]
         ],
         "prereq": "Đã biết trình xử lý nút A/B, ma trận hiển thị và khái niệm biến.",
-        "labGuide": "Bàn bộ đếm cho thử quy tắc trạng thái A/B. Trong MakeCode, chạy code và đợi hiển thị hoàn thành khi làm bộ ca tuần tự; chương trình trong editor không tự đồng bộ với nhật ký của website.",
+        "labGuide": "Chạy mã MicroPython rồi thử A tăng, B đặt lại, nhiều lần B và A/B gần nhau. Bộ đếm lưu trong biến count; chương trình ưu tiên B trong cùng lượt đọc và cuộn số bằng thao tác hiển thị không chặn. Chờ thông báo lưu mã trước khi đổi bài.",
         "objectives": [
           "Khởi tạo biến một lần và cập nhật từ sự kiện.",
           "Phân biệt giá trị lưu trong count với hình số đang hiển thị.",
@@ -1540,15 +1607,18 @@
           {
             "title": "MicroPython micro:bit — nút bấm và get_presses",
             "url": "https://microbit-micropython.readthedocs.io/en/v2-docs/button.html"
+          },
+          {
+            "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
+            "url": "https://python.microbit.org/v/3/"
           }
         ],
         "codeVariants": [
           {
-            "id": "micropython",
-            "label": "MicroPython · Python Editor",
-            "lang": "MicroPython · micro:bit",
-            "code": "from microbit import *\n\ncount = 0\ndisplay.show(str(count))\nwhile True:\n    # get_presses consumes the number of A presses since the last read.\n    presses = button_a.get_presses()\n    reset = button_b.was_pressed()\n    if reset:\n        count = 0\n    elif presses:\n        count += presses\n    if reset or presses:\n        # Non-blocking display keeps the polling loop responsive.\n        display.scroll(str(count), wait=False, loop=False)\n    # B has priority if A and B arrived within the same polling interval.\n    sleep(20)\n",
-            "note": "Bộ đếm dùng get_presses để không gộp nhiều lần A thành một giá trị boolean. Chỉ một vòng lặp thay đổi count. Reset có tính lặp ổn định: B nhiều lần vẫn về 0. Nếu A và B cùng đến giữa hai lượt đọc, B ưu tiên; không tuyên bố giữ đúng thứ tự thời gian của các sự kiện gần đồng thời. Khởi động lại vẫn về 0."
+            "id": "makecode-js",
+            "label": "MakeCode JavaScript",
+            "lang": "MakeCode JavaScript",
+            "code": "let count = 0\nbasic.showNumber(count)\ninput.onButtonPressed(Button.A, function () {\n    count += 1\n    basic.showNumber(count)\n})\ninput.onButtonPressed(Button.B, function () {\n    count = 0\n    basic.showNumber(count)\n})\n"
           }
         ]
       },
@@ -1565,7 +1635,7 @@
           "Thử tên sai, −21 và 999; kiểm tra giá trị cũ không bị ghi đè.",
           "Tắt bên gửi, quan sát dữ liệu có thể bị cũ; viết yêu cầu thời gian hết hạn trước khi triển khai phần nâng cao."
         ],
-        "code": "// CHUONG TRINH BEN NHAN: dan vao mot du an MakeCode rieng.\nlet lastValid = 0\nradio.setGroup(7)\nradio.onReceivedValue(function (name, value) {\n    if (name == \"temp\" && value >= -20 && value <= 60) {\n        lastValid = value\n        basic.showNumber(lastValid)\n    }\n})\n\n// BEN GUI: tao du an khac, khong ghep nguyen hai chuong trinh.\n// radio.setGroup(7)\n// input.onButtonPressed(Button.A, function () {\n//     radio.sendValue(\"temp\", 23)\n// })\n",
+        "code": "from microbit import *\nimport radio\n\n# RECEIVER: both devices must run the same MicroPython text protocol.\n# MakeCode sendValue packets use another format; do not mix the programs.\nradio.config(group=7)\nradio.on()\nlast_valid = None\nwhile True:\n    try:\n        message = radio.receive()\n        if message is not None:\n            name, raw = message.split(\":\", 1)\n            value = float(raw)\n            if name == \"temp\" and -20 <= value <= 60:\n                last_valid = value\n                display.scroll(str(last_valid), wait=False, loop=False)\n    except (ValueError, TypeError):\n        # Ignore malformed/non-text data; keep the last valid value.\n        pass\n    sleep(20)\n",
         "q": "Đặt cùng nhóm radio có mã hóa bản tin không?",
         "opts": [
           "Có",
@@ -1576,7 +1646,7 @@
         "why": "Nhóm radio là cơ chế chọn/lọc nhóm truyền trong API này; nó không thực hiện mã hóa hoặc bảo đảm nguồn gửi đáng tin cậy.",
         "sim": "counter",
         "time": 50,
-        "lang": "MakeCode JavaScript · hai dự án gửi/nhận riêng",
+        "lang": "MicroPython · bên nhận radio",
         "exercise": "Từ giá trị cũ 21, dự đoán trạng thái sau (temp,23), (temp,999), (other,22), (temp,−20). Đề xuất chính sách cho dữ liệu quá hạn và nêu phần code mẫu chưa thực hiện.",
         "solution": "Các giá trị lưu lần lượt 23,23,23,−20. Có thể yêu cầu báo “dữ liệu cũ” khi quá một khoảng thời gian đã quy định mà không nhận mẫu hợp lệ; code mẫu mới lọc tên/miền, chưa có bộ đếm thời gian hết hạn hoặc bảo mật.",
         "checks": [
@@ -1604,7 +1674,7 @@
           ]
         ],
         "prereq": "Biết biến, if/else và sự kiện; cần hai chương trình/thiết bị hoặc tính năng simulator có radio phù hợp.",
-        "labGuide": "Chọn editor hỗ trợ radio với hai phiên thiết bị hoặc simulator phù hợp. Dùng bàn bộ đếm nội bộ để kiểm tra quy tắc cập nhật trạng thái. Đánh giá truyền nhận, mất gói và phạm vi kết nối bằng môi trường radio hoặc bo micro:bit thật; ghi điều kiện của từng phép thử.",
+        "labGuide": "Mã mặc định là bên nhận MicroPython, nhóm 7. Trong bảng Radio của Python Editor, chọn cùng nhóm và gửi chuỗi temp:23 để thử bên nhận; thử thêm temp:100 và bản tin sai định dạng. Chọn biến thể bên gửi và nạp lên bo thứ hai để kiểm thử truyền giữa hai thiết bị. Hai tab editor độc lập dùng bảng Radio riêng, không tự ghép thành hai bo liên lạc.",
         "objectives": [
           "Đặt cùng nhóm radio trên bên gửi và bên nhận.",
           "Chỉ nhận đúng tên bản tin và miền số đã quy ước.",
@@ -1648,15 +1718,24 @@
           {
             "title": "MicroPython micro:bit — module radio và định dạng chuỗi",
             "url": "https://microbit-micropython.readthedocs.io/en/v2-docs/radio.html"
+          },
+          {
+            "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
+            "url": "https://python.microbit.org/v/3/"
           }
         ],
         "codeVariants": [
           {
-            "id": "micropython",
-            "label": "MicroPython · Python Editor",
-            "lang": "MicroPython · micro:bit",
-            "code": "from microbit import *\nimport radio\n\n# RECEIVER: both devices must run the same MicroPython text protocol.\n# MakeCode sendValue packets use another format; do not mix the programs.\nradio.config(group=7)\nradio.on()\nlast_valid = None\nwhile True:\n    try:\n        message = radio.receive()\n        if message is not None:\n            name, raw = message.split(\":\", 1)\n            value = float(raw)\n            if name == \"temp\" and -20 <= value <= 60:\n                last_valid = value\n                display.scroll(str(last_valid), wait=False, loop=False)\n    except (ValueError, TypeError):\n        # Ignore malformed/non-text data; keep the last valid value.\n        pass\n    sleep(20)\n\n# SENDER: create ANOTHER MicroPython project with the following program:\n# from microbit import *\n# import radio\n# radio.config(group=7)\n# radio.on()\n# while True:\n#     if button_a.was_pressed():\n#         radio.send(\"temp:23\")\n#     sleep(20)\n",
-            "note": "Hai bo phải cùng dùng giao thức chuỗi MicroPython temp:23 và nhóm 7. Đây là biểu diễn tương đương quy tắc lọc tên/miền, không phải tương thích gói radio.sendValue của MakeCode. Nhóm radio không mã hóa. Python Editor/simulator không được giả định mô phỏng đầy đủ liên lạc hai bo; cần hai micro:bit thật để xác nhận radio và giới hạn phạm vi. Code chưa xử lý dữ liệu quá hạn."
+            "id": "micropython-sender",
+            "label": "MicroPython · bên gửi radio",
+            "lang": "MicroPython · bên gửi radio",
+            "code": "from microbit import *\nimport radio\n\nradio.config(group=7)\nradio.on()\nwhile True:\n    if button_a.was_pressed():\n        radio.send(\"temp:23\")\n        display.show(Image.YES)\n    if button_b.was_pressed():\n        display.clear()\n    sleep(20)\n"
+          },
+          {
+            "id": "makecode-js",
+            "label": "MakeCode JavaScript",
+            "lang": "MakeCode JavaScript · hai dự án gửi/nhận riêng",
+            "code": "// CHUONG TRINH BEN NHAN: dan vao mot du an MakeCode rieng.\nlet lastValid = 0\nradio.setGroup(7)\nradio.onReceivedValue(function (name, value) {\n    if (name == \"temp\" && value >= -20 && value <= 60) {\n        lastValid = value\n        basic.showNumber(lastValid)\n    }\n})\n\n// BEN GUI: tao du an khac, khong ghep nguyen hai chuong trinh.\n// radio.setGroup(7)\n// input.onButtonPressed(Button.A, function () {\n//     radio.sendValue(\"temp\", 23)\n// })\n"
           }
         ]
       },
@@ -1673,7 +1752,7 @@
           "Tạo có chủ đích lỗi khởi tạo sai vị trí trong một bản sao; ghi cách tái hiện rồi sửa lại.",
           "Chạy lại toàn bộ ca; viết báo cáo ngắn về yêu cầu đạt/chưa đạt và một tính năng nâng cao cần đặc tả riêng."
         ],
-        "code": "let count = 0\nbasic.showNumber(count)\ninput.onButtonPressed(Button.A, function () {\n    count += 1\n    basic.showNumber(count)\n})\ninput.onButtonPressed(Button.B, function () {\n    count = 0\n    basic.showNumber(count)\n})\n",
+        "code": "from microbit import *\n\n# Specification: boot=0, A adds one, B resets, reset is repeatable.\n# Sequential tests: wait for each display before the next input.\n# Fast/simultaneous A+B policy: reset wins for that polling interval.\ncount = 0\ndisplay.show(str(count))\nwhile True:\n    presses = button_a.get_presses()\n    reset = button_b.was_pressed()\n    if reset:\n        count = 0\n    elif presses:\n        count += presses\n    if reset or presses:\n        display.scroll(str(count), wait=False, loop=False)\n    sleep(20)\n",
         "q": "A,A,B,A cho kết quả…",
         "opts": [
           "0",
@@ -1684,7 +1763,7 @@
         "why": "Thứ tự A,A,B,A cho 1,2,0,1: sự kiện B đặt lại trạng thái, vì thế lần A cuối bắt đầu từ 0.",
         "sim": "counter",
         "time": 50,
-        "lang": "MakeCode JavaScript · phiên bản bộ đếm cơ bản để kiểm thử",
+        "lang": "MicroPython · micro:bit Python Editor",
         "exercise": "Viết ít nhất 4 ca có trạng thái đầu, chuỗi thao tác, từng trạng thái kỳ vọng và quan sát: tăng, reset khi 0, reset sau khi tăng, khởi động lại. Thêm báo cáo một lỗi với cách tái hiện.",
         "solution": "Ví dụ: A,A → 1,2; B,B từ 0 → 0,0; A,A,B → 1,2,0; khởi động lại từ 2 → 0. Lỗi count = 0 đặt trong A tái hiện bằng A,A nhưng quan sát 1,1. Sửa bằng khởi tạo một lần ở đầu chương trình rồi chạy lại các ca.",
         "checks": [
@@ -1712,7 +1791,7 @@
           ]
         ],
         "prereq": "Đã thực hiện bài bộ đếm, hiểu biến count và sự kiện nút; biết ghi nhật ký thực hành.",
-        "labGuide": "Bàn bộ đếm nội bộ kiểm tra nhanh bảng trạng thái; MakeCode chạy toàn bộ chương trình sự kiện. Ghi rõ đang thử simulator hay bo thật, tốc độ thao tác và việc đã đợi hiển thị xong để phép thử có thể lặp lại.",
+        "labGuide": "Dùng Python Editor để chạy bộ đếm và thực hiện bảng ca thử: khởi động = 0; A,A = 2; B = 0; B,B vẫn = 0; sau đó kiểm tra thao tác A/B gần nhau. Ghi kết quả và giải thích quy tắc ưu tiên reset. Chỉnh sửa dự án ngay trong khung và chờ “Đã lưu” trước khi đổi bài.",
         "objectives": [
           "Đặc tả trạng thái khởi tạo, thao tác tăng và đặt lại.",
           "Lập và chạy bộ kiểm thử có kết quả kỳ vọng từng bước.",
@@ -1756,20 +1835,23 @@
           {
             "title": "MicroPython micro:bit — nút bấm và get_presses",
             "url": "https://microbit-micropython.readthedocs.io/en/v2-docs/button.html"
+          },
+          {
+            "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
+            "url": "https://python.microbit.org/v/3/"
           }
         ],
         "codeVariants": [
           {
-            "id": "micropython",
-            "label": "MicroPython · Python Editor",
-            "lang": "MicroPython · micro:bit",
-            "code": "from microbit import *\n\n# Specification: boot=0, A adds one, B resets, reset is repeatable.\n# Sequential tests: wait for each display before the next input.\n# Fast/simultaneous A+B policy: reset wins for that polling interval.\ncount = 0\ndisplay.show(str(count))\nwhile True:\n    presses = button_a.get_presses()\n    reset = button_b.was_pressed()\n    if reset:\n        count = 0\n    elif presses:\n        count += presses\n    if reset or presses:\n        display.scroll(str(count), wait=False, loop=False)\n    sleep(20)\n",
-            "note": "Giữ bộ ca tuần tự của bài: A,A,B,A → 1,2,0,1 và B,B,A,A,A → 0,0,1,2,3. get_presses đếm A kể từ lượt đọc trước; hiển thị bất đồng bộ để tránh chặn vòng lặp. Reset ưu tiên khi nhiều nút đến trong một khoảng lấy mẫu. Không suy ra thứ tự chính xác của A/B gần đồng thời; muốn yêu cầu đó phải có thiết kế và phép thử riêng."
+            "id": "makecode-js",
+            "label": "MakeCode JavaScript",
+            "lang": "MakeCode JavaScript · phiên bản bộ đếm cơ bản để kiểm thử",
+            "code": "let count = 0\nbasic.showNumber(count)\ninput.onButtonPressed(Button.A, function () {\n    count += 1\n    basic.showNumber(count)\n})\ninput.onButtonPressed(Button.B, function () {\n    count = 0\n    basic.showNumber(count)\n})\n"
           }
         ]
       }
     ],
-    "lab": "makecode"
+    "lab": "python"
   },
   {
     "id": "lego-spike",
@@ -1792,7 +1874,7 @@
           "Nếu có kit: tắt Hub khi lắp/chỉnh cơ cấu, dọn vùng tay gạt, kiểm tra đường dây và thử góc nhỏ ở tốc độ thấp.",
           "Ghi góc yêu cầu/góc quan sát, thử trở về nghỉ. Dừng ngay nếu kẹt; thêm timeout thay vì tiếp tục cấp lệnh quay."
         ],
-        "code": "XÁC ĐỊNH vị trí nghỉ và góc cho phép\nNẾU cấu hình/cơ cấu chưa kiểm tra: KHÔNG CHẠY\nRA LỆNH quay một góc nhỏ ở tốc độ thấp\nCHỜ đến vị trí yêu cầu hoặc hết thời gian\nNẾU quá thời gian hoặc kẹt: DỪNG và báo lỗi\nTRỞ VỀ vị trí nghỉ bằng đường an toàn",
+        "code": "# GearsBot Cage Bot, ev3dev2 Python. Press Reset before Run.\nfrom ev3dev2.motor import LargeMotor, OUTPUT_C, SpeedDPS\nfrom ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor\nfrom time import time, sleep\n\ntry:\n    color = ColorSensor(\"in3\")\n    sonar = UltrasonicSensor(\"in4\")\n    arm = LargeMotor(OUTPUT_C)\nexcept Exception as error:\n    print(\"SETUP:\", error)\n    raise RuntimeError(\"Select Cage Bot, then press Reset.\")\n\ndef move_arm(target, deadline):\n    if not 0 <= target <= 45:\n        raise ValueError(\"Use an arm target from 0 to 45 degrees.\")\n    if time() >= deadline:\n        return False\n    limit = min(deadline, time() + 3.0)\n    arm.on_to_position(SpeedDPS(30), target, brake=True, block=False)\n    while abs(arm.position - target) > 2:\n        if time() >= limit:\n            arm.off(brake=True)\n            return False\n        sleep(0.02)\n    arm.off(brake=True)\n    return time() < limit\n\n# Cage Bot arm angles are direct encoder angles, not a 12:36 gearbox.\ndeadline = time() + 15.0\ntry:\n    for target in [0, 30, 0]:\n        if not move_arm(target, deadline):\n            print(\"ERROR: target timeout\", target, \"measured\", arm.position)\n            break\n        print(\"target_deg\", target, \"measured_deg\", arm.position)\n        sleep(0.3)\nfinally:\n    arm.off(brake=True)\n\n# Separate mathematical prediction for an external 12:36 gear pair.\nteeth_in, teeth_out = 12, 36\nmotor_deg = 90.0\noutput_deg = -motor_deg * teeth_in / teeth_out\nrequired_motor_deg = -20.0 * teeth_out / teeth_in\nprint(\"model_output_deg\", output_deg)\nprint(\"motor_deg_for_positive_20_deg_output\", required_motor_deg)\n",
         "q": "Vì sao góc tay gạt có thể khác góc động cơ?",
         "opts": [
           "Do tỷ số truyền và cơ cấu",
@@ -1802,7 +1884,7 @@
         "answer": 0,
         "why": "Bộ truyền và liên kết cơ khí quyết định tỷ lệ góc, chiều quay và độ rơ. Tên chương trình hay màu Hub không tạo ra tỷ số truyền.",
         "sim": "color",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot Cage Bot (ev3dev2)",
         "time": 50,
         "exercise": "Với bộ truyền 12:36, muốn tay gạt đổi 20° thì motor cần đổi góc bao nhiêu trong mô hình lý tưởng? Vẽ thêm hai vị trí phân loại và nêu cách xử lý khi tay gạt không về mốc đúng hạn.",
         "solution": "Motor cần đổi độ lớn 60°; chiều trục ra ngược chiều motor với một cặp bánh răng ngoài. Phải chọn hai vị trí trong vùng cơ khí cho phép. Nếu quá thời gian về nghỉ: dừng motor, báo lỗi và yêu cầu kiểm tra, không tự chạy chu kỳ phân loại tiếp theo.",
@@ -1830,7 +1912,7 @@
           ]
         ],
         "prereq": "Biết một vòng là 360°, phân biệt trục chủ động/bị động và thao tác dừng chương trình. Nếu dùng kit thật cần có người hướng dẫn kiểm tra cơ khí.",
-        "labGuide": "Dùng bàn logic màu để đối chiếu màu đầu vào và hành động. Kiểm tra tỷ số truyền trên sơ đồ, bảng tính hoặc bộ truyền thật; quan sát cơ khí tay gạt trên kit hay nền tảng có cơ cấu tương ứng. GearsBot hỗ trợ luyện thuật toán robot. Khi triển khai SPIKE, chuyển giả mã sang API hoặc khối lệnh trong ứng dụng LEGO Education SPIKE đúng phiên bản.",
+        "labGuide": "Trong GearsBot, chọn Robot → Select Robot → Cage Bot, chuyển sang Python rồi bấm Reset trước mỗi lần chạy. Mẫu dùng ev3dev2 của GearsBot: outC là tay chắn, in3 là cảm biến màu hướng trước, in4 là siêu âm; cổng A/B dành cho hai bánh xe. Chạy khi vùng tay chắn trống; quan sát chuỗi góc 0° → 30° → 0° và đối chiếu góc encoder in ra. Chương trình dừng motor nếu quá 3 giây cho một chặng; khi báo lỗi, kiểm tra rồi Reset trước khi chạy lại. Phần cuối tính riêng bộ truyền 12:36 và góc motor cho đầu ra +20°. Đây là mã chạy cho mô hình Cage Bot; với Hub SPIKE thật, dùng API của ứng dụng LEGO Education SPIKE và cấu hình cổng của bộ lắp. ",
         "objectives": [
           "Phân biệt góc motor, góc trục ra và góc của tay gạt trong một cơ cấu.",
           "Xác định vị trí nghỉ, phạm vi chuyển động và điều kiện dừng trước khi chạy.",
@@ -1867,6 +1949,18 @@
           {
             "title": "LEGO Education — thư viện bài học chính thức",
             "url": "https://education.lego.com/en-us/lessons/"
+          },
+          {
+            "title": "GearsBot — cấu hình Cage Bot chính thức",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GearsBot — Python ev3dev2 motor API",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GearsBot — Python ev3dev2 cảm biến màu và siêu âm",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
         ]
       },
@@ -1882,7 +1976,7 @@
           "Nếu có kit: giữ một điều kiện đặt vật cố định, đọc ít nhất 5 lượt mỗi loại; tiếp theo chỉ thay khoảng cách rồi đo lại.",
           "Ghi riêng nhãn chưa xác định. Dùng cấu trúc if/elif/else hoặc khối điều kiện tương ứng để nhánh đỏ/xanh/khác không chồng nhau."
         ],
-        "code": "LẶP:\n  đọc nhãn màu từ cảm biến\n  NẾU màu là ĐỎ:\n    chọn nhóm A\n  NGƯỢC LẠI NẾU màu là XANH:\n    chọn nhóm B\n  NGƯỢC LẠI:\n    giữ trạng thái CHƯA PHÂN LOẠI\n  ghi nhãn và điều kiện đo",
+        "code": "# GearsBot Cage Bot, ev3dev2 Python. Press Reset before Run.\nfrom ev3dev2.motor import LargeMotor, OUTPUT_C, SpeedDPS\nfrom ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor\nfrom time import time, sleep\n\ntry:\n    color = ColorSensor(\"in3\")\n    sonar = UltrasonicSensor(\"in4\")\n    arm = LargeMotor(OUTPUT_C)\nexcept Exception as error:\n    print(\"SETUP:\", error)\n    raise RuntimeError(\"Select Cage Bot, then press Reset.\")\n\ndef move_arm(target, deadline):\n    if not 0 <= target <= 45:\n        raise ValueError(\"Use an arm target from 0 to 45 degrees.\")\n    if time() >= deadline:\n        return False\n    limit = min(deadline, time() + 3.0)\n    arm.on_to_position(SpeedDPS(30), target, brake=True, block=False)\n    while abs(arm.position - target) > 2:\n        if time() >= limit:\n            arm.off(brake=True)\n            return False\n        sleep(0.02)\n    arm.off(brake=True)\n    return time() < limit\n\ndeadline = time() + 60.0\nlast = None\ntry:\n    if not move_arm(45, deadline):\n        raise RuntimeError(\"Arm opening timeout; inspect and Reset.\")\n    print(\"Ready: approach a colored object with the joystick.\")\n    while time() < deadline:\n        distance = sonar.distance_centimeters\n        raw = color.color\n        if raw == 5:\n            group = \"A\"\n        elif raw == 2:\n            group = \"B\"\n        else:\n            group = \"CHECK\"\n        near = 0 < distance <= 3.0\n        reading = (raw, group, near)\n        if reading != last:\n            print(\"color_id\", raw, \"group\", group,\n                  \"distance_cm\", round(distance, 1), \"near\", near)\n            last = reading\n        sleep(0.1)\nfinally:\n    arm.off(brake=True)\n",
         "q": "Khi màu chưa xác định, nên…",
         "opts": [
           "Tự coi là đỏ",
@@ -1892,7 +1986,7 @@
         "answer": 1,
         "why": "Nhánh chưa phân loại giữ rõ sự không chắc chắn khi cảm biến không cho một nhãn hợp lệ. Tự coi là đỏ sẽ làm mất thông tin lỗi và có thể gạt vật sai nhóm.",
         "sim": "color",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot Cage Bot (ev3dev2)",
         "time": 50,
         "exercise": "Cho các nhãn đo đỏ, xanh, chưa biết, đỏ, chưa biết. Lập bảng nhánh xử lý cho từng lượt. Nếu cả 5 lượt đều là một vật đỏ đứng yên, em có được kết luận có hai vật lạ không? Vì sao?",
         "solution": "Các nhánh là A, B, chưa phân loại, A, chưa phân loại. Không thể đếm số vật chỉ từ số mẫu màu; nhiều mẫu có thể thuộc cùng một vật và kết quả sai/không rõ. Cần thông tin hiện diện và một chu kỳ vật vào–vật ra để đếm.",
@@ -1920,7 +2014,7 @@
           ]
         ],
         "prereq": "Biết câu điều kiện nếu–nếu không, đọc bảng kết quả và giữ cố định một biến khi so sánh.",
-        "labGuide": "Chủ động chọn đỏ, xanh, khác hoặc trạng thái trống trong bàn màu để kiểm thử các nhánh logic. Đánh giá ánh sáng, khả năng nhận màu và thông số cảm biến trên robot hoặc kit thật, đồng thời ghi loại cảm biến và điều kiện sân. Với SPIKE, đối chiếu trợ giúp cảm biến trong ứng dụng LEGO đang dùng.",
+        "labGuide": "Trong GearsBot, chọn Robot → Select Robot → Cage Bot, chuyển sang Python rồi bấm Reset trước mỗi lần chạy. Mẫu dùng ev3dev2 của GearsBot: outC là tay chắn, in3 là cảm biến màu hướng trước, in4 là siêu âm; cổng A/B dành cho hai bánh xe. Chuẩn bị vật đỏ, xanh và vàng trên sân qua Worlds → World Builder; đặt mặt màu ngang tầm cảm biến. Mở joystick để điều khiển bánh xe: tiếp cận chậm đến khoảng cách ≤ 3 cm, dừng bánh, sau chu kỳ lùi ra ≥ 8 cm. Mốc 3 cm phù hợp tầm đọc 5 cm của cảm biến màu Cage Bot. Mã mở tay chắn lên 45°, theo dõi cảm biến trong 60 giây và in mỗi khi nhãn hoặc trạng thái ở gần thay đổi: đỏ → A, xanh → B, còn lại → CHECK. Đọc nhãn màu và khoảng cách ở hai cột riêng; CHECK giữ nghĩa cần kiểm tra, còn hiện diện do siêu âm xác định. Đây là mã chạy cho mô hình Cage Bot; với Hub SPIKE thật, dùng API của ứng dụng LEGO Education SPIKE và cấu hình cổng của bộ lắp. ",
         "objectives": [
           "Phân biệt màu thật của vật và kết quả phân loại do cảm biến trả về.",
           "Thiết kế bảng đo có đỏ, xanh và trường hợp chưa xác định.",
@@ -1957,6 +2051,18 @@
           {
             "title": "LEGO Education — thư viện bài học chính thức",
             "url": "https://education.lego.com/en-us/lessons/"
+          },
+          {
+            "title": "GearsBot — cấu hình Cage Bot chính thức",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GearsBot — Python ev3dev2 motor API",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GearsBot — Python ev3dev2 cảm biến màu và siêu âm",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
         ]
       },
@@ -1972,7 +2078,7 @@
           "Chọn Không có vật rồi đọc để xác nhận vùng trống; đưa màu xanh vào và kiểm tra bộ đếm tăng đúng một lần.",
           "Thêm trường hợp màu chưa xác định khi vật vẫn đứng yên và trường hợp kẹt trong bản thiết kế. Nêu rõ tín hiệu nào đủ để cho phép nhận vật tiếp."
         ],
-        "code": "đã_xử_lý = SAI\nLẶP:\n  đọc hiện_diện và nhãn_màu\n  NẾU xác nhận vùng TRỐNG:\n    đã_xử_lý = SAI\n  NGƯỢC LẠI NẾU nhãn hợp lệ VÀ chưa_xử_lý:\n    đã_xử_lý = ĐÚNG  # chốt trước khi ra lệnh\n    thực hiện một chu kỳ gạt có timeout\n    NẾU chu kỳ đạt tiêu chí: tăng đếm_thành_công\n    NGƯỢC LẠI: dừng và ghi lỗi",
+        "code": "# GearsBot Cage Bot, ev3dev2 Python. Press Reset before Run.\nfrom ev3dev2.motor import LargeMotor, OUTPUT_C, SpeedDPS\nfrom ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor\nfrom time import time, sleep\n\ntry:\n    color = ColorSensor(\"in3\")\n    sonar = UltrasonicSensor(\"in4\")\n    arm = LargeMotor(OUTPUT_C)\nexcept Exception as error:\n    print(\"SETUP:\", error)\n    raise RuntimeError(\"Select Cage Bot, then press Reset.\")\n\ndef move_arm(target, deadline):\n    if not 0 <= target <= 45:\n        raise ValueError(\"Use an arm target from 0 to 45 degrees.\")\n    if time() >= deadline:\n        return False\n    limit = min(deadline, time() + 3.0)\n    arm.on_to_position(SpeedDPS(30), target, brake=True, block=False)\n    while abs(arm.position - target) > 2:\n        if time() >= limit:\n            arm.off(brake=True)\n            return False\n        sleep(0.02)\n    arm.off(brake=True)\n    return time() < limit\n\ndef read_group():\n    samples = []\n    for sample in range(3):\n        samples.append(color.color)\n        sleep(0.05)\n    if samples[0] == samples[1] == samples[2]:\n        if samples[0] == 5:  # EV3 red\n            return \"A\"\n        elif samples[0] == 2:  # EV3 blue\n            return \"B\"\n    return \"CHECK\"\n\nNEAR_CM, CLEAR_CM = 3.0, 8.0\nhandled = False\nclear_samples = 0\nreceived = gate_cycles = needs_check = 0\ndeadline = time() + 90.0\ntry:\n    if not move_arm(45, deadline):\n        raise RuntimeError(\"Arm opening timeout; inspect and Reset.\")\n    print(\"READY: red=A, blue=B, other=CHECK\")\n    while time() < deadline:\n        distance = sonar.distance_centimeters\n        if distance <= 0:\n            print(\"ERROR: invalid or contact-distance reading\")\n            break\n        if distance >= CLEAR_CM:\n            clear_samples += 1\n            if clear_samples >= 3:\n                handled = False\n        else:\n            clear_samples = 0\n\n        if distance <= NEAR_CM and not handled:\n            handled = True  # Latch before any motor command.\n            received += 1\n            group = read_group()\n            print(\"object\", received, \"group\", group)\n            if group == \"CHECK\":\n                needs_check += 1\n            elif not (0 < sonar.distance_centimeters <= NEAR_CM):\n                print(\"Object moved before gate cycle; keep latch set.\")\n            elif move_arm(0, deadline) and move_arm(45, deadline):\n                gate_cycles += 1\n                print(\"gate_cycles\", gate_cycles)\n            else:\n                print(\"ERROR: gate timeout; inspect and Reset.\")\n                break\n        sleep(0.05)\nfinally:\n    arm.off(brake=True)\nprint(\"received\", received, \"gate_cycles\", gate_cycles,\n      \"needs_check\", needs_check)\n",
         "q": "Để tránh gạt lặp cho cùng một vật cần…",
         "opts": [
           "Tăng tốc vòng lặp",
@@ -1982,7 +2088,7 @@
         "answer": 1,
         "why": "Cờ đã xử lý lưu việc vật hiện tại đã kích hoạt một chu kỳ. Tăng tốc vòng lặp tạo thêm mẫu chứ không tự phân biệt được vật mới với vật cũ.",
         "sim": "color",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot Cage Bot (ev3dev2)",
         "time": 50,
         "exercise": "Chạy tay chuỗi đỏ, đỏ, trống, đỏ, chưa biết, trống. Giả sử “chưa biết” vẫn có cùng vật thứ hai và hai chu kỳ đều gạt thành công. Có bao nhiêu vật mới? Sau đó đổi chu kỳ thứ hai thành kẹt, báo lại hai loại bộ đếm.",
         "solution": "Có hai vật mới: đỏ đầu và đỏ sau lần trống. Mẫu chưa biết không mở chu kỳ mới. Nếu cả hai thành công: vào 2, thành công 2. Nếu vật thứ hai kẹt: vào 2, thành công 1, lỗi 1; cờ chống lặp vẫn không được xóa chỉ vì đọc lại nhãn không rõ.",
@@ -2010,7 +2116,7 @@
           ]
         ],
         "prereq": "Hoàn thành bài đọc màu và hiểu nhãn chưa xác định. Biết biến Boolean đúng/sai và câu điều kiện kết hợp bằng VÀ.",
-        "labGuide": "Bàn màu minh họa cờ chống đếm lặp bằng trạng thái trống do người dùng chọn; không chứng minh phát hiện hiện diện thật. Với cơ cấu SPIKE, cần xác định tín hiệu hiện diện đủ tin cậy và tiêu chí hoàn tất gạt. GearsBot chỉ bổ trợ tư duy điều kiện/trạng thái; không thay trạm phân loại SPIKE thực.",
+        "labGuide": "Trong GearsBot, chọn Robot → Select Robot → Cage Bot, chuyển sang Python rồi bấm Reset trước mỗi lần chạy. Mẫu dùng ev3dev2 của GearsBot: outC là tay chắn, in3 là cảm biến màu hướng trước, in4 là siêu âm; cổng A/B dành cho hai bánh xe. Chuẩn bị vật đỏ, xanh và vàng trên sân qua Worlds → World Builder; đặt mặt màu ngang tầm cảm biến. Mở joystick để điều khiển bánh xe: tiếp cận chậm đến khoảng cách ≤ 3 cm, dừng bánh, sau chu kỳ lùi ra ≥ 8 cm. Mốc 3 cm phù hợp tầm đọc 5 cm của cảm biến màu Cage Bot. Tay chắn khởi đầu ở 45°. Giữ một vật đỏ trong vùng đọc để xác nhận chỉ có một lượt nhận; với nhãn A/B, tay chắn hạ về 0° rồi mở lại 45°, có kiểm tra encoder và timeout 3 giây mỗi chặng. Vật vàng đi vào nhánh CHECK và vẫn chốt chống lặp. Chỉ sau ba mẫu khoảng cách ≥ 8 cm mới nhận vật mới. Số gate_cycles ghi chu kỳ tay chắn hoàn tất; nhóm A/B là kết quả nhận màu để đối chiếu, ngăn đích được ghi qua quan sát ở mô hình phân loại thực. Đây là mã chạy cho mô hình Cage Bot; với Hub SPIKE thật, dùng API của ứng dụng LEGO Education SPIKE và cấu hình cổng của bộ lắp. ",
         "objectives": [
           "Giải thích vì sao đọc cảm biến nhiều lần có thể gây đếm/gạt lặp cho một vật.",
           "Thiết kế cờ đã xử lý chỉ được đặt lại khi vật rời vùng cảm biến.",
@@ -2047,6 +2153,18 @@
           {
             "title": "LEGO Education — thư viện bài học chính thức",
             "url": "https://education.lego.com/en-us/lessons/"
+          },
+          {
+            "title": "GearsBot — cấu hình Cage Bot chính thức",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GearsBot — Python ev3dev2 motor API",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GearsBot — Python ev3dev2 cảm biến màu và siêu âm",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
         ]
       },
@@ -2062,7 +2180,7 @@
           "Nếu có kit: kiểm tra tay gạt/gốc/góc an toàn trước, chạy từng vật và ghi màu đo, ngăn thực, kẹt hoặc timeout.",
           "Tính tỷ lệ đúng với đầy đủ 10 lượt; chọn một sửa đổi từ bảng lỗi, thử lại và so sánh cả tỷ lệ đúng lẫn lỗi còn lại."
         ],
-        "code": "CHỐT bảng kỳ vọng và tiêu chí trước khi chạy\nđúng = 0; tổng = số vật thử\nVỚI từng vật:\n  xác nhận vùng trống rồi đưa một vật vào\n  chạy một chu kỳ có giới hạn thời gian\n  ghi màu đo, ngăn thực, trạng thái lỗi\n  NẾU đầu ra đúng tiêu chí: đúng += 1\nBÁO CÁO đúng / tổng * 100% và toàn bộ lỗi",
+        "code": "# GearsBot Cage Bot, ev3dev2 Python. Press Reset before Run.\nfrom ev3dev2.motor import LargeMotor, OUTPUT_C, SpeedDPS\nfrom ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor\nfrom time import time, sleep\n\ntry:\n    color = ColorSensor(\"in3\")\n    sonar = UltrasonicSensor(\"in4\")\n    arm = LargeMotor(OUTPUT_C)\nexcept Exception as error:\n    print(\"SETUP:\", error)\n    raise RuntimeError(\"Select Cage Bot, then press Reset.\")\n\ndef move_arm(target, deadline):\n    if not 0 <= target <= 45:\n        raise ValueError(\"Use an arm target from 0 to 45 degrees.\")\n    if time() >= deadline:\n        return False\n    limit = min(deadline, time() + 3.0)\n    arm.on_to_position(SpeedDPS(30), target, brake=True, block=False)\n    while abs(arm.position - target) > 2:\n        if time() >= limit:\n            arm.off(brake=True)\n            return False\n        sleep(0.02)\n    arm.off(brake=True)\n    return time() < limit\n\ndef read_group():\n    samples = []\n    for sample in range(3):\n        samples.append(color.color)\n        sleep(0.05)\n    if samples[0] == samples[1] == samples[2]:\n        if samples[0] == 5:  # EV3 red\n            return \"A\"\n        elif samples[0] == 2:  # EV3 blue\n            return \"B\"\n    return \"CHECK\"\n\ndef wait_zone(near, deadline):\n    stable = 0\n    while time() < deadline:\n        distance = sonar.distance_centimeters\n        if distance <= 0:\n            return False\n        matches = distance <= 3.0 if near else distance >= 8.0\n        stable = stable + 1 if matches else 0\n        if stable >= 3:\n            return True\n        sleep(0.05)\n    return False\n\n# Prepare objects in this exact order. CHECK uses a yellow object.\nexpected_groups = [\"A\", \"B\", \"CHECK\", \"A\", \"B\",\n                   \"A\", \"CHECK\", \"B\", \"A\", \"B\"]\nresults = []\nrecognized = passed = 0\nmotor_fault = False\nend_time = time() + 240.0\ntry:\n    if not move_arm(45, end_time):\n        raise RuntimeError(\"Arm opening timeout; inspect and Reset.\")\n    for index in range(len(expected_groups)):\n        expected = expected_groups[index]\n        observed, status = \"NO_READING\", \"WAIT_CLEAR_TIMEOUT\"\n        print(\"Trial\", index + 1, \"expected\", expected,\n              \"reverse until clear, then approach the next object\")\n        if wait_zone(False, min(end_time, time() + 10.0)):\n            print(\"APPROACH: 20 seconds\")\n            status = \"OBJECT_TIMEOUT\"\n            if wait_zone(True, min(end_time, time() + 20.0)):\n                observed = read_group()\n                status = \"CHECK\" if observed == \"CHECK\" else \"OBJECT_MOVED\"\n                if observed != \"CHECK\" and 0 < sonar.distance_centimeters <= 3.0:\n                    if move_arm(0, end_time) and move_arm(45, end_time):\n                        status = \"GATE_OK\"\n                    else:\n                        status = \"GATE_TIMEOUT\"\n                        motor_fault = True\n        recognition_ok = observed == expected\n        protocol_ok = recognition_ok and (\n            status == \"GATE_OK\" or (expected == \"CHECK\" and status == \"CHECK\"))\n        recognized += int(recognition_ok)\n        passed += int(protocol_ok)\n        results.append([index + 1, expected, observed, status])\n        print(\"RESULT\", results[-1], \"pass\", protocol_ok)\n        if motor_fault or time() >= end_time:\n            print(\"STOP: inspect the robot before another run.\")\n            break\nfinally:\n    arm.off(brake=True)\n\nattempted = len(results)  # Includes every timeout and incorrect result.\nprint(\"planned\", len(expected_groups), \"attempted\", attempted)\nif attempted:\n    print(\"recognition_percent\", round(100.0 * recognized / attempted, 1))\n    print(\"classification_and_gate_percent\", round(100.0 * passed / attempted, 1))\nprint(\"complete_test\", attempted == len(expected_groups))\nprint(\"These results measure labels and arm cycles; record destination bins separately.\")\n",
         "q": "8/10 vật phân loại đúng tương ứng…",
         "opts": [
           "8%",
@@ -2072,7 +2190,7 @@
         "answer": 1,
         "why": "8/10 = 0,8; nhân 100% được 80%. Đây là tỷ lệ của tập thử đã cho; cách tính cần bao gồm các lượt lỗi theo tiêu chí đặt trước.",
         "sim": "color",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot Cage Bot (ev3dev2)",
         "time": 50,
         "exercise": "Một hệ thống thử 12 vật: 9 đúng ngăn, 1 sai ngăn, 1 chưa xác định, 1 kẹt. Tính tỷ lệ đúng. Nêu dữ liệu cần thêm để biết nên sửa cảm biến hay cơ cấu, và thiết kế phép thử tiếp theo chỉ thay một yếu tố.",
         "solution": "Tỷ lệ đúng = 9/12 = 75%. Ghi nhãn cảm biến và vị trí vật thực cho từng lượt để tách nhận dạng sai khỏi gạt sai. Có thể giữ cơ khí/tốc độ/bộ vật, chỉ cố định lại khoảng cách cảm biến rồi thử lại. Không bỏ lượt chưa biết/kẹt khỏi mẫu số.",
@@ -2100,7 +2218,7 @@
           ]
         ],
         "prereq": "Hoàn thành cơ cấu, đọc màu và chống đếm lặp. Biết tính phân số thành phần trăm và lập bảng kỳ vọng–thực tế.",
-        "labGuide": "Dùng bàn logic để thiết kế bộ thử, kiểm tra nhánh quyết định và đếm chu kỳ. Đo độ chính xác cảm biến và độ bền cơ cấu trên bộ lắp ráp SPIKE thật. Ghi riêng kết quả kiểm thử logic, luyện thuật toán trên GearsBot và thử phần cứng để đối chiếu từng bước phát triển dự án.",
+        "labGuide": "Trong GearsBot, chọn Robot → Select Robot → Cage Bot, chuyển sang Python rồi bấm Reset trước mỗi lần chạy. Mẫu dùng ev3dev2 của GearsBot: outC là tay chắn, in3 là cảm biến màu hướng trước, in4 là siêu âm; cổng A/B dành cho hai bánh xe. Chuẩn bị vật đỏ, xanh và vàng trên sân qua Worlds → World Builder; đặt mặt màu ngang tầm cảm biến. Mở joystick để điều khiển bánh xe: tiếp cận chậm đến khoảng cách ≤ 3 cm, dừng bánh, sau chu kỳ lùi ra ≥ 8 cm. Mốc 3 cm phù hợp tầm đọc 5 cm của cảm biến màu Cage Bot. Chuẩn bị thứ tự 10 lượt đỏ, xanh, vàng, đỏ, xanh, đỏ, vàng, xanh, đỏ, xanh. Theo thông báo Trial/APPROACH, lùi để vùng trống ổn định rồi tiếp cận vật kế tiếp; giữ vật đến khi xuất RESULT. Mỗi lượt chờ trống tối đa 10 giây, chờ vật 20 giây; toàn bài tối đa 240 giây. Mã ghi kỳ vọng, nhãn đo, timeout và kết quả tay chắn; mọi lượt đã bắt đầu đều ở mẫu số, kể cả lỗi. Nếu dừng sớm, planned/attempted và complete_test thể hiện rõ số lượt đã làm. Tỷ lệ ở đây đo nhận dạng và chu kỳ tay chắn Cage Bot. Với trạm SPIKE có ngăn A/B, ghi thêm ngăn quan sát được và tính độ đúng đầu ra trên toàn bộ lượt đã thử. Đây là mã chạy cho mô hình Cage Bot; với Hub SPIKE thật, dùng API của ứng dụng LEGO Education SPIKE và cấu hình cổng của bộ lắp. ",
         "objectives": [
           "Đặt yêu cầu kiểm thử cho trạm phân loại với tập vật đã xác định trước.",
           "Tính tỷ lệ đúng trên toàn bộ lượt thử và báo cáo riêng kẹt/chưa xác định.",
@@ -2137,6 +2255,18 @@
           {
             "title": "LEGO Education — thư viện bài học chính thức",
             "url": "https://education.lego.com/en-us/lessons/"
+          },
+          {
+            "title": "GearsBot — cấu hình Cage Bot chính thức",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GearsBot — Python ev3dev2 motor API",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GearsBot — Python ev3dev2 cảm biến màu và siêu âm",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
         ]
       },
@@ -2152,7 +2282,7 @@
           "Dùng công thức để dự đoán góc tay gạt cần; với cơ cấu thật, kiểm tra góc giới hạn trước khi ra lệnh motor.",
           "Nếu có kit, đo thời gian/góc chuyển động ở cùng tải; ghi chênh lệch với dự đoán và xem xét ma sát/độ rơ. Không suy mô-men đo được chỉ từ hình ảnh mô phỏng."
         ],
-        "code": "teeth_in = 12\nteeth_out = 36\nspeed_in_rpm = 90.0\nspeed_out_rpm = -speed_in_rpm * teeth_in / teeth_out\nprint(speed_out_rpm)  # -30.0: ngược chiều quy ước đầu vào\n\ntorque_in_nm = 0.10\nefficiency = 0.80\ntorque_out_nm = efficiency * torque_in_nm * teeth_out / teeth_in\nprint(round(torque_out_nm, 3))  # 0.24 N.m theo mô hình",
+        "code": "# Python 3: one external gear pair, not a measurement from a motor.\nteeth_in = 12\nteeth_out = 36\nspeed_in_rpm = 90.0\ntorque_in_nm = 0.10\nefficiency = 0.80\n\nif teeth_in <= 0 or teeth_out <= 0:\n    raise ValueError(\"Tooth counts must be positive.\")\nif not 0 < efficiency <= 1:\n    raise ValueError(\"Efficiency must be between 0 and 1.\")\n\nspeed_out_rpm = -speed_in_rpm * teeth_in / teeth_out\ntorque_out_nm = efficiency * torque_in_nm * teeth_out / teeth_in\nprint(\"speed_out_rpm\", speed_out_rpm)  # -30.0\nprint(\"torque_out_nm\", round(torque_out_nm, 3))  # 0.24\n",
         "q": "12 răng kéo 36 răng, đầu vào 90 vòng/phút thì đầu ra…",
         "opts": [
           "270",
@@ -2163,7 +2293,7 @@
         "why": "90 × 12/36 = 30 vòng/phút về độ lớn. Vì là một cặp bánh răng ngoài, chiều quay bị đảo; các lựa chọn trắc nghiệm chỉ nêu độ lớn tốc độ.",
         "sim": "color",
         "time": 50,
-        "lang": "Python thuần — tính mô hình một cặp bánh răng ngoài, không điều khiển phần cứng",
+        "lang": "Python 3 · tính tỷ số truyền",
         "exercise": "Đầu vào 60 rpm, bánh vào 36 răng, bánh ra 12 răng: tính tốc độ/chiều ra và tỷ số mô-men lý tưởng. So sánh với cặp 12:36 để chọn cho một cơ cấu cần quay chậm và gạt vật nặng hơn.",
         "solution": "Độ lớn tốc độ ra 60 × 36/12 = 180 rpm, ngược chiều; mô-men lý tưởng bằng 1/3 mô-men vào. Cặp 12:36 giảm tốc còn 1/3 và tăng mô-men lý tưởng gấp 3, phù hợp hơn về xu hướng cho yêu cầu chậm/lực lớn; vẫn phải kiểm tra tải, hiệu suất và giới hạn cơ khí.",
         "checks": [
@@ -2190,7 +2320,7 @@
           ]
         ],
         "prereq": "Biết tỷ lệ, vòng/phút (rpm), góc quay và ý nghĩa định tính của mô-men. Xác định được bánh chủ động và bánh bị động.",
-        "labGuide": "Dùng editor Python và sơ đồ để tính, đối chiếu tỷ số truyền. Quan sát chuyển động trên bộ truyền thật hoặc nền tảng có mô hình bánh răng phù hợp. Ghi số răng, cách ghép và cấu hình đang dùng; kiểm tra riêng cơ cấu SPIKE thực tế.",
+        "labGuide": "Chuyển editor GearsBot sang Python, dán mã và chạy để nhận tốc độ đầu ra −30 rpm và mô-men ước lượng 0,24 N·m. Đổi cặp răng 12:36 thành 36:12 rồi so sánh kết quả; dấu âm biểu thị đảo chiều của một cặp bánh răng ngoài. Đây là phép tính mô hình với hiệu suất đã nhập. Khi đo bộ truyền thật, ghi số răng, tải, tốc độ và hiệu suất ước lượng để đối chiếu với kết quả.",
         "objectives": [
           "Tính tỷ số tốc độ và góc từ số răng của một cặp bánh răng ngoài.",
           "Giải thích mối đánh đổi giữa tốc độ và mô-men khi bỏ qua tổn hao.",
@@ -2242,7 +2372,7 @@
           "Chạy chuỗi vật chưa xác định và tình huống “vật vẫn ở đó nhưng nhãn tạm mất”; không cho phép tự mở thêm chu kỳ.",
           "Thêm lỗi quá thời gian gạt và phục hồi bằng kiểm tra/dừng thủ công. Kiểm thử lại toàn bộ chuỗi sau khi đổi một quy tắc chuyển."
         ],
-        "code": "WAIT:\n  nếu xác nhận vật mới: nhận_vào += 1; sang CLASSIFY\nCLASSIFY (hành động vào trạng thái chỉ chạy một lần):\n  khởi tạo gạt theo nhãn, bắt đầu đo thời gian\n  nếu gạt hoàn tất: thành_công += 1; sang WAIT_CLEAR\n  nếu quá hạn hoặc kẹt: dừng motor; sang ERROR\nWAIT_CLEAR:\n  nếu xác nhận vùng trống: sang WAIT\nERROR:\n  giữ motor dừng; yêu cầu kiểm tra và phục hồi an toàn",
+        "code": "# GearsBot Cage Bot, ev3dev2 Python. Press Reset before Run.\nfrom ev3dev2.motor import LargeMotor, OUTPUT_C, SpeedDPS\nfrom ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor\nfrom time import time, sleep\n\ntry:\n    color = ColorSensor(\"in3\")\n    sonar = UltrasonicSensor(\"in4\")\n    arm = LargeMotor(OUTPUT_C)\nexcept Exception as error:\n    print(\"SETUP:\", error)\n    raise RuntimeError(\"Select Cage Bot, then press Reset.\")\n\ndef move_arm(target, deadline):\n    if not 0 <= target <= 45:\n        raise ValueError(\"Use an arm target from 0 to 45 degrees.\")\n    if time() >= deadline:\n        return False\n    limit = min(deadline, time() + 3.0)\n    arm.on_to_position(SpeedDPS(30), target, brake=True, block=False)\n    while abs(arm.position - target) > 2:\n        if time() >= limit:\n            arm.off(brake=True)\n            return False\n        sleep(0.02)\n    arm.off(brake=True)\n    return time() < limit\n\ndef read_group():\n    samples = []\n    for sample in range(3):\n        samples.append(color.color)\n        sleep(0.05)\n    if samples[0] == samples[1] == samples[2]:\n        if samples[0] == 5:  # EV3 red\n            return \"A\"\n        elif samples[0] == 2:  # EV3 blue\n            return \"B\"\n    return \"CHECK\"\n\nstate = \"WAIT\"\nphase = \"\"\ntarget = 45\nphase_deadline = 0.0\nclear_samples = 0\nreceived = gate_cycles = needs_check = 0\nend_time = time() + 90.0\ntry:\n    if not move_arm(45, end_time):\n        raise RuntimeError(\"Arm opening timeout; inspect and Reset.\")\n    print(state)\n    while time() < end_time:\n        distance = sonar.distance_centimeters\n        if distance <= 0:\n            state = \"ERROR\"\n            print(state, \"invalid or contact-distance reading\")\n            break\n\n        if state == \"WAIT\" and distance <= 3.0:\n            received += 1\n            group = read_group()\n            if group == \"CHECK\":\n                needs_check += 1\n                state = \"WAIT_CLEAR\"\n                clear_samples = 0\n                print(state, \"CHECK\", received)\n            elif not (0 < sonar.distance_centimeters <= 3.0):\n                state = \"WAIT_CLEAR\"\n                clear_samples = 0\n                print(state, \"object moved\")\n            elif time() >= end_time:\n                state = \"ERROR\"\n                print(state, \"run deadline before gate cycle\")\n                break\n            else:\n                phase, target = \"CLOSE\", 0\n                phase_deadline = min(end_time, time() + 3.0)\n                arm.on_to_position(SpeedDPS(30), target, brake=True, block=False)\n                state = \"CLASSIFY\"\n                print(state, group, \"object\", received)\n\n        elif state == \"CLASSIFY\":\n            if time() >= phase_deadline:\n                state = \"ERROR\"\n                print(state, \"arm timeout\", phase)\n                break\n            elif abs(arm.position - target) <= 2:\n                arm.off(brake=True)\n                if phase == \"CLOSE\":\n                    phase, target = \"OPEN\", 45\n                    phase_deadline = min(end_time, time() + 3.0)\n                    arm.on_to_position(SpeedDPS(30), target, brake=True, block=False)\n                else:\n                    gate_cycles += 1\n                    state = \"WAIT_CLEAR\"\n                    clear_samples = 0\n                    print(state, \"gate_cycles\", gate_cycles)\n\n        elif state == \"WAIT_CLEAR\":\n            clear_samples = clear_samples + 1 if distance >= 8.0 else 0\n            if clear_samples >= 3:\n                state = \"WAIT\"\n                print(state)\n        sleep(0.05)\n    if state == \"CLASSIFY\":\n        state = \"ERROR\"\n        print(state, \"run deadline during unfinished gate cycle\")\nfinally:\n    arm.off(brake=True)\nprint(\"state\", state, \"received\", received,\n      \"gate_cycles\", gate_cycles, \"needs_check\", needs_check)\n",
         "q": "Vì sao cần trạng thái chờ lấy vật ra?",
         "opts": [
           "Để tăng tốc tùy ý",
@@ -2253,7 +2383,7 @@
         "why": "WAIT_CLEAR lưu việc chu kỳ trước đã xử lý nhưng vật có thể vẫn còn trong vùng cảm biến. Chỉ cho phép nhận lại sau khi vật cũ rời đi nên tránh đếm/gạt lặp.",
         "sim": "color",
         "time": 50,
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot Cage Bot (ev3dev2)",
         "exercise": "Trạm đang WAIT_CLEAR sau khi gạt một vật đỏ. Các mẫu tiếp theo là đỏ, chưa biết, đỏ, trống, đỏ. Giả sử “chưa biết” chưa xác nhận vùng trống. Trạng thái nào xuất hiện và có bao nhiêu chu kỳ mới được mở? Nêu thêm phản ứng nếu chu kỳ mới bị timeout.",
         "solution": "Đỏ, chưa biết, đỏ đều giữ WAIT_CLEAR. Trống được xác nhận thì chuyển WAIT. Đỏ cuối tạo đúng một chu kỳ CLASSIFY mới. Nếu chu kỳ đó timeout: dừng motor, chuyển ERROR, không tăng bộ đếm thành công và không nhận vật mới cho tới khi phục hồi an toàn.",
         "checks": [
@@ -2280,7 +2410,7 @@
           ]
         ],
         "prereq": "Hoàn thành bài cờ chống đếm lặp và dự án phân loại. Biết điều kiện Boolean, bộ đếm và khái niệm giới hạn thời gian.",
-        "labGuide": "Bàn màu hiện minh họa logic chống đếm lặp đơn giản; hãy dùng bảng trạng thái để thiết kế thêm timeout/lỗi, không cho rằng mọi nhánh cơ khí được mô phỏng sẵn. Khi triển khai trên SPIKE thật, dùng API/khối lệnh của phiên bản ứng dụng đang cài và kiểm tra hoàn tất motor/cảm biến tương ứng.",
+        "labGuide": "Trong GearsBot, chọn Robot → Select Robot → Cage Bot, chuyển sang Python rồi bấm Reset trước mỗi lần chạy. Mẫu dùng ev3dev2 của GearsBot: outC là tay chắn, in3 là cảm biến màu hướng trước, in4 là siêu âm; cổng A/B dành cho hai bánh xe. Chuẩn bị vật đỏ, xanh và vàng trên sân qua Worlds → World Builder; đặt mặt màu ngang tầm cảm biến. Mở joystick để điều khiển bánh xe: tiếp cận chậm đến khoảng cách ≤ 3 cm, dừng bánh, sau chu kỳ lùi ra ≥ 8 cm. Mốc 3 cm phù hợp tầm đọc 5 cm của cảm biến màu Cage Bot. Quan sát console WAIT → CLASSIFY → WAIT_CLEAR → WAIT. Hành động hạ/mở tay chắn chỉ phát lệnh khi bắt đầu từng pha; số thành công chỉ tăng sau khi encoder xác nhận hoàn tất hai pha. Giữ vật tại chỗ hoặc đổi nhãn sang CHECK để kiểm tra chống lặp; lùi ≥ 8 cm trong ba mẫu liên tiếp mới mở lượt mới. Lỗi khoảng cách hoặc timeout chuyển sang ERROR và dừng motor; sau khi kiểm tra cơ cấu, bấm Reset để chạy lại. Số gate_cycles đo chu kỳ tay chắn; kiểm thử ngăn đích được bổ sung trên trạm phân loại thực. Đây là mã chạy cho mô hình Cage Bot; với Hub SPIKE thật, dùng API của ứng dụng LEGO Education SPIKE và cấu hình cổng của bộ lắp. ",
         "objectives": [
           "Thiết kế máy trạng thái hữu hạn có điều kiện chuyển rõ ràng cho một chu kỳ phân loại.",
           "Tách trạng thái chờ vật, phân loại, chờ trống và lỗi để ngăn kích hoạt lặp.",
@@ -2317,6 +2447,18 @@
           {
             "title": "LEGO Education — thư viện bài học chính thức",
             "url": "https://education.lego.com/en-us/lessons/"
+          },
+          {
+            "title": "GearsBot — cấu hình Cage Bot chính thức",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GearsBot — Python ev3dev2 motor API",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GearsBot — Python ev3dev2 cảm biến màu và siêu âm",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
         ]
       }
@@ -2344,7 +2486,7 @@
           "Thử đổi thứ tự thành R,F,F,F; giải thích điểm khác nhau bằng hướng ở thời điểm tiến.",
           "Nếu mở VEXcode VR hoặc simulator khác, kiểm tra Playground, robot, đơn vị và vị trí đầu của nền tảng rồi mới chuyển thuật toán; lưu dự án trước khi đổi môi trường."
         ],
-        "code": "BẮT ĐẦU (0, 0, ĐÔNG)\nF  # (1, 0, ĐÔNG)\nF  # (2, 0, ĐÔNG)\nR  # (2, 0, NAM)\nF  # (2, 1, NAM)\nDỪNG",
+        "code": "from math import pi, sqrt\nfrom time import time, sleep\nfrom ev3dev2.motor import MoveTank, OUTPUT_A, OUTPUT_B\nfrom ev3dev2.sensor import INPUT_4\nfrom ev3dev2.sensor.virtual import GPSSensor\n\ntank = MoveTank(OUTPUT_A, OUTPUT_B)\ngps = GPSSensor(INPUT_4)\nWHEEL_DIAMETER_MM = 56.0\nTRACK_WIDTH_MM = 152.0\nSPEED = 25\n\ndef move_wheels(left_speed, right_speed, degrees, timeout_s=8.0):\n    start_left = tank.left_motor.position\n    start_right = tank.right_motor.position\n    deadline = time() + timeout_s\n    tank.on_for_degrees(left_speed, right_speed, degrees,\n                        brake=True, block=False)\n    try:\n        sleep(0.05)\n        while time() < deadline:\n            if tank.left_motor.is_stalled or tank.right_motor.is_stalled:\n                raise RuntimeError(\"Motor stalled; check the course\")\n            if not (tank.left_motor.is_running or tank.right_motor.is_running):\n                left_done = abs(tank.left_motor.position - start_left)\n                right_done = abs(tank.right_motor.position - start_right)\n                if min(left_done, right_done) >= degrees - 5:\n                    return\n            sleep(0.02)\n        raise RuntimeError(\"Motion timeout; reset before retrying\")\n    finally:\n        tank.off(brake=True)\n\ndef forward(distance_mm):\n    degrees = 360.0 * distance_mm / (pi * WHEEL_DIAMETER_MM)\n    move_wheels(SPEED, SPEED, degrees)\n\ndef turn_right(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(SPEED, -SPEED, degrees)\n\ndef turn_left(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(-SPEED, SPEED, degrees)\n\n# Initial logical heading: east. One cell is 100 mm.\nx, y, heading = 0, 0, 0\nvectors = [(1, 0), (0, 1), (-1, 0), (0, -1)]\nnames = [\"east\", \"south\", \"west\", \"north\"]\ntry:\n    for command in \"F F R F\".split():\n        if command == \"F\":\n            forward(100)\n            dx, dy = vectors[heading]\n            x, y = x + dx, y + dy\n        elif command == \"R\":\n            turn_right()\n            heading = (heading + 1) % 4\n        elif command == \"L\":\n            turn_left()\n            heading = (heading - 1) % 4\n        else:\n            raise ValueError(\"Unknown command\")\n        print(command, \"->\", x, y, names[heading])\n    print(\"GPS endpoint (cm):\", gps.position[:2])\nfinally:\n    tank.off(brake=True)\n",
         "q": "Lệnh rẽ tại chỗ trong mô hình thay đổi…",
         "opts": [
           "Hướng",
@@ -2354,7 +2496,7 @@
         "answer": 0,
         "why": "Rẽ tại chỗ đổi hướng của robot. Trong mô hình lý tưởng, tâm robot chưa dịch chuyển sang ô khác nên không tăng số ô đã đi.",
         "sim": "grid",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot (ev3dev2)",
         "time": 50,
         "exercise": "Ghi trạng thái sau từng lệnh của F,R,F,L,F từ (0,0,đông). Nếu giữ nguyên chuỗi nhưng xuất phát hướng nam, vị trí cuối có còn giống không? Hãy dự đoán trước khi thử.",
         "solution": "Hướng đông: (1,0,đông), (1,0,nam), (1,1,nam), (1,1,đông), (2,1,đông). Nếu xuất phát hướng nam: đích (−1,2,nam) trên lưới không giới hạn; trong bàn có biên có thể bị chặn/ghi lỗi nên phải kiểm tra biên thực của bài.",
@@ -2382,7 +2524,7 @@
           ]
         ],
         "prereq": "Biết bốn hướng đông, tây, nam, bắc và phân biệt tiến với rẽ. Chưa cần có VEX IQ hoặc tài khoản trả phí để làm bàn lưới nội bộ.",
-        "labGuide": "Dùng bàn lưới trước để kiểm tra ý tưởng mà không cần mạng. Với VEXcode VR, chọn Playground có sẵn phù hợp và đọc hướng dẫn đơn vị/robot của sân đó. Nếu dùng GearsBot, chuyển sang Blocks tương ứng và không coi tọa độ/đơn vị của nó là tọa độ VR. Mỗi nền tảng cần Reset riêng.",
+        "labGuide": "Trong GearsBot, chọn robot Single Sensor Line Follower (singleFollower), mở Python và dán toàn bộ chương trình. Robot dùng bánh trái A, bánh phải B; đường kính bánh 56 mm, khoảng cách hai bánh 152 mm. Chọn sân rộng, phẳng; Reset trước mỗi lượt rồi Run. Chuỗi F F R F chạy trực tiếp với một ô bằng 100 mm. Console ghi vị trí và hướng theo lưới sau mỗi lệnh; hướng đông quy ước trùng hướng xuất phát của robot. Đổi chuỗi thành F R F L F để làm bài tập, Reset rồi chạy. Tọa độ logic giúp kiểm tra thứ tự lệnh; GPS cung cấp số đo riêng trên sân GearsBot.",
         "objectives": [
           "Theo dõi chính xác trạng thái vị trí–hướng sau từng lệnh trong một chuỗi.",
           "Phân biệt hệ tọa độ lưới nội bộ với đơn vị và hệ tọa độ của sân VEXcode VR.",
@@ -2423,6 +2565,18 @@
           {
             "title": "VEX CS Level 1 — bài học VEXcode VR",
             "url": "https://education.vex.com/stemlabs/cs/cs-level-1-vexcode-vr"
+          },
+          {
+            "title": "GEARS — cấu hình Single Sensor Line Follower",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GEARS — API ev3dev2.motor trong simulator",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GEARS — API GPS và đơn vị tọa độ",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/virtual.py"
           }
         ]
       },
@@ -2438,7 +2592,7 @@
           "Trong nền tảng có khối Repeat, đặt cả tiến và rẽ vào bên trong Repeat 4; so sánh với bản tiến lặp 4 rồi mới rẽ.",
           "Thử thiếu lệnh rẽ cuối hoặc đổi số lần lặp thành 3. Báo cáo riêng vị trí và hướng cuối, không chỉ hình vẽ đường đi."
         ],
-        "code": "LẶP ĐÚNG 4 LẦN:\n  TIẾN 1 ô\n  RẼ PHẢI 90°\n# Tương đương F,R,F,R,F,R,F,R trong bàn lưới\nDỪNG",
+        "code": "from math import pi, sqrt\nfrom time import time, sleep\nfrom ev3dev2.motor import MoveTank, OUTPUT_A, OUTPUT_B\nfrom ev3dev2.sensor import INPUT_4\nfrom ev3dev2.sensor.virtual import GPSSensor\n\ntank = MoveTank(OUTPUT_A, OUTPUT_B)\ngps = GPSSensor(INPUT_4)\nWHEEL_DIAMETER_MM = 56.0\nTRACK_WIDTH_MM = 152.0\nSPEED = 25\n\ndef move_wheels(left_speed, right_speed, degrees, timeout_s=8.0):\n    start_left = tank.left_motor.position\n    start_right = tank.right_motor.position\n    deadline = time() + timeout_s\n    tank.on_for_degrees(left_speed, right_speed, degrees,\n                        brake=True, block=False)\n    try:\n        sleep(0.05)\n        while time() < deadline:\n            if tank.left_motor.is_stalled or tank.right_motor.is_stalled:\n                raise RuntimeError(\"Motor stalled; check the course\")\n            if not (tank.left_motor.is_running or tank.right_motor.is_running):\n                left_done = abs(tank.left_motor.position - start_left)\n                right_done = abs(tank.right_motor.position - start_right)\n                if min(left_done, right_done) >= degrees - 5:\n                    return\n            sleep(0.02)\n        raise RuntimeError(\"Motion timeout; reset before retrying\")\n    finally:\n        tank.off(brake=True)\n\ndef forward(distance_mm):\n    degrees = 360.0 * distance_mm / (pi * WHEEL_DIAMETER_MM)\n    move_wheels(SPEED, SPEED, degrees)\n\ndef turn_right(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(SPEED, -SPEED, degrees)\n\ndef turn_left(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(-SPEED, SPEED, degrees)\n\nstart = gps.position\ntry:\n    for side in range(4):\n        forward(200)\n        turn_right(90)\n        print(\"Completed side:\", side + 1, \"GPS (cm):\", gps.position[:2])\n    end = gps.position\n    error_mm = 10 * sqrt((end[0] - start[0]) ** 2\n                        + (end[1] - start[1]) ** 2)\n    print(\"Return-position error (mm):\", round(error_mm, 1))\n    print(\"Commands: 4 forward, 4 right turns\")\nfinally:\n    tank.off(brake=True)\n",
         "q": "Lặp bốn lần nhóm hai lệnh tạo bao nhiêu hành động?",
         "opts": [
           "4",
@@ -2448,7 +2602,7 @@
         "answer": 2,
         "why": "Một nhóm có hai hành động và được lặp bốn lần, nên có 4 × 2 = 8 hành động. Chỉ bốn trong số đó là bước tiến; bốn hành động còn lại đổi hướng.",
         "sim": "grid",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot (ev3dev2)",
         "time": 50,
         "exercise": "So sánh A = REPEAT 4 {F,R} với B = REPEAT 4 {F}; R từ cùng trạng thái đầu. Đếm số tiến/rẽ/hành động và dự đoán vị trí/hướng trong lưới đủ rộng.",
         "solution": "A có 4 tiến + 4 rẽ = 8 hành động, về (0,0,đông). B có 4 tiến + 1 rẽ = 5 hành động, tới (4,0,nam) nếu lưới không chặn. Dấu ngoặc/thụt lề quyết định phần lặp, không phải chỉ từ “4 lần”.",
@@ -2476,7 +2630,7 @@
           ]
         ],
         "prereq": "Hoàn thành Chuỗi lệnh và hướng. Biết 4 × 90° = 360° và phân biệt một hành động rẽ với một bước tiến.",
-        "labGuide": "Bàn lưới nhận F/R/L, nên hãy khai triển vòng lặp thành chuỗi để kiểm tra logic. Với VEXcode VR hoặc nền tảng Blocks khác, dùng khối Repeat đúng phần thân và chọn quãng đường cạnh theo đơn vị của sân. Không dán giả mã có từ tiếng Việt như chương trình Python chạy được.",
+        "labGuide": "Trong GearsBot, chọn robot Single Sensor Line Follower (singleFollower), mở Python và dán toàn bộ chương trình. Robot dùng bánh trái A, bánh phải B; đường kính bánh 56 mm, khoảng cách hai bánh 152 mm. Chọn sân rộng, phẳng; Reset trước mỗi lượt rồi Run. Vòng lặp chạy bốn cạnh 200 mm, mỗi cạnh kết thúc bằng một lần quay phải 90°. Console xuất vị trí sau từng cạnh và sai lệch vị trí cuối so với đầu bằng mm. Chọn sân đủ chỗ cho hình vuông. Để so sánh bài tập B, đưa turn_right(90) ra ngoài vòng for, Reset rồi chạy lại; quan sát cả vị trí lẫn hướng cuối.",
         "objectives": [
           "Nhận ra nhóm lệnh lặp và xác định đúng phần thân của vòng lặp.",
           "Tính tổng số hành động, bước tiến và góc quay của chương trình lặp.",
@@ -2517,6 +2671,18 @@
           {
             "title": "VEX CS Level 1 — bài học VEXcode VR",
             "url": "https://education.vex.com/stemlabs/cs/cs-level-1-vexcode-vr"
+          },
+          {
+            "title": "GEARS — cấu hình Single Sensor Line Follower",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GEARS — API ev3dev2.motor trong simulator",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GEARS — API GPS và đơn vị tọa độ",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/virtual.py"
           }
         ]
       },
@@ -2532,7 +2698,7 @@
           "Trong simulator có cảm biến, chọn đúng đầu đo, triển khai dừng trước rẽ, đọc lại sau rẽ và chạy ở tốc độ thấp với giới hạn thời gian.",
           "Tạo hoặc vẽ một ngõ cụt/vòng kín làm thuật toán không đến đích; ghi trạng thái lặp và điều kiện kết thúc thay vì tiếp tục chạy vô hạn."
         ],
-        "code": "LẶP cho tới khi tới đích hoặc hết giới hạn:\n  đọc d và trạng thái hợp lệ\n  NẾU dữ liệu lỗi: DỪNG; báo lỗi; kết thúc\n  NẾU d < T:\n    DỪNG\n    RẼ PHẢI 90°\n    # quay lại đầu vòng lặp để đọc hướng mới\n  NGƯỢC LẠI:\n    TIẾN CHẬM một đoạn ngắn\nDỪNG và ghi có tới đích hay không",
+        "code": "from math import pi, sqrt\nfrom time import time, sleep\nfrom ev3dev2.motor import MoveTank, OUTPUT_A, OUTPUT_B\nfrom ev3dev2.sensor import INPUT_2, INPUT_4\nfrom ev3dev2.sensor.lego import UltrasonicSensor\nfrom ev3dev2.sensor.virtual import GPSSensor\n\ntank = MoveTank(OUTPUT_A, OUTPUT_B)\ngps = GPSSensor(INPUT_4)\nWHEEL_DIAMETER_MM = 56.0\nTRACK_WIDTH_MM = 152.0\nSPEED = 25\n\ndef move_wheels(left_speed, right_speed, degrees, timeout_s=8.0):\n    start_left = tank.left_motor.position\n    start_right = tank.right_motor.position\n    deadline = time() + timeout_s\n    tank.on_for_degrees(left_speed, right_speed, degrees,\n                        brake=True, block=False)\n    try:\n        sleep(0.05)\n        while time() < deadline:\n            if tank.left_motor.is_stalled or tank.right_motor.is_stalled:\n                raise RuntimeError(\"Motor stalled; check the course\")\n            if not (tank.left_motor.is_running or tank.right_motor.is_running):\n                left_done = abs(tank.left_motor.position - start_left)\n                right_done = abs(tank.right_motor.position - start_right)\n                if min(left_done, right_done) >= degrees - 5:\n                    return\n            sleep(0.02)\n        raise RuntimeError(\"Motion timeout; reset before retrying\")\n    finally:\n        tank.off(brake=True)\n\ndef forward(distance_mm):\n    degrees = 360.0 * distance_mm / (pi * WHEEL_DIAMETER_MM)\n    move_wheels(SPEED, SPEED, degrees)\n\ndef turn_right(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(SPEED, -SPEED, degrees)\n\ndef turn_left(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(-SPEED, SPEED, degrees)\n\ndistance_sensor = UltrasonicSensor(INPUT_2)\nTHRESHOLD_CM = 20.0\nTIME_LIMIT_S = 20.0\nMAX_ACTIONS = 40\n# Goal is 60 cm straight ahead of the initial GPS position on the default pose.\nstart = gps.position\ngoal_x, goal_y = start[0], start[1] + 60\nreason = \"action_limit\"\nactions = 0\n\ndef read_distance_cm():\n    value = distance_sensor.distance_centimeters\n    if not 0 < value <= 255:\n        raise ValueError(\"Invalid ultrasonic reading\")\n    return value\n\ntry:\n    deadline = time() + TIME_LIMIT_S\n    while actions < MAX_ACTIONS:\n        if time() >= deadline:\n            reason = \"time_limit\"\n            break\n        position = gps.position\n        if sqrt((position[0] - goal_x) ** 2\n                + (position[1] - goal_y) ** 2) <= 5:\n            reason = \"goal_reached\"\n            break\n        distance_cm = read_distance_cm()\n        if distance_cm < THRESHOLD_CM:\n            turn_right()\n        else:\n            forward(50)\n        actions += 1\n        print(\"Action:\", actions, \"distance (cm):\", round(distance_cm, 1))\n    print(\"Stop reason:\", reason)\n    print(\"Goal (cm):\", goal_x, goal_y, \"GPS (cm):\", gps.position[:2])\nfinally:\n    tank.off(brake=True)\n",
         "q": "Quy tắc gặp vật cản thì rẽ phải có đảm bảo giải mọi mê cung?",
         "opts": [
           "Có",
@@ -2542,7 +2708,7 @@
         "answer": 1,
         "why": "Quy tắc phản ứng cục bộ không xét toàn bộ bản đồ hoặc tiến độ tới đích, nên có thể bị vòng lặp hoặc bế tắc. Tăng tốc không bổ sung thông tin còn thiếu.",
         "sim": "sensor",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python · GearsBot (ev3dev2)",
         "time": 50,
         "exercise": "Vẽ một hành lang chữ U có điểm đầu trong lòng chữ U và một đích nằm bên ngoài. Giải thích vì sao chỉ “gặp tường thì rẽ phải” chưa bảo đảm tới đích. Nêu hai thông tin/biện pháp bổ sung để nhận biết hoặc thoát hành vi lặp.",
         "solution": "Robot có thể lặp lại một nhóm vị trí/hướng mà không biết đang lặp vì chỉ dùng khoảng cách trước mặt. Có thể lưu trạng thái đã thăm hoặc bản đồ, bổ sung chiến lược khám phá có kiểm chứng và giới hạn số bước. Các bổ sung cần được thử trên bản đồ cụ thể; không tự bảo đảm mọi mê cung chỉ nhờ thêm một biến.",
@@ -2570,7 +2736,7 @@
           ]
         ],
         "prereq": "Biết vòng lặp, câu điều kiện và dấu <. Hiểu bàn cảm biến chỉ so sánh số và bàn lưới có quy ước riêng.",
-        "labGuide": "Bàn cảm biến minh họa phép so sánh; muốn kiểm thử tránh vật cản thực sự cần sân có hình học và robot có đầu đo khoảng cách phù hợp. Trong VEXcode VR, kiểm tra robot/Playground đang dùng; GearsBot là lựa chọn bổ trợ riêng. Ghi rõ nền tảng, đơn vị và giới hạn của lượt thử.",
+        "labGuide": "Trong GearsBot, chọn robot Single Sensor Line Follower (singleFollower), mở Python và dán toàn bộ chương trình. Robot dùng bánh trái A, bánh phải B; đường kính bánh 56 mm, khoảng cách hai bánh 152 mm. Chọn sân rộng, phẳng; Reset trước mỗi lượt rồi Run. Dùng tư thế Reset mặc định hướng theo trục GPS y dương; đích đặt cách điểm đầu 60 cm theo trục này, bán kính chấp nhận 5 cm. Cảm biến khoảng cách ở INPUT_2. Đặt hộp chắn đường trên sân rồi thử: mỗi lần gặp vật dưới 20 cm robot rẽ phải, sau đó đọc lại cảm biến trước hành động tiếp theo. Mỗi bước tiến 50 mm; giới hạn 40 hành động và ngân sách 20 giây, một hành động đang chạy có timeout riêng 8 giây. Console phân biệt tới đích, hết thời gian và hết hành động; thử hành lang chữ U để quan sát giới hạn của quy tắc.",
         "objectives": [
           "Thiết kế quy tắc tránh vật cản có ngưỡng, dữ liệu hợp lệ và điều kiện dừng.",
           "Kiểm thử dưới/bằng/trên ngưỡng và một tình huống ngõ cụt hoặc vòng lặp.",
@@ -2611,6 +2777,22 @@
           {
             "title": "VEX CS Level 1 — bài học VEXcode VR",
             "url": "https://education.vex.com/stemlabs/cs/cs-level-1-vexcode-vr"
+          },
+          {
+            "title": "GEARS — cấu hình Single Sensor Line Follower",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/js/robotTemplates.js"
+          },
+          {
+            "title": "GEARS — API ev3dev2.motor trong simulator",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/motor.py"
+          },
+          {
+            "title": "GEARS — API GPS và đơn vị tọa độ",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/virtual.py"
+          },
+          {
+            "title": "GEARS — API cảm biến siêu âm",
+            "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
         ]
       },
@@ -2619,14 +2801,14 @@
         "title": "Thử thách: giao hàng ảo",
         "goal": "Thiết kế hai tuyến giao hàng cùng đích và xác định chi phí trước khi thử.",
         "theory": "Nhiệm vụ và ràng buộc: Một bài giao hàng cần điểm đầu/hướng đầu, đích, vật cản, vùng không đi qua và điều kiện dừng. Hai giải pháp chỉ so sánh được khi dùng cùng đề bài. Trước hết phải kiểm tra đến đúng đích và không vi phạm ràng buộc; chương trình ngắn nhưng đi sai không được coi là thắng.\n\nChi phí là một mô hình được chọn: Nếu một bước tiến tốn tF giây và một lần rẽ tốn tR giây, ước lượng T = nF × tF + nR × tR. nF và nR là số bước tiến và rẽ. Đây là mô hình rời rạc; thời gian thật còn có tăng/giảm tốc, xử lý cảm biến và cách nền tảng chạy lệnh. Đường ít bước tiến có thể tốn nhiều thời gian hơn vì rẽ nhiều.\n\nĐo trước và sau cải tiến: Đặt lại cùng trạng thái đầu cho từng lượt, lưu phiên bản chương trình và ghi cả thất bại. Đếm theo cùng quy ước: một lệnh tiến 3 ô có thể là một khối lập trình nhưng ba ô quãng đường; không tráo “số khối” và “số hành động” giữa A/B. Chọn chỉ số phù hợp mục tiêu của đề bài.",
-        "example": "Giả sử A và B đều hoàn thành cùng nhiệm vụ: A có 5 bước tiến, 4 lần rẽ; B có 6 bước tiến, 1 lần rẽ. Nếu tF = 1 s, tR = 2 s thì TA = 13 s, TB = 8 s. B dài hơn theo số ô nhưng thấp hơn theo chi phí thời gian giả định.",
+        "example": "Cùng xuất phát (0,0,đông), đích (3,2), hướng cuối được phép khác nhau. Tuyến A: F,R,F,L,F,F,R,F có 5 bước tiến, 3 lần rẽ; tuyến B: F,F,F,F,R,F,F,R,F có 7 bước tiến, 2 lần rẽ. Cả hai đều ở trong lưới 5×4 và đến đúng đích. Nếu tF = 1 s, tR = 3 s thì TA = 14 s, TB = 13 s; B đi nhiều ô hơn nhưng có chi phí thời gian mô hình thấp hơn.",
         "steps": [
           "Viết đặc tả điểm đầu/hướng đầu/đích và chốt chỉ số: thành công, số bước, số rẽ, chi phí thời gian.",
           "Tạo tuyến A trong bàn lưới và dự đoán các trạng thái quan trọng. Reset, chạy và ghi đầy đủ kết quả.",
           "Tạo tuyến B với cùng đích/ràng buộc; dùng cùng quy ước đếm rồi tính T theo tF,tR đã chốt.",
           "Chuyển một tuyến sang simulator nếu muốn đo thời gian thực của môi trường đó. Báo riêng thời gian tính theo mô hình và thời gian đo, không coi hai số là một."
         ],
-        "code": "CHỐT điểm đầu, đích, ràng buộc, tF và tR\nVỚI mỗi phương án A, B:\n  RESET cùng vị trí và hướng\n  CHẠY có giới hạn\n  GHI thành công, nF, nR\n  T_mô_hình = nF * tF + nR * tR\nCHỌN trong các phương án đạt nhiệm vụ\nBÁO CÁO cả lợi ích và đánh đổi",
+        "code": "# Both routes start at (0, 0, east). The goal checks position only.\nWIDTH, HEIGHT = 5, 4\nSTART = (0, 0, 0)\nGOAL = (3, 2)\nDIRECTIONS = [(1, 0), (0, 1), (-1, 0), (0, -1)]\nROUTES = {\"A\": \"F R F L F F R F\", \"B\": \"F F F F R F F R F\"}\n\ndef evaluate(commands, forward_s, turn_s):\n    x, y, heading = START\n    moves = turns = 0\n    for command in commands.split():\n        if command == \"F\":\n            dx, dy = DIRECTIONS[heading]\n            x, y = x + dx, y + dy\n            moves += 1\n            if not (0 <= x < WIDTH and 0 <= y < HEIGHT):\n                return False, moves, turns, None\n        elif command in (\"L\", \"R\"):\n            heading = (heading + (1 if command == \"R\" else -1)) % 4\n            turns += 1\n        else:\n            raise ValueError(\"Unknown command\")\n    success = (x, y) == GOAL\n    return success, moves, turns, moves * forward_s + turns * turn_s\n\nfor forward_s, turn_s in [(1.0, 3.0), (2.0, 0.2)]:\n    print(\"Model seconds per forward/turn:\", forward_s, turn_s)\n    candidates = []\n    for name, route in ROUTES.items():\n        success, moves, turns, cost = evaluate(route, forward_s, turn_s)\n        print(name, \"success:\", success, \"forward:\", moves,\n              \"turns:\", turns, \"model seconds:\", cost)\n        if success:\n            candidates.append((cost, name))\n    print(\"Lowest-cost successful route:\", min(candidates)[1] if candidates else None)\n",
         "q": "Khi so sánh số lệnh cần…",
         "opts": [
           "Bỏ qua lệnh rẽ",
@@ -2636,10 +2818,10 @@
         "answer": 1,
         "why": "Một quy ước đếm nhất quán giúp các giá trị so sánh cùng một đại lượng. Bỏ rẽ ở một phương án nhưng tính ở phương án kia sẽ tạo kết luận sai.",
         "sim": "grid",
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python 3 · kiểm tra tuyến và chi phí",
         "time": 50,
-        "exercise": "Vẫn với A: (5 tiến,4 rẽ), B: (6 tiến,1 rẽ), hãy tính khi tF = 2 s và tR = 0,2 s. Kết quả chọn có giống ví dụ không? Nếu B không tới đích, phải xử lý so sánh thế nào?",
-        "solution": "TA = 5×2 + 4×0,2 = 10,8 s; TB = 6×2 + 1×0,2 = 12,2 s. Với chi phí này A nhanh hơn, ngược ví dụ trước. Nếu B không tới đích thì ghi thất bại và không chọn B chỉ dựa vào thời gian chạy ngắn hơn.",
+        "exercise": "Với hai tuyến trong ví dụ, A có 5 tiến, 3 rẽ và B có 7 tiến, 2 rẽ. Tính chi phí khi tF = 2 s, tR = 0,2 s; phương án được chọn có đổi không? Nếu yêu cầu cả hai cùng kết thúc hướng nam, cần thêm lệnh gì cho B và chi phí thay đổi ra sao? Nếu B không tới đích thì xử lý so sánh thế nào?",
+        "solution": "TA = 5×2 + 3×0,2 = 10,6 s; TB = 7×2 + 2×0,2 = 14,4 s nên A được chọn, khác ví dụ trước. B kết thúc hướng tây; thêm L để quay về nam, chi phí mới là 14,6 s. Nếu B không tới đích thì ghi thất bại và loại khỏi lựa chọn đạt nhiệm vụ; vẫn giữ kết quả đó trong báo cáo.",
         "checks": [
           "Đặc tả có cùng điểm đầu/hướng đầu/đích cho A và B.",
           "Tính đúng chi phí và ghi rõ đơn vị giây cùng giả định.",
@@ -2664,7 +2846,7 @@
           ]
         ],
         "prereq": "Hoàn thành chuỗi lệnh, vòng lặp và tránh vật cản. Biết tính tổng chi phí có trọng số và phân biệt thời gian mô hình với thời gian đo.",
-        "labGuide": "Bàn lưới phù hợp đối chiếu tuyến và số hành động; chi phí thời gian trong bài là giá trị tự định nghĩa. Trong VEXcode VR hoặc GearsBot, thời gian chạy phụ thuộc cấu hình và môi trường riêng, nên đo riêng thay vì đồng nhất với mô hình lưới. Lưu/đặt lại mỗi phiên bản trước khi so sánh.",
+        "labGuide": "Chạy bằng editor Python của GearsBot hoặc Python 3; code mô phỏng lưới và xuất bảng chi phí, không điều khiển motor. Hai tuyến trong code đều được kiểm tra tới (3,2), hướng cuối được phép khác nhau. A có 5 tiến, 3 rẽ; B có 7 tiến, 2 rẽ. Thay giá tiến/rẽ để thấy lựa chọn đổi từ B sang A. Giá thời gian là giả thiết của mô hình; khi chạy robot trên sân cần đo thời gian thực và kiểm tra đích riêng.",
         "objectives": [
           "Thiết kế hai tuyến giao hàng cùng đích và xác định chi phí trước khi thử.",
           "So sánh số bước, số lần rẽ và thời gian theo cùng quy ước.",
@@ -2705,6 +2887,10 @@
           {
             "title": "VEX CS Level 1 — bài học VEXcode VR",
             "url": "https://education.vex.com/stemlabs/cs/cs-level-1-vexcode-vr"
+          },
+          {
+            "title": "Python 3 — hàm có sẵn và kiểu dữ liệu",
+            "url": "https://docs.python.org/3/library/functions.html"
           }
         ]
       },
@@ -2720,7 +2906,7 @@
           "Chạy hàm Python thuần, đối chiếu đường trả về. Chặn kín đích để xác nhận hàm trả kết quả không có đường.",
           "Chuyển danh sách ô thành tiến/rẽ theo hướng đầu và thử trên bàn lưới hoặc simulator phù hợp; kiểm tra biên và tỷ lệ đơn vị khi chuyển môi trường."
         ],
-        "code": "from collections import deque\n\ndef bfs(width, height, blocked, start, goal):\n    def free(p):\n        x, y = p\n        return 0 <= x < width and 0 <= y < height and p not in blocked\n    if not free(start) or not free(goal):\n        return None\n    queue = deque([start])\n    parent = {start: None}\n    while queue:\n        u = queue.popleft()\n        if u == goal:\n            path = []\n            while u is not None:\n                path.append(u)\n                u = parent[u]\n            return path[::-1]\n        x, y = u\n        for v in [(x+1,y), (x,y+1), (x-1,y), (x,y-1)]:\n            if free(v) and v not in parent:\n                parent[v] = u\n                queue.append(v)\n    return None\n\npath = bfs(5, 4, {(1,1), (2,1)}, (0,0), (3,2))\nprint(path)\nprint(None if path is None else len(path)-1)",
+        "code": "WIDTH, HEIGHT = 5, 4\nBLOCKED = {(1, 1), (2, 1)}\nSTART, GOAL = (0, 0), (3, 2)\n\ndef bfs(start, goal, blocked, width, height):\n    def valid(cell):\n        x, y = cell\n        return 0 <= x < width and 0 <= y < height and cell not in blocked\n\n    if not valid(start) or not valid(goal):\n        return None\n    queue = [start]\n    head = 0\n    parent = {start: None}\n    while head < len(queue):\n        current = queue[head]\n        head += 1\n        if current == goal:\n            path = []\n            while current is not None:\n                path.append(current)\n                current = parent[current]\n            return path[::-1]\n        x, y = current\n        for neighbor in [(x + 1, y), (x, y + 1), (x - 1, y), (x, y - 1)]:\n            if valid(neighbor) and neighbor not in parent:\n                parent[neighbor] = current\n                queue.append(neighbor)\n    return None\n\npath = bfs(START, GOAL, BLOCKED, WIDTH, HEIGHT)\nprint(\"Path:\", path)\nprint(\"Forward steps:\", len(path) - 1 if path is not None else None)\n",
         "q": "BFS tối ưu số bước khi…",
         "opts": [
           "Mọi cạnh cùng chi phí",
@@ -2731,7 +2917,7 @@
         "why": "FIFO duyệt các lớp theo số cạnh tăng dần, nên đường đầu tiên tới đích ngắn nhất theo số cạnh khi mỗi cạnh cùng chi phí. Nếu chi phí khác nhau, thứ tự lớp không còn tương đương chi phí nhỏ nhất.",
         "sim": "grid",
         "time": 50,
-        "lang": "Python thuần — BFS trên bản đồ có sẵn; không đọc cảm biến hoặc tự điều khiển VR",
+        "lang": "Python 3 · tìm đường BFS",
         "exercise": "Dùng lưới 4×3, đầu (0,0), đích (3,2), vật cản {(1,0),(1,1)}. Tìm một đường ngắn nhất và số bước; sau đó thêm vật cản (1,2) để chặn toàn cột x = 1. Nêu kết quả mà chương trình cần trả về.",
         "solution": "Một đường ngắn nhất là (0,0) → (0,1) → (0,2) → (1,2) → (2,2) → (3,2), gồm 5 bước. Khi chặn thêm (1,2), không có đường sang phía đích trong lưới bốn hướng; hàm trả None, không trả danh sách trống như thể đã tới đích. Đổi đường thành lệnh cần xét hướng đầu.",
         "checks": [
@@ -2758,7 +2944,7 @@
           ]
         ],
         "prereq": "Biết tọa độ lưới, ô vật cản, hàng đợi vào trước–ra trước và cách biểu diễn một tuyến bằng danh sách ô.",
-        "labGuide": "Chạy thuật toán đồ thị trong editor Python với bản đồ đã khai báo, rồi dùng bàn lưới để kiểm tra tuyến tìm được. Khi chuyển sang VEXcode VR hoặc GearsBot, khớp ô bản đồ với kích thước sân, đặt hướng đầu và chuyển đường đi thành lệnh của nền tảng.",
+        "labGuide": "Chạy bằng editor Python của GearsBot hoặc Python 3; console in danh sách tọa độ từ đầu tới đích và số bước. Code dùng hàng đợi FIFO bằng list và chỉ số head. Để làm bài tập, đổi WIDTH, HEIGHT thành 4, 3 và BLOCKED thành {(1,0),(1,1)}; chạy lại rồi thêm (1,2) để kiểm tra trường hợp bị chặn. None nghĩa là bản đồ đã khai báo không có đường hợp lệ. Muốn robot di chuyển theo đường tìm được, cần quy đổi ô sang mm và tọa độ sang hướng của sân.",
         "objectives": [
           "Mô tả BFS như phép duyệt theo lớp sử dụng hàng đợi FIFO và tập đã thăm.",
           "Dựng lại một đường đi bằng thông tin cha và xử lý trường hợp không có đường.",
@@ -2799,6 +2985,10 @@
           {
             "title": "VEX CS Level 1 — bài học VEXcode VR",
             "url": "https://education.vex.com/stemlabs/cs/cs-level-1-vexcode-vr"
+          },
+          {
+            "title": "Python 3 — hàm có sẵn và kiểu dữ liệu",
+            "url": "https://docs.python.org/3/library/functions.html"
           }
         ]
       },
@@ -2814,7 +3004,7 @@
           "Với mỗi sân, đặt lại cùng vị trí/hướng cho A/B, chạy có giới hạn và ghi mọi kết quả; không bỏ dòng thất bại.",
           "Tính tỷ lệ hoàn thành, so chi phí theo cùng quy tắc, rồi chạy sân chưa dùng. Viết kết luận giới hạn ở bộ sân đã thử và nêu bước kiểm tra tiếp theo."
         ],
-        "code": "CHỐT tiêu chí, sân và giới hạn trước khi thử\nVỚI từng sân đánh giá:\n  VỚI thuật toán A rồi B:\n    RESET cùng robot, vị trí, hướng, tốc độ\n    CẤP thông tin đầu vào đã công bố\n    CHẠY tới đích hoặc hết giới hạn\n    GHI thành công, lỗi, số bước, số rẽ, thời gian\nTÍNH tỷ lệ hoàn thành trên mọi sân\nBÁO CÁO chi phí và thất bại theo cùng quy tắc\nKIỂM TRA thêm sân chưa dùng để chỉnh thuật toán",
+        "code": "# Deterministic grid experiments. Times below are declared action costs.\nWIDTH, HEIGHT = 5, 4\nSTART, GOAL = (0, 0), (4, 3)\nMAPS = [set(), {(1, 0), (1, 1), (1, 2)},\n        {(2, 0), (2, 1), (2, 2), (2, 3)}]\nFORWARD_S, TURN_S = 1.0, 0.5\nEXPANSION_LIMIT = 100\nDIRECTIONS = [(1, 0), (0, 1), (-1, 0), (0, -1)]\n\ndef search(blocked, mode):\n    frontier = [START]\n    parent = {START: None}\n    expanded = 0\n    while frontier and expanded < EXPANSION_LIMIT:\n        current = frontier.pop(0) if mode == \"BFS\" else frontier.pop()\n        expanded += 1\n        if current == GOAL:\n            path = []\n            while current is not None:\n                path.append(current)\n                current = parent[current]\n            return path[::-1], expanded, \"goal_reached\"\n        x, y = current\n        for dx, dy in DIRECTIONS:\n            neighbor = (x + dx, y + dy)\n            nx, ny = neighbor\n            if (0 <= nx < WIDTH and 0 <= ny < HEIGHT\n                    and neighbor not in blocked and neighbor not in parent):\n                parent[neighbor] = current\n                frontier.append(neighbor)\n    reason = \"expansion_limit\" if frontier else \"no_path\"\n    return None, expanded, reason\n\ndef path_cost(path):\n    heading = 0  # east\n    turns = 0\n    for current, following in zip(path, path[1:]):\n        delta = (following[0] - current[0], following[1] - current[1])\n        next_heading = DIRECTIONS.index(delta)\n        change = (next_heading - heading) % 4\n        turns += min(change, 4 - change)\n        heading = next_heading\n    steps = len(path) - 1\n    return steps, turns, steps * FORWARD_S + turns * TURN_S\n\nfor mode in [\"BFS\", \"DFS\"]:\n    completed = 0\n    successful_costs = []\n    for map_id, blocked in enumerate(MAPS, 1):\n        path, expanded, reason = search(blocked, mode)\n        if path is None:\n            print(mode, \"map\", map_id, reason, \"expanded:\", expanded)\n        else:\n            steps, turns, cost_s = path_cost(path)\n            completed += 1\n            successful_costs.append(cost_s)\n            print(mode, \"map\", map_id, reason, \"steps:\", steps,\n                  \"turns:\", turns, \"model seconds:\", cost_s,\n                  \"expanded:\", expanded)\n    print(mode, \"completion:\", completed, \"/\", len(MAPS))\n    mean_cost = sum(successful_costs) / completed if completed else None\n    print(\"Mean model seconds on successful maps:\", mean_cost)\n",
         "q": "Có nên bỏ các lượt không tới đích khỏi báo cáo?",
         "opts": [
           "Có",
@@ -2825,7 +3015,7 @@
         "why": "Các lượt không tới đích vẫn là bằng chứng về thuật toán. Bỏ chúng sẽ làm tỷ lệ/chi phí có vẻ tốt hơn và gây thiên lệch chọn mẫu.",
         "sim": "grid",
         "time": 50,
-        "lang": "Giả mã — mô tả thuật toán, không dán trực tiếp vào editor phần cứng",
+        "lang": "Python 3 · thực nghiệm BFS và DFS",
         "exercise": "Có ba sân: A hoàn thành hai sân với 10 s và 12 s, sân còn lại timeout ở 30 s. B hoàn thành cả ba với 15 s, 16 s, 17 s. Tính tỷ lệ hoàn thành, thời gian trung bình trên các lượt thành công và thời gian trung bình nếu timeout được tính là 30 s. Viết kết luận không che giấu giới hạn.",
         "solution": "A hoàn thành 2/3 ≈ 66,7%; B 3/3 = 100%. Trung bình chỉ lượt thành công: A = 11 s, B = 16 s. Nếu tính timeout 30 s vào mọi lượt: A = 52/3 ≈ 17,33 s, B = 16 s. A nhanh ở các sân đã qua nhưng kém tin cậy trên bộ thử; cách tính khác nhau dẫn đến chỉ số khác nhau nên phải công bố rõ.",
         "checks": [
@@ -2852,7 +3042,7 @@
           ]
         ],
         "prereq": "Hoàn thành thử thách chi phí và tìm đường BFS; biết tỷ lệ phần trăm, bảng dữ liệu và khái niệm đầu vào được giữ cố định.",
-        "labGuide": "Dùng một nền tảng và cùng loại robot cho phép so sánh chính; không lấy A ở GearsBot và B ở VEXcode VR rồi chỉ so thời gian như cùng môi trường. Nếu chuyển nền tảng để mở rộng kiểm thử, ghi đó là bộ thử mới với khác biệt sân/đơn vị/robot. Bàn lưới phù hợp kiểm thử logic xác định, không cung cấp nhiễu vật lý thật.",
+        "labGuide": "Chạy bằng editor Python của GearsBot hoặc Python 3. Code so sánh BFS và DFS trên cùng ba bản đồ, cùng thứ tự xét láng giềng và cùng thông tin toàn bản đồ. Console ghi kết quả từng sân, số ô đã xét, số bước/rẽ, tỷ lệ hoàn thành và chi phí trung bình trên các sân thành công; sân thứ ba có vách kín nên cả hai phải báo no_path. Chi phí giây được tính từ FORWARD_S và TURN_S, không phải số đo thời gian robot. Giảm EXPANSION_LIMIT để kiểm tra báo hết ngân sách; giữ cả kết quả này trong báo cáo rồi mở rộng thêm bản đồ.",
         "objectives": [
           "Thiết kế phép so sánh công bằng hai thuật toán và chốt tiêu chí trước khi chạy.",
           "Báo cáo tỷ lệ hoàn thành cùng chi phí và các lượt thất bại, không chọn riêng lượt đẹp.",
@@ -2893,6 +3083,10 @@
           {
             "title": "VEX CS Level 1 — bài học VEXcode VR",
             "url": "https://education.vex.com/stemlabs/cs/cs-level-1-vexcode-vr"
+          },
+          {
+            "title": "Python 3 — hàm có sẵn và kiểu dữ liệu",
+            "url": "https://docs.python.org/3/library/functions.html"
           }
         ]
       }

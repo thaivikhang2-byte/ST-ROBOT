@@ -1,5 +1,5 @@
 import { renderCourses } from '../../components/courses/CourseCard.js';
-import { courses } from '../../data/courses.js';
+import { courses } from '../../data/courses.js?v=lesson-code-v5';
 
 /** Accessible hero carousel: auto-rotates, pauses on hover/focus, honours prefers-reduced-motion. */
 export function initCarousel(root) {

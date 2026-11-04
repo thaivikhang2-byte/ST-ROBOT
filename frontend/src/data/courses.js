@@ -28,7 +28,9 @@ export const courses = [
     "tag": "LẬP TRÌNH SÁNG TẠO",
     "desc": "Ma trận LED, sự kiện nút bấm, cảm biến và sản phẩm tương tác.",
     "tools": [
-      "makecode"
+      "MicroPython",
+      "micro:bit Python Editor",
+      "MakeCode JavaScript"
     ],
     "lessonCount": 6
   },

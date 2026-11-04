@@ -479,10 +479,12 @@ with sync_playwright() as p:
                     require(href == source['url'] and urlparse(href).scheme == 'https', 'Invalid reference URL: ' + lesson_key)
                     require(not re.search(r'youtu(?:be|\.be)', href, re.I), 'YouTube is not allowed in teaching references')
                 require(page.locator('#sampleCodeBox').text_content() == lesson_data['code'], 'Primary sample code did not load/reset: ' + lesson_key)
+                expect(page.locator('#sampleCodeBox')).to_have_attribute('translate', 'no')
                 selector = page.locator('#codeVariantSelect')
                 variants = lesson_data.get('codeVariants', [])
                 if c['id'] == 'microbit':
-                    require(any('micropython' in v['lang'].casefold() for v in variants), 'This micro:bit lesson lacks a MicroPython alternative: ' + lesson_key)
+                    require('micropython' in lesson_data['lang'].casefold(), 'The embedded Python editor needs a MicroPython primary sample: ' + lesson_key)
+                    require(any('makecode' in v['lang'].casefold() for v in variants), 'The MakeCode alternative must remain available: ' + lesson_key)
                 if variants:
                     expect(selector).to_be_visible()
                     expect(selector).to_have_value('primary')
@@ -553,8 +555,9 @@ with sync_playwright() as p:
             'makecode': 'https://makecode.microbit.org/#editor',
             'gears': 'https://gears.aposteriori.com.sg/'
         }
-        defaults = {'arduino': 'avr', 'microbit': 'makecode', 'vex-iq': 'gears', 'lego-spike': 'gears', 'vex-vr': 'gears'}
-        additions = {'wokwi', 'phet', 'scratch', 'arcade'}
+        defaults = {'arduino': 'avr', 'microbit': 'python', 'vex-iq': 'gears', 'lego-spike': 'gears', 'vex-vr': 'gears'}
+        additions = {'wokwi', 'phet', 'scratch', 'arcade', 'python'}
+        default_urls = {**original_urls, 'python': 'https://python.microbit.org/v/3/?controller=1&flag=noWelcome&l=en'}
         require(set(registry) == set(original_urls) | additions | {'local'}, 'Original labs or official embed additions missing; external-only editor added')
         for key, url in original_urls.items():
             require(registry[key]['url'] == url and registry[key]['mode'] == 'embed', 'Original lab changed: ' + key)
@@ -572,7 +575,7 @@ with sync_playwright() as p:
             page.locator('#courseSelect').select_option(course_id)
             page.locator('#tabBtnLab').click()
             default = defaults[course_id]
-            expect(page.locator('#practiceFrame')).to_have_attribute('src', original_urls[default])
+            expect(page.locator('#practiceFrame')).to_have_attribute('src', default_urls[default])
             expect(page.locator('#labButtons button[data-lab-key="' + default + '"]')).to_have_attribute('aria-pressed', 'true')
             expect(page.locator('#localLab')).to_be_hidden()
             expect(page.locator('#labActivity, #labProviderDocs, #labBoxDesc, #frameNote')).to_have_count(0)
@@ -603,7 +606,7 @@ with sync_playwright() as p:
                     frame = page.locator('#practiceFrame')
                     expect(frame).to_have_attribute('src', cfg.get('embedUrl') or cfg['url'])
                     expect(frame).to_have_attribute('title', cfg['name'])
-                    expect(frame).to_have_attribute('allow', 'fullscreen; clipboard-write')
+                    expect(frame).to_have_attribute('allow', 'fullscreen; clipboard-write; autoplay; microphone; usb' if key == 'python' else 'fullscreen; clipboard-write')
                     if key in original_urls:
                         require(frame.get_attribute('sandbox') is None, 'New restrictions changed the original iframe: ' + key)
                     else:
@@ -617,7 +620,7 @@ with sync_playwright() as p:
             # The next lesson must reopen the original lab, rather than replacing it with a local-only screen.
             page.locator('#lessonList button').nth(1).click()
             page.locator('#tabBtnLab').click()
-            expect(page.locator('#practiceFrame')).to_have_attribute('src', original_urls[default])
+            expect(page.locator('#practiceFrame')).to_have_attribute('src', default_urls[default])
         page.locator('#courseSelect').select_option('arduino')
         page.locator('#tabBtnLab').click()
         original = page.evaluate('JSON.parse(JSON.stringify(labs.wokwi))')
@@ -642,9 +645,9 @@ with sync_playwright() as p:
             mobile_layouts[course_id] = no_overflow()
         page.set_viewport_size({'width': 1440, 'height': 1000})
         fixtures['frame_urls'] = set()
-        return {'original_platforms_restored': 4, 'original_course_defaults_restored': 5, 'official_embed_additions': 4, 'selections_checked': checks, 'optional_new_tab_links_checked': checks, 'popups': 0, 'failed_addition_returns_to_original_lab': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; iframe integration uses local fixtures'}
+        return {'original_platforms_restored': 4, 'course_defaults_checked': 5, 'official_embed_additions': 5, 'selections_checked': checks, 'optional_new_tab_links_checked': checks, 'popups': 0, 'failed_addition_returns_to_original_lab': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; iframe integration uses local fixtures'}
 
-    checked('original labs and embeds preserved with optional per-lab new-tab links', lab_platforms)
+    checked('lab embeds, editable micro:bit configuration and optional new-tab links', lab_platforms)
 
     def optional_lab_tabs():
         goto('course.learning.html?course=arduino&lesson=distance')

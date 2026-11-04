@@ -24,9 +24,9 @@ Các trang HTML ở thư mục gốc chuyển về `frontend/public/` và giữ 
 
 - 5 khóa × 6 bài: Arduino Uno, VEX IQ, Micro:bit, LEGO SPIKE Prime và VEXcode VR.
 - Lý thuyết, code mẫu, bài tập, quiz, nhật ký, điều kiện hoàn thành và tải PDF.
-- Khôi phục các lab gốc CircuitJS, AVR8js, MakeCode micro:bit và GearsBot; bổ sung Wokwi, PhET, Scratch và MakeCode Arcade bằng đường nhúng chính thức. Mỗi lab có thêm lựa chọn mở riêng ở tab ngoài; khung nhúng và mặc định cũ giữ nguyên.
+- Các lab gồm CircuitJS, AVR8js, micro:bit Python Editor, GearsBot, Wokwi, PhET, Scratch và MakeCode Arcade. micro:bit dùng trình soạn thảo Python nhúng; các nền tảng còn lại giữ lựa chọn mặc định hiện có.
 - Nội dung 30 bài có mục tiêu, kiến thức theo bước, ví dụ có đơn vị, lỗi thường gặp, tự kiểm tra và nguồn chính thức.
-- micro:bit có cả mã mẫu MakeCode JavaScript và MicroPython; chọn đúng môi trường trước khi sao chép.
+- micro:bit nạp sẵn mã MicroPython vào editor trong khung; có thêm biến thể MakeCode JavaScript và chương trình gửi/nhận radio riêng.
 - Tìm/lọc bộ kit, thông số chi tiết, quiz ôn tập và chọn khóa từ trang đăng ký.
 - AI trang chủ và AI Tutor tiếp tục gọi dịch vụ đã cấu hình tại `st-robot.onrender.com`; giao diện mới không thay endpoint hay gửi khóa bí mật từ trình duyệt.
 - Chế độ sáng/tối và menu điện thoại.
@@ -49,7 +49,11 @@ python3 tests/ui-smoke.py --base http://127.0.0.1:8000 --chromium /usr/bin/chrom
 
 ## Phòng lab trong website
 
-Các nền tảng, URL và lựa chọn mặc định cũ được khôi phục theo bản `4b26e4a`: Arduino mở AVR8js (có thêm CircuitJS), micro:bit mở MakeCode, các khóa robot mở GearsBot. Bàn thí nghiệm nội bộ vẫn ở cuối danh sách như trước.
+Arduino mở AVR8js (có thêm CircuitJS); micro:bit mở Python Editor chính thức; các khóa robot mở GearsBot. Bàn thí nghiệm nội bộ vẫn ở cuối danh sách.
+
+Python Editor cho phép sửa mã ngay trong khung, có mô phỏng, tài liệu API và xuất HEX. Website dùng giao thức controller chính thức để nạp mã theo bài và nhận dự án đã chỉnh sửa. Mỗi bài micro:bit giữ một bản riêng trên trình duyệt; chờ thông báo “Đã lưu” trước khi đổi bài. Có tải mã Python đã lưu và nạp lại mã mẫu sau khi xác nhận. Mã MakeCode JavaScript dùng trong MakeCode, còn mã MicroPython dùng trong Python Editor. Bài radio thử bên nhận bằng bảng Radio; truyền giữa hai thiết bị cần hai bo micro:bit cùng giao thức.
+
+Mã robot đã thay giả mã bằng Python có thể chạy. Các đoạn điều khiển mô phỏng ghi rõ GearsBot/ev3dev2 và cấu hình robot: VEX IQ/VEXcode VR dùng Single Sensor Line Follower, LEGO SPIKE dùng Cage Bot. Các bài tính toán, BFS/DFS và so sánh chi phí dùng Python 3. Chọn robot theo hướng dẫn của bài trước khi chạy; mã mô phỏng và API firmware của kit là các môi trường khác nhau.
 
 Các mục mới dùng endpoint nhúng chính thức: Wokwi Uno, PhET mạch DC, Scratch Maze Starter và MakeCode Arcade. Công cụ chỉ có editor mở ngoài không được thêm. Mỗi lab có nút “Mở riêng ở tab ngoài” tùy chọn; không có phần hướng dẫn nền tảng trong giao diện. Nút mở editor/toàn trang tương ứng với lab đang chọn, còn bàn thí nghiệm nội bộ mở đúng khóa/bài hiện tại trong một tab mới. Bản bổ sung có lỗi tải sẽ quay về lab gốc; không xóa/ẩn các nền tảng gốc chỉ vì môi trường kiểm tra không truy cập được chúng.
 
@@ -64,6 +68,17 @@ python3 -m pip install -r scripts/requirements-content.txt
 python3 scripts/build-learning-content.py
 python3 tests/content-validation.py
 ```
+
+Kiểm tra mã mẫu và tích hợp micro:bit:
+
+```sh
+python3 tests/lesson-code-validation.py
+python3 tests/robot-lesson-programs.py
+python3 tests/spike-lesson-programs.py
+node tests/microbit-editor-bridge.mjs
+```
+
+Kiểm tra chỉnh sửa trong iframe bằng bản dựng editor chính thức: `python3 tests/microbit-lab-smoke.py --base http://127.0.0.1:5500 --chromium /usr/bin/chromium --editor-build /duong/dan/python-editor-v3/build`. Bộ kiểm tra này xác minh soạn thảo, lưu, khôi phục và cách ly bài; mô phỏng và khả dụng của máy chủ bên ngoài được ghi nhận riêng trong [phạm vi kiểm chứng](docs/lab-platforms.md).
 
 Công cụ tạo PDF cần phông DejaVu Sans (`fonts-dejavu-core` trên Debian/Ubuntu), hoặc truyền `--symbol-font /duong/dan/DejaVuSans.ttf`. Font hỗ trợ ký hiệu khoa học, bên cạnh Be Vietnam Pro có sẵn trong dự án. Các file JS sinh ra đã được commit; người dùng website không cần Python hoặc công cụ build.
 

@@ -1,5 +1,5 @@
-// Existing lab URLs/defaults are preserved from commit 4b26e4a.
-// Optional full-page links do not change the official iframe endpoints.
+// Platform URLs use provider-supported embed modes.
+// The micro:bit editor uses the official controller protocol for editable projects.
 window.STROBOT_LAB_PLATFORMS = {
     "circuit": {
         "name": "CircuitJS · Mạch điện",
@@ -24,6 +24,17 @@ window.STROBOT_LAB_PLATFORMS = {
         "url": "https://makecode.microbit.org/#editor",
         "sourceUrl": "https://makecode.microbit.org/docs",
         "embedSupport": "existing"
+    },
+    "python": {
+        "name": "micro:bit Python Editor",
+        "mode": "embed",
+        "languages": "MicroPython · Soạn thảo · Mô phỏng · Tải HEX",
+        "url": "https://python.microbit.org/v/3/?controller=1&flag=noWelcome&l=en",
+        "embedUrl": "https://python.microbit.org/v/3/?controller=1&flag=noWelcome&l=en",
+        "externalUrl": "https://python.microbit.org/v/3/",
+        "sourceUrl": "https://github.com/microbit-foundation/python-editor-v3/blob/v3.1.17/src/fs/host.ts",
+        "embedSupport": "official",
+        "controller": "microbit-python"
     },
     "gears": {
         "name": "GearsBot · Robot 3D",
@@ -88,7 +99,7 @@ window.STROBOT_COURSE_LABS = {
         "local"
     ],
     "microbit": [
-        "makecode",
+        "python",
         "scratch",
         "arcade",
         "local"
