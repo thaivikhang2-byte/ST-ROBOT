@@ -8,7 +8,7 @@
   </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Đăng ký khóa học trực tuyến — ST-Robot</title>
+  <title>Bắt đầu học STEM Robotics — ST-Robot</title>
   <meta name="description" content="Chọn chương trình đào tạo STEM Robotics và vào không gian tự học, thực hành cùng AI.">
   <link rel="stylesheet" href="../src/assets/css/variables.css">
   <link rel="stylesheet" href="../src/assets/css/base.css">
@@ -25,22 +25,22 @@
     <section class="section registration-intro" aria-labelledby="registration-title">
       <div class="container">
         <div class="section-head text-center">
-          <h1 id="registration-title">Ghi danh Đăng ký khóa học trực tuyến</h1>
-          <p>Vui lòng cung cấp thông tin liên hệ chính xác để bộ phận tuyển sinh nắm thông tin cơ bản của học viên.</p>
+          <h1 id="registration-title">Bắt đầu học STEM Robotics</h1>
+          <p>Chọn khóa phù hợp và mở ngay bài học, tài liệu cùng phòng lab thực hành.</p>
         </div>
         <div class="registration-grid">
           <section class="contact-box" aria-labelledby="admissions-title">
-            <h2 id="admissions-title">Thông tin tuyển sinh</h2>
-            <p>Các lớp học được bố trí học tương tác với AI và phòng lab mini</p>
+            <h2 id="admissions-title">Học theo mục tiêu của bạn</h2>
+            <p>Kết hợp lý thuyết, phòng lab tương tác và trợ lý AI trong từng bài học.</p>
             <ul>
-              <li>Hình thức tổ chức học tập: Thực nghiệm online tại phòng Lab.</li>
-              <li>Yêu cầu đầu vào: Dành cho học sinh đam mê nghiên cứu cấu trúc logic phần cứng từ cơ bản.</li>
+              <li>Hình thức: tự học trực tuyến với hướng dẫn và bài thực hành theo từng bước.</li>
+              <li>Phù hợp với học sinh muốn tìm hiểu lập trình, điện tử và Robotics từ cơ bản.</li>
             </ul>
           </section>
           <!-- CỘT 2: CHỌN NHANH KHÓA HỌC / TƯ VẤN (TƯƠNG THÍCH MERGE-BUILD) -->
           <div class="contact-box">
-            <h2 class="fw-bold mb-3">Phiếu đăng ký thông tin</h2>
-            <p class="text-muted small mb-4">Lựa chọn chương trình đào tạo để chuyển hướng vào không gian học tập trực tuyến tương ứng.</p>
+            <h2 class="fw-bold mb-3">Chọn khóa để bắt đầu</h2>
+            <p class="text-muted small mb-4">Thông tin nhập trong phiếu ở lại trên trang này. Để ghi danh lớp có giáo viên, liên hệ qua Fanpage ở cuối trang.</p>
 
             <form id="registerForm">
               <div class="field">
@@ -48,13 +48,13 @@
                 <input type="text" id="quickStudentName" class="input" required placeholder="Nhập đầy đủ họ tên học viên">
               </div>
               <div class="field">
-                <label class="label" for="quickContact">Thông tin phương thức liên hệ</label>
+                <label class="label" for="quickContact">Số điện thoại hoặc email</label>
                 <input type="text" id="quickContact" class="input" required placeholder="Nhập số điện thoại hoặc email">
               </div>
               <div class="field">
-                <label class="label" for="quickCourseSelect">Nền tảng lớp học định hướng đăng ký</label>
-                <select id="quickCourseSelect" class="select" required aria-label="Nền tảng lớp học định hướng đăng ký">
-                  <option value="">-- Lựa chọn chương trình đào tạo tương ứng --</option>
+                <label class="label" for="quickCourseSelect">Khóa học bạn muốn tìm hiểu</label>
+                <select id="quickCourseSelect" class="select" required aria-label="Khóa học bạn muốn tìm hiểu">
+                  <option value="">— Chọn khóa học —</option>
                   <option value="arduino">Lớp chuyên sâu lập trình mạch vi điều khiển Arduino Uno</option>
                   <option value="vex-iq">Lớp rèn luyện thuật toán điều khiển sa bàn thi đấu VEX IQ</option>
                   <option value="lego-spike">Lớp sáng tạo kiến trúc mô hình kỹ thuật LEGO SPIKE Prime</option>
@@ -64,9 +64,9 @@
             </form>
 
             <div id="submissionSuccessMsg" class="alert alert--success mt-3" style="display:none;" role="status">
-              Đã chọn khóa tự học. Thông tin liên hệ chưa được gửi và lựa chọn này chưa ghi danh vào lớp học.
+              Đã chọn khóa học. Nhấn “Vào khóa học” để bắt đầu tự học; việc ghi danh lớp có giáo viên thực hiện qua Fanpage.
             </div>
-            <a id="enterCourseLink" class="btn btn--accent btn--block mt-3" href="course.learning.html" hidden>Vào khóa học tự học →</a>
+            <a id="enterCourseLink" class="btn btn--accent btn--block mt-3" href="course.learning.html" hidden>Vào khóa học →</a>
 
           </div>
 
@@ -114,6 +114,6 @@
   });
 })();
 </script>
-  <script type="module" src="../src/app.js?v=learning-20261103-v1"></script>
+  <script type="module" src="../src/app.js?v=copy-v4"></script>
 </body>
 </html>

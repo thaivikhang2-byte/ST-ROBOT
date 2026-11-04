@@ -1,4 +1,4 @@
-import { getNavbarTemplate } from './template.js';
+import { getNavbarTemplate } from './template.js?v=copy-v4';
 import { $, $$ } from '../../utils/dom.js';
 import { icon } from '../ui/icon.js';
 

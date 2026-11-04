@@ -1,4 +1,4 @@
-import { quizCourses, quizQuestions } from '../../data/quiz.js?v=quiz-20261103-v3';
+import { quizCourses, quizQuestions } from '../../data/quiz.js?v=copy-v4';
 
 export const REVIEW_STORAGE_KEY = 'strobot.review.evidence.v1';
 export const MAX_REVIEW_ATTEMPTS = 120;
@@ -101,8 +101,8 @@ export class ReviewService {
         const due = pool.filter(question => evidence.get(question.id)?.latestCorrect && Date.parse(evidence.get(question.id).dueAt) <= this.now())
             .sort((a, b) => Date.parse(evidence.get(a.id).dueAt) - Date.parse(evidence.get(b.id).dueAt) || a.id.localeCompare(b.id));
         const candidates = [
-            ...wrong.map(question => ({ question: copyQuestion(question), reasonType: 'wrong', reason: 'Lần trả lời gần nhất của bạn ở câu này chưa đúng.' })),
-            ...unseen.map(question => ({ question: copyQuestion(question), reasonType: 'unseen', reason: 'Câu chưa luyện, cùng bài đang có câu trả lời chưa đúng.' })),
+            ...wrong.map(question => ({ question: copyQuestion(question), reasonType: 'wrong', reason: 'Ôn lại câu đã trả lời sai ở lần gần nhất.' })),
+            ...unseen.map(question => ({ question: copyQuestion(question), reasonType: 'unseen', reason: 'Luyện thêm câu mới trong bài có câu trả lời sai.' })),
             ...due.map(question => ({ question: copyQuestion(question), reasonType: 'due', reason: 'Câu đã trả lời đúng và đã đến ngày ôn lại.' }))
         ];
         const futureDates = [...evidence.values()].filter(item => item.latestCorrect && Date.parse(item.dueAt) > this.now()).map(item => item.dueAt).sort();

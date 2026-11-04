@@ -1,5 +1,5 @@
 import { KitService } from './KitService.js';
-import { KitRenderer } from './KitRenderer.js';
+import { KitRenderer } from './KitRenderer.js?v=copy-v4';
 import { $, $$ } from '../../utils/dom.js';
 import { Modal } from '../../components/modal/index.js';
 

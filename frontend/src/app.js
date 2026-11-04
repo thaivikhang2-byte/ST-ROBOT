@@ -1,19 +1,19 @@
-import { Navbar } from './components/navbar/index.js';
-import { Footer } from './components/footer/index.js';
-import { Chatbox } from './components/chatbox/index.js';
+import { Navbar } from './components/navbar/index.js?v=copy-v4';
+import { Footer } from './components/footer/index.js?v=copy-v4';
+import { Chatbox } from './components/chatbox/index.js?v=copy-v4';
 import { BackToTop } from './components/backtotop/index.js';
 import { ThemeService } from './services/ThemeService.js';
 import { Router } from './router/Router.js';
-import { ROUTES } from './constants/routes.js?v=learning-20261103-v1';
+import { ROUTES } from './constants/routes.js?v=copy-v4';
 
 // Module Controllers
 import { HomeController } from './modules/home/HomeController.js';
-import { KitController } from './modules/kit/KitController.js';
-import { QuizController } from './modules/quiz/QuizController.js?v=quiz-20261103-v3';
-import { AssessmentController } from './modules/assessment/AssessmentController.js?v=study-20261103-v1';
+import { KitController } from './modules/kit/KitController.js?v=copy-v4';
+import { QuizController } from './modules/quiz/QuizController.js?v=copy-v4';
+import { AssessmentController } from './modules/assessment/AssessmentController.js?v=copy-v4';
 import { GioiThieuController } from './modules/gioithieu/GioiThieuController.js';
 import { DangKyController } from './modules/dangky/DangKyController.js';
-import { CatalogController } from './modules/hoclieu/CatalogController.js';
+import { CatalogController } from './modules/hoclieu/CatalogController.js?v=copy-v4';
 
 class App {
     constructor() {

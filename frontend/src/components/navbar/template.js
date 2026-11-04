@@ -19,7 +19,7 @@ export const getNavbarTemplate = () => `
         ${NAV_ITEMS.map((item) => `<li><a class="nav-link" href="${item.href}" data-path="${item.href}">${item.label}</a></li>`).join('')}
       </ul>
       <div class="navbar-actions">
-        <a class="btn btn--primary btn--sm" href="${ROUTES.DANG_KY}" data-path="${ROUTES.DANG_KY}">Đăng ký</a>
+        <a class="btn btn--primary btn--sm" href="${ROUTES.DANG_KY}" data-path="${ROUTES.DANG_KY}">Chọn khóa</a>
         <button id="themeToggleBtn" class="btn btn--ghost btn--icon" type="button" aria-pressed="false" aria-label="Chế độ tối">${icon('moon')}</button>
         <button id="navToggle" class="btn btn--ghost btn--icon navbar-toggle" type="button" aria-expanded="false" aria-controls="mainNavbar" aria-label="Mở menu">${icon('menu')}</button>
       </div>

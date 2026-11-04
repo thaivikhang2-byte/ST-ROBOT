@@ -30,7 +30,7 @@ export class QuizRenderer {
     setupSummary(course, lesson, count, available) {
         const host = el('quizScopeSummary');
         host.replaceChildren();
-        if (!course) { host.textContent = 'Chưa chọn khóa học. Câu hỏi sẽ chỉ lấy từ nội dung bạn chọn.'; return; }
+        if (!course) { host.textContent = 'Chọn khóa học và phạm vi để tạo lượt kiểm tra.'; return; }
         host.append(node('strong', `${course.name} · ${lesson ? lesson.title : 'Tất cả 6 bài'}`));
         host.append(node('p', lesson ? `${count} câu hỏi bám sát bài này.` : `${count} câu, chia đều cho 6 bài trong khóa. Ngân hàng có ${available} câu để thay đổi đề giữa các lượt.`));
     }
@@ -38,7 +38,7 @@ export class QuizRenderer {
         const host = el('quizHistory');
         host.replaceChildren();
         if (!records) { host.append(node('p', 'Chọn khóa học để xem kết quả của bạn.')); return; }
-        if (!records.length) { host.append(node('p', 'Chưa có kết quả trong phạm vi này.')); return; }
+        if (!records.length) { host.append(node('p', 'Hoàn thành lượt kiểm tra đầu tiên để xem kết quả tại đây.')); return; }
         const list = node('ul', undefined, 'quiz-history-list');
         const format = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Bangkok' });
         records.slice(0, 3).forEach(record => {
@@ -51,14 +51,14 @@ export class QuizRenderer {
         host.append(list);
     }
     reviewStatus(plan) {
-        if (plan.status === 'blocked') return 'Trình duyệt đang chặn lưu hoặc đọc dữ liệu. Bạn vẫn có thể làm bài, nhưng chưa thể tạo hồ sơ ôn theo lỗi.';
-        if (!plan.hasEvidence) return 'Chưa có dữ liệu từng câu cho khóa này. Lịch sử tổng điểm cũ chưa đủ để gợi ý ôn theo lỗi. Hoàn thành một lượt kiểm tra mới để bắt đầu; các lượt bỏ dở không được tính.';
+        if (plan.status === 'blocked') return 'Trình duyệt đang chặn lưu hoặc đọc dữ liệu. Hãy bật quyền lưu trữ để dùng hồ sơ ôn theo lỗi. Bạn vẫn có thể làm bài.';
+        if (!plan.hasEvidence) return 'Hoàn thành một lượt kiểm tra để nhận gợi ý ôn theo từng câu.';
         if (plan.items.length) return `Có ${plan.availableCount} câu được gợi ý; lượt tiếp theo gồm ${plan.items.length} câu. Mỗi câu sẽ ghi rõ lý do được chọn.`;
         if (plan.nextDueAt) {
             const date = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(plan.nextDueAt));
-            return `Hiện chưa có câu cần ôn theo quy tắc. Lần ôn gần nhất tiếp theo: ${date}. Bạn vẫn có thể chọn một lượt kiểm tra thông thường.`;
+            return `Lịch ôn tiếp theo: ${date}. Trong lúc chờ, bạn có thể chọn bài để luyện thêm.`;
         }
-        return 'Chưa có câu được gợi ý ở thời điểm này. Bạn có thể tiếp tục kiểm tra theo bài.';
+        return 'Chọn bài học để tiếp tục luyện tập và cập nhật gợi ý ôn.';
     }
     reviewDashboard(plan, course) {
         const host = el('reviewEvidence');
@@ -68,14 +68,14 @@ export class QuizRenderer {
         el('btnDeleteReview').disabled = !course;
         if (!plan || !course) { el('reviewPlanStatus').textContent = 'Chọn khóa học để xem gợi ý.'; return; }
         el('reviewPlanStatus').textContent = this.reviewStatus(plan);
-        if (plan.status === 'corrupt') el('reviewPlanStatus').append(node('p', 'Một phần dữ liệu lưu không hợp lệ đã được bỏ qua. Hồ sơ có thể chưa đầy đủ.'));
+        if (plan.status === 'corrupt') el('reviewPlanStatus').append(node('p', 'Một phần dữ liệu lưu không hợp lệ đã được bỏ qua. Gợi ý ôn sử dụng các lượt lưu hợp lệ.'));
         const list = node('ul', undefined, 'review-evidence-list');
         for (const row of plan.lessons) {
             const item = node('li'); item.dataset.lessonId = row.id;
             const link = node('a', row.title); link.href = lessonHref(course.id, row.id);
             item.append(link, node('p', `${row.distinct}/${row.questionCount} câu khác nhau · ${row.correct}/${row.attempts} lần trả lời đúng trong các lượt đã lưu.`),
-                node('p', `Kết quả gần nhất của từng câu đã luyện: ${row.latestCorrect} đúng, ${row.latestWrong} chưa đúng.`),
-                node('p', row.insufficient ? 'Chưa đủ dữ liệu: cần luyện ít nhất 3 câu khác nhau trong bài.' : 'Đã luyện 3 câu trong ngân hàng này; kết quả chưa chứng minh năng lực thực hành.', 'quiz-small'));
+                node('p', `Kết quả gần nhất của từng câu đã luyện: ${row.latestCorrect} đúng, ${row.latestWrong} cần ôn lại.`),
+                node('p', row.insufficient ? 'Hãy luyện đủ 3 câu khác nhau để theo dõi kết quả của bài.' : 'Đã luyện đủ 3 câu khác nhau trong bài. Theo dõi lịch ôn để tiếp tục củng cố kiến thức.', 'quiz-small'));
             list.append(item);
         }
         host.append(list);

@@ -19,7 +19,7 @@ export class KitRenderer {
                     <ul class="tag-list" aria-label="Linh kiện nổi bật">${tagsHtml}</ul>
                     <div class="card-actions">
                       <button type="button" class="btn btn--primary btn-show-kit-detail" data-id="${kit.id}">Thông số chi tiết</button>
-                      <a href="${ROUTES.DANG_KY}" class="btn">Đăng ký lớp</a>
+                      <a href="${ROUTES.DANG_KY}" class="btn">Chọn khóa học</a>
                     </div>
                   </div>
                 </article>

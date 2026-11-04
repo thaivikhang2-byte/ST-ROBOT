@@ -1,4 +1,4 @@
-import { quizCourses, quizQuestions } from '../../data/quiz.js?v=quiz-20261103-v3';
+import { quizCourses, quizQuestions } from '../../data/quiz.js?v=copy-v4';
 
 export const QUIZ_HISTORY_KEY = 'strobot.quiz.history.v1';
 const clone = question => ({ ...question, opts: [...question.opts] });

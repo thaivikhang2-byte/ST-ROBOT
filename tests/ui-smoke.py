@@ -159,7 +159,7 @@ with sync_playwright() as p:
         page.locator('#catalogCategoryFilter').select_option('')
         page.locator('#catalogSearch').fill('khoa-hoc-khong-ton-tai-987654321')
         expect(cards).to_have_count(0)
-        expect(page.locator('#catalogCount')).to_contain_text('Không tìm thấy khóa học phù hợp')
+        expect(page.locator('#catalogCount')).to_contain_text('0 khóa học phù hợp')
         page.locator('#catalogSearch').fill('')
         expect(cards).to_have_count(5)
         # Follow an actual rendered catalog link into the original lesson application.

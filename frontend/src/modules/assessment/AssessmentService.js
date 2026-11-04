@@ -1,4 +1,4 @@
-import { ASSESSMENT_VERSION, ASSESSMENT_FORMS, ASSESSMENT_LESSONS } from '../../data/assessment.js?v=study-20261103-v1';
+import { ASSESSMENT_VERSION, ASSESSMENT_FORMS, ASSESSMENT_LESSONS } from '../../data/assessment.js?v=copy-v4';
 
 export const ASSESSMENT_STORAGE_KEY = 'strobot.assessment.v1';
 export const ASSESSMENT_MAX_PARTICIPANTS = 200;
@@ -24,7 +24,7 @@ export class AssessmentService {
     }
     timestamp() {
         const time = this.now();
-        if (!Number.isFinite(time)) throw new Error('Đồng hồ thiết bị không hợp lệ. Kiểm tra lại trước khi làm bài.');
+        if (!Number.isFinite(time)) throw new Error('Kiểm tra ngày giờ của thiết bị trước khi bắt đầu làm bài.');
         return new Date(time).toISOString();
     }
     normalizeCode(code) { return typeof code === 'string' ? code.trim().toUpperCase() : ''; }
@@ -47,7 +47,7 @@ export class AssessmentService {
     }
     readState() {
         this.problem = '';
-        if (!this.storage) { this.problem = 'Trình duyệt không cho lưu dữ liệu. Hãy bật bộ nhớ trang trước khi đánh giá.'; return { version: ASSESSMENT_VERSION, participants: [] }; }
+        if (!this.storage) { this.problem = 'Bộ nhớ trang đang bị chặn. Bật quyền lưu dữ liệu của trình duyệt trước khi đánh giá.'; return { version: ASSESSMENT_VERSION, participants: [] }; }
         try {
             const raw = this.storage.getItem(ASSESSMENT_STORAGE_KEY);
             if (raw === null) return { version: ASSESSMENT_VERSION, participants: [] };
@@ -56,14 +56,14 @@ export class AssessmentService {
             if (state?.version !== ASSESSMENT_VERSION || !Array.isArray(state.participants) || state.participants.length > ASSESSMENT_MAX_PARTICIPANTS || !state.participants.every(p => this.validParticipant(p)) || new Set(state.participants.map(p => p.code)).size !== state.participants.length) throw new Error('Invalid data');
             return state;
         } catch {
-            this.problem = 'Chưa đọc được dữ liệu đánh giá đã lưu. Tải bản sao JSON để giữ dữ liệu trước khi xóa và bắt đầu lại.';
+            this.problem = 'Chưa đọc được dữ liệu đánh giá. Tải bản sao JSON để giữ dữ liệu trước khi xóa và bắt đầu lại.';
             return { version: ASSESSMENT_VERSION, participants: [] };
         }
     }
     writeState(state) {
         if (this.problem) throw new Error(this.problem);
         try { this.storage.setItem(ASSESSMENT_STORAGE_KEY, JSON.stringify(state)); }
-        catch { throw new Error('Không lưu được thay đổi. Bộ nhớ có thể đã đầy hoặc bị chặn. Câu trả lời vừa chọn chưa được lưu; hãy tải bản sao dữ liệu và thử lại.'); }
+        catch { throw new Error('Không lưu được thay đổi vừa thực hiện. Kiểm tra dung lượng và quyền lưu dữ liệu của trình duyệt, rồi thử lại.'); }
     }
     listParticipants() { return clone(this.readState().participants); }
     getParticipant(code) { return this.listParticipants().find(p => p.code === this.normalizeCode(code)) || null; }
@@ -71,10 +71,10 @@ export class AssessmentService {
         const state = this.readState();
         if (this.problem) throw new Error(this.problem);
         code = this.normalizeCode(code);
-        if (!codePattern.test(code)) throw new Error('Mã cần 3–24 ký tự: chữ Latin, số, dấu gạch ngang hoặc gạch dưới. Không dùng họ tên hay thông tin liên hệ.');
+        if (!codePattern.test(code)) throw new Error('Dùng mã 3–24 ký tự gồm chữ Latin, số, dấu gạch ngang hoặc gạch dưới, ví dụ HS001.');
         if (!['fixed', 'adaptive'].includes(group) || !['AB', 'BA'].includes(order)) throw new Error('Chọn nhóm học và thứ tự đề do người phụ trách phân công.');
         if (state.participants.some(p => p.code === code)) throw new Error('Mã này đã có trên thiết bị. Chọn “Mở mã đã lưu” để tiếp tục.');
-        if (state.participants.length >= ASSESSMENT_MAX_PARTICIPANTS) throw new Error('Thiết bị đã lưu đủ 200 mã. Xuất dữ liệu trước khi xóa các mã không còn dùng.');
+        if (state.participants.length >= ASSESSMENT_MAX_PARTICIPANTS) throw new Error('Thiết bị đã lưu đủ 200 mã. Xuất dữ liệu, rồi xóa các mã đã hoàn thành để tạo mã mới.');
         const participant = { code, group, order, createdAt: this.timestamp(), stages: {} };
         state.participants.push(participant); this.writeState(state); return clone(participant);
     }
@@ -82,11 +82,11 @@ export class AssessmentService {
         const state = this.readState();
         if (this.problem) throw new Error(this.problem);
         const participant = state.participants.find(p => p.code === this.normalizeCode(code));
-        if (!participant) throw new Error('Không tìm thấy mã trên trình duyệt này.');
+        if (!participant) throw new Error('Chọn mã đã lưu hoặc tạo mã mới trên trình duyệt này.');
         callback(participant); this.writeState(state); return clone(participant);
     }
     startStage(code, stage) {
-        if (!stageNames.includes(stage)) throw new Error('Lượt đánh giá không hợp lệ.');
+        if (!stageNames.includes(stage)) throw new Error('Chọn lượt trước học hoặc sau học.');
         return this.mutate(code, participant => {
             if (stage === 'post' && !participant.stages.pre?.completedAt) throw new Error('Cần nộp bài trước học trước khi làm bài sau học.');
             if (participant.stages[stage]) return;
@@ -95,20 +95,20 @@ export class AssessmentService {
         });
     }
     answer(code, stage, index, choice) {
-        if (!stageNames.includes(stage)) throw new Error('Lượt đánh giá không hợp lệ.');
+        if (!stageNames.includes(stage)) throw new Error('Chọn lượt trước học hoặc sau học.');
         return this.mutate(code, participant => {
             const record = participant.stages[stage];
-            if (!record || record.completedAt) throw new Error('Lượt này chưa bắt đầu hoặc đã nộp; không thể sửa câu trả lời.');
+            if (!record || record.completedAt) throw new Error('Chọn lượt đang làm để sửa đáp án; lượt đã nộp được giữ nguyên.');
             const question = ASSESSMENT_FORMS[record.form][index];
-            if (!Number.isInteger(index) || !question || !Number.isInteger(choice) || choice < 0 || choice >= question.opts.length) throw new Error('Đáp án không hợp lệ.');
+            if (!Number.isInteger(index) || !question || !Number.isInteger(choice) || choice < 0 || choice >= question.opts.length) throw new Error('Chọn một đáp án trong câu hỏi.');
             record.answers[index] = choice; record.answeredAt[index] = this.timestamp();
         });
     }
     submitStage(code, stage) {
-        if (!stageNames.includes(stage)) throw new Error('Lượt đánh giá không hợp lệ.');
+        if (!stageNames.includes(stage)) throw new Error('Chọn lượt trước học hoặc sau học.');
         return this.mutate(code, participant => {
             const record = participant.stages[stage];
-            if (!record) throw new Error('Chưa bắt đầu lượt đánh giá này.');
+            if (!record) throw new Error('Bắt đầu lượt đánh giá trước khi nộp bài.');
             if (record.completedAt) return; // Repeated submissions never change the original result.
             if (record.answers.includes(null)) throw new Error('Cần trả lời đủ 12 câu trước khi nộp bài.');
             record.completedAt = this.timestamp();
@@ -171,7 +171,7 @@ export class AssessmentService {
     exportJson() {
         // Preserve even unreadable data for recovery instead of silently discarding it.
         try { return this.storage?.getItem(ASSESSMENT_STORAGE_KEY) || JSON.stringify({ version: ASSESSMENT_VERSION, participants: [] }, null, 2); }
-        catch { throw new Error('Trình duyệt không cho đọc bản sao dữ liệu.'); }
+        catch { throw new Error('Trình duyệt đang chặn đọc dữ liệu. Kiểm tra quyền lưu trữ rồi tải lại bản sao JSON.'); }
     }
     deleteParticipant(code) {
         const state = this.readState();
@@ -179,8 +179,8 @@ export class AssessmentService {
         state.participants = state.participants.filter(p => p.code !== this.normalizeCode(code)); this.writeState(state);
     }
     clearAll() {
-        if (!this.storage) throw new Error('Không truy cập được bộ nhớ trình duyệt.');
+        if (!this.storage) throw new Error('Bật quyền truy cập bộ nhớ trang rồi thử xóa lại.');
         try { this.storage.removeItem(ASSESSMENT_STORAGE_KEY); this.problem = ''; }
-        catch { throw new Error('Chưa xóa được dữ liệu trên trình duyệt.'); }
+        catch { throw new Error('Xóa dữ liệu chưa thành công. Kiểm tra quyền lưu trữ của trình duyệt rồi thử lại.'); }
     }
 }

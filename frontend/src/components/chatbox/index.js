@@ -57,16 +57,16 @@ export class Chatbox {
                 });
                 let data;
                 try { data = await response.json(); }
-                catch { throw new Error('Máy chủ chưa sẵn sàng. Hãy thử gửi lại sau 60 giây.'); }
-                if (!response.ok) throw new Error(data.error || 'Không gửi được câu hỏi. Hãy thử lại.');
-                if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('AI chưa trả về nội dung. Hãy thử lại.');
+                catch { throw new Error('Kết nối trả lời bị gián đoạn. Hãy gửi lại sau 60 giây.'); }
+                if (!response.ok) throw new Error(data.error || 'Gửi câu hỏi bị gián đoạn. Hãy thử lại.');
+                if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('Hãy gửi lại câu hỏi để nhận phản hồi đầy đủ.');
                 pending.textContent = data.reply;
                 this.history.push({ role: 'user', content: question }, { role: 'assistant', content: data.reply.slice(0, 4000) });
                 this.history = this.history.slice(-6);
             } catch (error) {
                 pending.textContent = error.name === 'AbortError'
                     ? 'Chờ phản hồi quá lâu. Bạn hãy gửi lại câu hỏi.'
-                    : error instanceof TypeError ? 'Không kết nối được máy chủ AI. Kiểm tra mạng rồi thử lại.' : error.message;
+                    : error instanceof TypeError ? 'Kết nối với trợ lý bị gián đoạn. Kiểm tra mạng rồi thử lại.' : error.message;
                 if (!input.value) input.value = question;
             } finally {
                 clearTimeout(timer);

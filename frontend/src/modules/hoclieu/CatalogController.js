@@ -19,7 +19,7 @@ export class CatalogController {
                 `${course.name} ${course.desc} ${course.tag} ${course.tools}`.toLocaleLowerCase('vi').includes(term));
             renderCourses(host, results);
             document.getElementById('catalogCount').textContent = results.length
-                ? `${results.length} khóa học` : 'Không tìm thấy khóa học phù hợp. Hãy thử từ khóa khác.';
+                ? `${results.length} khóa học` : '0 khóa học phù hợp. Thử từ khóa khác hoặc chọn lại bộ lọc.';
         };
         search.addEventListener('input', update);
         category.addEventListener('change', update);

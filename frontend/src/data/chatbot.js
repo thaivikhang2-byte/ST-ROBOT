@@ -5,7 +5,7 @@ export const chatbotResponses = [
     },
     {
         keywords: ["microbit", "micro:bit"],
-        response: "Micro:bit cực kỳ tối ưu cho các bạn làm quen với khối lệnh kéo thả kéo block căn bản trực quan."
+        response: "Micro:bit giúp bạn làm quen với lập trình bằng khối lệnh kéo thả và các cảm biến trên bo mạch."
     },
     {
         keywords: ["vex"],
@@ -17,10 +17,10 @@ export const chatbotResponses = [
     },
     {
         keywords: ["đăng ký", "học"],
-        response: "Bạn truy cập trực tiếp mục Đăng ký trên thanh menu để chọn lớp học và ghi danh nhanh chóng."
+        response: "Bạn mở mục Chọn khóa trên thanh menu để chọn nội dung và bắt đầu tự học."
     },
     {
         keywords: ["default"],
-        response: "Cảm ơn bạn đã quan tâm đến hệ thống khóa học STEM Robotics. Hãy điều hướng qua các tab menu chính để cập nhật đầy đủ thông tin hoặc gửi đơn đăng ký tư vấn cụ thể nhé."
+        response: "Bạn có thể mở Khóa học & Học liệu để xem nội dung, hoặc hỏi trợ lý về bộ kit và lộ trình học phù hợp."
     }
 ];

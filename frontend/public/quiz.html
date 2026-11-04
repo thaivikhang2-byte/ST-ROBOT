@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="../src/assets/css/base.css">
   <link rel="stylesheet" href="../src/assets/css/layout.css">
   <link rel="stylesheet" href="../src/assets/css/components.css">
-  <link rel="stylesheet" href="../src/assets/css/pages/quiz.css?v=quiz-20261103-v3">
+  <link rel="stylesheet" href="../src/assets/css/pages/quiz.css?v=copy-v4">
 </head>
 <body>
   <a href="#main" class="skip-link">Chuyển đến nội dung chính</a>
@@ -25,18 +25,18 @@
           <div class="field"><label class="label" for="quizLessonSelect">Phạm vi kiến thức</label><select class="select" id="quizLessonSelect" disabled><option value="all">Chọn khóa học trước</option></select></div>
           <div class="field"><label class="label" for="quizQuestionCount">Số câu hỏi</label><select class="select" id="quizQuestionCount" disabled><option value="">—</option></select></div>
         </div>
-        <div id="quizScopeSummary" class="quiz-scope-summary" aria-live="polite">Chưa chọn khóa học. Câu hỏi sẽ chỉ lấy từ nội dung bạn chọn.</div>
+        <div id="quizScopeSummary" class="quiz-scope-summary" aria-live="polite">Chọn khóa học và phạm vi để tạo lượt kiểm tra.</div>
         <p id="quizSetupError" class="quiz-error" role="alert" hidden></p>
         <div class="quiz-setup-footer"><p>Mỗi câu có một đáp án đúng. Chọn đáp án rồi bấm <strong>Xác nhận</strong> để xem giải thích.</p><button id="btnInitQuiz" class="btn btn--primary" type="submit" disabled>Bắt đầu làm bài</button></div>
       </form>
       <section class="quiz-adaptive" aria-labelledby="reviewTitle">
         <h3 id="reviewTitle">Ôn theo lỗi của tôi</h3>
-        <p>Ưu tiên câu có lần trả lời gần nhất chưa đúng, rồi câu chưa luyện trong cùng bài, sau đó câu đã đến ngày ôn lại. Mỗi lượt tối đa 6 câu trong khóa đã chọn.</p>
+        <p>Ôn lại câu đã trả lời sai, luyện thêm câu trong cùng bài và ôn những câu đến hẹn. Mỗi lượt tối đa 6 câu trong khóa đã chọn.</p>
         <p class="quiz-small">Hồ sơ lưu trên trình duyệt này. Nếu đổi người dùng trên máy chung, hãy tải dữ liệu cần giữ rồi xóa hồ sơ của khóa trước khi bắt đầu.</p>
         <div id="reviewPlanStatus" class="quiz-scope-summary" aria-live="polite">Chọn khóa học để xem gợi ý.</div>
         <button id="btnAdaptiveReview" class="btn btn--primary" type="button" disabled>Ôn theo lỗi của tôi</button>
         <details class="review-evidence-details"><summary>Xem dữ liệu từng bài và cách hẹn ôn</summary>
-          <p class="quiz-small">Đây là gợi ý luyện tập từ ngân hàng nhỏ, không phải đánh giá năng lực. Chỉ tính lượt đã hoàn thành; thoát giữa chừng không ghi nhận. Sau một lần đúng, hẹn ôn sau 1 ngày; đúng liên tiếp lần hai: 3 ngày; từ lần ba: 7 ngày. Trả lời sai thì ưu tiên ôn ngay. Còn dưới 3 câu khác nhau trong một bài: chưa đủ dữ liệu.</p>
+          <p class="quiz-small">Hoàn thành lượt làm bài để cập nhật hồ sơ ôn tập. Sau một lần đúng, hẹn ôn sau 1 ngày; đúng liên tiếp lần hai: 3 ngày; từ lần ba: 7 ngày. Trả lời sai thì ưu tiên ôn ngay. Luyện đủ 3 câu khác nhau trong bài để theo dõi kết quả của cả bài.</p>
           <div id="reviewEvidence"></div>
           <p class="quiz-small">Giữ tối đa 120 lượt hoàn thành gần nhất trên trình duyệt. Các số liệu dưới đây chỉ tính các lượt còn lưu.</p>
         </details>
@@ -63,9 +63,9 @@
       <section class="quiz-review" aria-labelledby="quizReviewTitle"><h3 id="quizReviewTitle">Xem lại từng câu</h3><p>Mở một câu để xem đáp án đã chọn, đáp án đúng và giải thích. Liên kết ôn bài dẫn về đúng nội dung khóa học.</p><div id="quizReviewList"></div></section>
     </section>
   </main>
-  <dialog id="quizExitDialog" class="dialog" aria-labelledby="quizExitTitle"><div class="dialog-body"><h2 id="quizExitTitle">Chọn lại nội dung kiểm tra?</h2><p>Lượt đang làm sẽ kết thúc và không được ghi vào kết quả gần đây.</p></div><div class="dialog-foot"><button id="quizContinueBtn" class="btn" type="button">Tiếp tục làm bài</button><button id="quizDiscardBtn" class="btn btn--primary" type="button">Chọn lại nội dung</button></div></dialog>
+  <dialog id="quizExitDialog" class="dialog" aria-labelledby="quizExitTitle"><div class="dialog-body"><h2 id="quizExitTitle">Chọn lại nội dung kiểm tra?</h2><p>Lượt đang làm sẽ kết thúc mà không lưu kết quả. Chọn “Tiếp tục làm bài” để hoàn thành lượt này.</p></div><div class="dialog-foot"><button id="quizContinueBtn" class="btn" type="button">Tiếp tục làm bài</button><button id="quizDiscardBtn" class="btn btn--primary" type="button">Chọn lại nội dung</button></div></dialog>
   <dialog id="reviewDeleteDialog" class="dialog" aria-labelledby="reviewDeleteTitle"><div class="dialog-body"><h2 id="reviewDeleteTitle">Xóa dữ liệu của khóa này?</h2><p id="reviewDeleteDescription"></p><p>Nhật ký học, các khóa khác và dữ liệu đánh giá trước – sau được giữ nguyên. Hãy tải bản JSON trước nếu muốn giữ hồ sơ ôn tập.</p></div><div class="dialog-foot"><button id="btnCancelDeleteReview" class="btn" type="button">Giữ dữ liệu</button><button id="btnConfirmDeleteReview" class="btn btn--primary" type="button">Xóa dữ liệu khóa này</button></div></dialog>
   <div id="footer-container"></div><div id="backtotop-container"></div><div id="chatbox-container"></div>
-  <script type="module" src="../src/app.js?v=quiz-20261103-v3"></script>
+  <script type="module" src="../src/app.js?v=copy-v4"></script>
 </body>
 </html>

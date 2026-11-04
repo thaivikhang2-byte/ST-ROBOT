@@ -16,7 +16,7 @@
   <header id="navbar-container"></header>
   <div class="learning-workspace">
     <div id="enrollmentBanner" class="ws-banner" role="region" aria-label="Thông báo khóa học">
-      <span><strong>Không gian học tập STEM Robotics.</strong> Chọn khóa ở thanh bên. Tiến độ được lưu trên trình duyệt; trang này không xác nhận thanh toán.</span>
+      <span><strong>Học STEM Robotics theo từng bước.</strong> Chọn khóa ở thanh bên để bắt đầu. Tiến độ và nhật ký được lưu trên trình duyệt này.</span>
       <button type="button" onclick="document.getElementById('enrollmentBanner').style.display='none'">Đã hiểu</button>
     </div>
     <div id="notice" role="status" aria-live="polite"></div>
@@ -70,7 +70,7 @@
             <textarea id="journal" maxlength="15000" rows="6" placeholder="Lượt 1: đầu vào…; dự đoán…; quan sát…; giải thích…"></textarea>
             <p id="saveNotice" role="status"></p><button type="button" id="exportNotes">Tải nhật ký khóa này</button>
             <h3>Rubric giáo viên đối chiếu · 100 điểm</h3><ul id="rubric"></ul>
-            <p class="small">Mỗi tiêu chí: đủ chứng cứ = toàn điểm; thiếu một phần = nửa điểm; chưa có = 0. Trang chỉ kiểm tra trắc nghiệm và lưu nhật ký, không tự chấm nội dung iframe bên ngoài.</p>
+            <p class="small">Giáo viên đối chiếu nhật ký và kết quả thực hành theo từng tiêu chí: đầy đủ minh chứng nhận toàn điểm, đáp ứng một phần nhận nửa điểm, cần bổ sung minh chứng nhận 0 điểm.</p>
             <button type="button" class="btn--primary" onclick="markLessonComplete()">Đánh dấu hoàn thành tự học</button>
           </section>
         </div>
@@ -96,11 +96,11 @@
     </main>
   </div>
   <div role="dialog" aria-modal="true" aria-label="Giáo trình PDF" aria-hidden="true" id="pdfModal" class="hidden">
-    <div class="pdf-panel"><div class="pdf-head"><span id="modalPdfTitle">Tài liệu giáo trình ST-Robot</span><div class="pdf-actions"><button type="button" id="downloadPdf" class="btn--primary">Tải PDF thật · 6 bài</button><button type="button" onclick="closePdfModal()">Đóng</button></div></div><div class="pdf-body"><div id="printablePdfArea"><h2 id="pdfDocHeading">Tiêu đề bài học</h2><p class="small">Tài liệu tự học có bài tập và đáp án đối chiếu</p><div id="pdfDocBody"></div></div></div></div>
+    <div class="pdf-panel"><div class="pdf-head"><span id="modalPdfTitle">Tài liệu giáo trình ST-Robot</span><div class="pdf-actions"><button type="button" id="downloadPdf" class="btn--primary">Tải giáo trình PDF · 6 bài</button><button type="button" onclick="closePdfModal()">Đóng</button></div></div><div class="pdf-body"><div id="printablePdfArea"><h2 id="pdfDocHeading">Tiêu đề bài học</h2><p class="small">Tài liệu tự học có bài tập và đáp án đối chiếu</p><div id="pdfDocBody"></div></div></div></div>
   </div>
-  <script type="module" src="../src/app.js?v=learning-20261103-v1"></script>
-<script src="../src/data/curriculum.js"></script>
-<script src="../src/data/lesson-pdfs.js"></script>
+  <script type="module" src="../src/app.js?v=copy-v4"></script>
+<script src="../src/data/curriculum.js?v=copy-v4"></script>
+<script src="../src/data/lesson-pdfs.js?v=copy-v4"></script>
 <script id="lab-platform-data" data-lab-version="6d283b90475a">
 // Existing lab URLs/defaults are preserved from commit 4b26e4a.
 // Optional full-page links do not change the official iframe endpoints.
@@ -348,28 +348,28 @@ function selectLabPlatform(key) {
 function reloadLabFrame() { if(canEmbedPlatform(labs[frameKey]))selectLabPlatform(frameKey); }
 function fullscreenLabFrame() {
  const frame=$('practiceFrame');
- if(frame?.requestFullscreen)frame.requestFullscreen().catch(()=>toast('Thiết bị chưa hỗ trợ toàn màn hình.'));
- else toast('Thiết bị chưa hỗ trợ toàn màn hình.');
+ if(frame?.requestFullscreen)frame.requestFullscreen().catch(()=>toast('Dùng nút mở lab ở tab riêng để xem trên cửa sổ rộng hơn.'));
+ else toast('Dùng nút mở lab ở tab riêng để xem trên cửa sổ rộng hơn.');
 }
 
-function markLessonComplete(){let r=record();if(r.choice!==lesson().answer){toast('Cần trả lời đúng câu kiểm tra trước.');return}if((r.note||'').trim().length<60){toast('Ghi nhật ký ít nhất 60 ký tự: đầu vào, kết quả và giải thích.');$('journal').focus();return}r.done=true;save();renderLessons();toast('Đã đánh dấu hoàn thành tự học. Đây không phải xác nhận chấm lab ngoài hoặc chứng nhận năng lực.')}
+function markLessonComplete(){let r=record();if(r.choice!==lesson().answer){toast('Cần trả lời đúng câu kiểm tra trước.');return}if((r.note||'').trim().length<60){toast('Ghi nhật ký ít nhất 60 ký tự: đầu vào, kết quả và giải thích.');$('journal').focus();return}r.done=true;save();renderLessons();toast('Đã đánh dấu hoàn thành bài tự học. Bạn có thể tiếp tục bài kế tiếp.')}
 function downloadBlob(blob,name){let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),30000)}
 function pdfBlob(){const b=atob(PDFS[course.id]);return new Blob([Uint8Array.from(b,c=>c.charCodeAt(0))],{type:'application/pdf'})}
 function downloadPdf(){downloadBlob(pdfBlob(),course.id+'-giao-trinh-6-bai.pdf')}
 function openPdfModal(){if(pdfURL)URL.revokeObjectURL(pdfURL);pdfURL=URL.createObjectURL(pdfBlob());$('pdfDocHeading').textContent=course.name+' · Giáo trình 6 bài';$('pdfDocBody').innerHTML='<p>PDF có lý thuyết, ví dụ, mã mẫu, bài tập, đáp án và rubric. Nếu thiết bị không xem được PDF trong khung, dùng nút tải.</p><iframe title="Giáo trình PDF" style="width:100%;height:62vh;border:0" src="'+pdfURL+'"></iframe>';$('pdfModal').classList.remove('hidden');$('pdfModal').style.display='flex';$('pdfModal').setAttribute('aria-hidden','false');$('downloadPdf').focus()}
 function closePdfModal(){$('pdfModal').style.display='none';$('pdfModal').setAttribute('aria-hidden','true')}
-async function copySampleCode(){try{await navigator.clipboard.writeText($('sampleCodeBox').textContent);toast('Đã sao chép mã mẫu đang chọn.')}catch{toast('Trình duyệt không cho sao chép tự động; chọn mã rồi nhấn Ctrl+C.')}}
+async function copySampleCode(){try{await navigator.clipboard.writeText($('sampleCodeBox').textContent);toast('Đã sao chép mã mẫu đang chọn.')}catch{toast('Hãy chọn mã và nhấn Ctrl+C để sao chép.')}}
 // Local numerical/logic benches: explicit models, never execute arbitrary user code.
 function renderLocal(){const id=course.id;$('localLab').innerHTML='<h3>Bàn thí nghiệm tương tác</h3><div id="benchControls"></div><canvas id="benchCanvas" width="600" height="260" style="max-width:100%;width:100%;background:#0b172a;border-radius:12px"></canvas><pre id="benchResult" role="status"></pre>';
  if(id==='arduino'){$('benchControls').innerHTML='<label>Điện trở Ω <input id="resistance" type="number" min="1" max="1000000" value="330"></label><label>Echo µs (0 = timeout) <input id="echo" type="number" min="0" max="30000" value="1000"></label><label>Chuỗi khoảng cách cm <input id="distances" value="30,19,22,24,26"></label><button onclick="runBench()">Tính & chạy cảnh báo</button>'}
  else if(id==='microbit'){$('benchControls').innerHTML='<label>Chuỗi sự kiện (A tăng, B đặt lại) <input id="events" value="A,A,B,A" maxlength="200"></label><label>Ánh sáng 0–255 <input id="light" type="range" min="0" max="255" value="49"></label><button onclick="runBench()">Chạy mô hình</button>'}
  else if(id==='lego-spike'){$('benchControls').innerHTML='<label>Chuỗi màu: red, blue, empty, other <input id="colors" value="red,red,empty,blue,empty" maxlength="300"></label><label>Bánh chủ động / bị động <input id="gearIn" type="number" min="1" value="12"><input id="gearOut" type="number" min="1" value="36"></label><button onclick="runBench()">Chạy phân loại & tỉ số</button>'}
- else{$('benchControls').innerHTML='<p>Lưới 5×4, đầu (0,0) hướng đông, đích (3,2). F tiến, R phải, L trái. Tối đa 100 lệnh; đây là chuỗi lệnh rời rạc, không phải Python/VEX.</p><label>Chương trình <input id="commands" value="F F F R F F" maxlength="300"></label><button onclick="runBench()">Chạy từ đầu</button>'}runBench()}
+ else{$('benchControls').innerHTML='<p>Lưới 5×4, đầu (0,0) hướng đông, đích (3,2). F tiến, R phải, L trái. Nhập chuỗi lệnh F/R/L cho bàn lưới này, tối đa 100 lệnh. Mã Python/VEX dùng trong nền tảng tương ứng.</p><label>Chương trình <input id="commands" value="F F F R F F" maxlength="300"></label><button onclick="runBench()">Chạy từ đầu</button>'}runBench()}
 function runBench(){const canvas=$('benchCanvas'),ctx=canvas.getContext('2d');ctx.clearRect(0,0,600,260);ctx.font='18px sans-serif';ctx.fillStyle='#9ee8db';let out='';try{
  if(course.id==='arduino'){let r=Number($('resistance').value),t=Number($('echo').value),ds=$('distances').value.split(',').map(Number);if(!(r>0&&r<=1e6&&t>=0&&t<=30000)||ds.length>50||ds.some(x=>!Number.isFinite(x)||x<0))throw Error('Nhập giá trị hợp lệ trong miền đã ghi.');let alarm=false,trace=ds.map(d=>{if(d<20)alarm=true;else if(d>25)alarm=false;return d+' cm → '+(alarm?'BẬT':'tắt')});out='Mô hình LED: Vs=5 V, Vf=2 V; I = '+(3000/r).toFixed(2)+' mA\nEcho: '+(t===0?'TIMEOUT — không phải 0 cm':(t*.034/2).toFixed(2)+' cm')+'\nHysteresis <20 bật, >25 tắt; đầu tắt:\n'+trace.join('\n');ctx.strokeStyle='#7bdcc9';ctx.lineWidth=4;ctx.strokeRect(90,70,400,100);ctx.fillStyle='#0b172a';ctx.fillRect(220,55,80,30);ctx.fillStyle='#7bdcc9';ctx.fillText(r+' Ω',220,78);ctx.beginPath();ctx.arc(380,170,18,0,7);ctx.fillStyle='#ffcc66';ctx.fill();ctx.fillText('5 V',35,125);ctx.fillText('Vf = 2 V',330,220)}
  else if(course.id==='microbit'){const ev=$('events').value.toUpperCase().split(/[ ,]+/).filter(Boolean);if(ev.length>100||ev.some(e=>!['A','B'].includes(e)))throw Error('Chỉ dùng A và B, tối đa 100 sự kiện.');let n=0,trace=ev.map(e=>{n=e==='A'?n+1:0;return e+' → '+n});const light=Number($('light').value);out=trace.join('\n')+'\nKết quả: '+n+'\nÁnh sáng tương đối '+light+' → '+(light<50?'TỐI':'SÁNG')+' (ngưỡng <50, không phải lux)';ctx.font='70px sans-serif';ctx.fillText(String(n),270,140);ctx.font='18px sans-serif';ctx.fillText('Trạng thái bộ đếm',210,205)}
  else if(course.id==='lego-spike'){let list=$('colors').value.toLowerCase().split(/[ ,]+/).filter(Boolean),a=Number($('gearIn').value),b=Number($('gearOut').value);if(list.length>100||list.some(v=>!['red','blue','empty','other'].includes(v))||!(a>0&&a<=1000&&b>0&&b<=1000))throw Error('Dùng red, blue, empty, other; số răng 1–1000.');let armed=true,A=0,B=0,U=0;out=list.map(v=>{if(v==='empty'){armed=true;return 'trống → sẵn sàng'}if(!armed)return v+' → chờ lấy vật ra';armed=false;if(v==='red')A++;else if(v==='blue')B++;else U++;return v+' → '+(v==='red'?'A':v==='blue'?'B':'kiểm tra')}).join('\n')+'\nA='+A+', B='+B+', kiểm tra='+U+'\nTốc độ ra/vào = '+(a/b).toFixed(3)+'; quay ngược chiều (cặp bánh ngoài).';[['#ef7777',A,70],['#70baff',B,240],['#ffcc66',U,410]].forEach(([color,n,x])=>{ctx.fillStyle=color;ctx.fillRect(x,90,110,100);ctx.fillStyle='#0b172a';ctx.fillText(String(n),x+45,145)})}
- else{const cmds=$('commands').value.toUpperCase().split(/[ ,\n]+/).filter(Boolean);if(cmds.length>100||cmds.some(c=>!['F','R','L'].includes(c)))throw Error('Chỉ F, R, L, tối đa 100 lệnh.');let x=0,y=0,d=0,trail=[[x,y]],error='';for(const c of cmds){if(c==='R')d=(d+1)%4;else if(c==='L')d=(d+3)%4;else{const nx=x+[1,0,-1,0][d],ny=y+[0,1,0,-1][d];if(nx<0||nx>4||ny<0||ny>3){error='Dừng: lệnh tiến vượt biên.';break}x=nx;y=ny;trail.push([x,y])}}for(let j=0;j<4;j++)for(let i=0;i<5;i++){ctx.fillStyle=i===3&&j===2?'#735f26':'#243c54';ctx.fillRect(120+i*65,10+j*55,60,50)}ctx.strokeStyle='#7bdcc9';ctx.beginPath();trail.forEach(([a,b],i)=>i?ctx.lineTo(150+a*65,35+b*55):ctx.moveTo(150+a*65,35+b*55));ctx.stroke();ctx.fillStyle='#fff';ctx.fillText(['→','↓','←','↑'][d],140+x*65,42+y*55);out='Vị trí ('+x+','+y+'), hướng '+['đông','nam','tây','bắc'][d]+'\n'+(error||(x===3&&y===2?'Đã tới đích.':'Chưa tới đích.'))+'\n'+cmds.length+' lệnh trong chương trình; '+(trail.length-1)+' bước tiến đã thực hiện.'}
+ else{const cmds=$('commands').value.toUpperCase().split(/[ ,\n]+/).filter(Boolean);if(cmds.length>100||cmds.some(c=>!['F','R','L'].includes(c)))throw Error('Chỉ F, R, L, tối đa 100 lệnh.');let x=0,y=0,d=0,trail=[[x,y]],error='';for(const c of cmds){if(c==='R')d=(d+1)%4;else if(c==='L')d=(d+3)%4;else{const nx=x+[1,0,-1,0][d],ny=y+[0,1,0,-1][d];if(nx<0||nx>4||ny<0||ny>3){error='Dừng: lệnh tiến vượt biên.';break}x=nx;y=ny;trail.push([x,y])}}for(let j=0;j<4;j++)for(let i=0;i<5;i++){ctx.fillStyle=i===3&&j===2?'#735f26':'#243c54';ctx.fillRect(120+i*65,10+j*55,60,50)}ctx.strokeStyle='#7bdcc9';ctx.beginPath();trail.forEach(([a,b],i)=>i?ctx.lineTo(150+a*65,35+b*55):ctx.moveTo(150+a*65,35+b*55));ctx.stroke();ctx.fillStyle='#fff';ctx.fillText(['→','↓','←','↑'][d],140+x*65,42+y*55);out='Vị trí ('+x+','+y+'), hướng '+['đông','nam','tây','bắc'][d]+'\n'+(error||(x===3&&y===2?'Đã tới đích.':'Tiếp tục điều chỉnh lệnh để đến đích (3,2). '))+'\n'+cmds.length+' lệnh trong chương trình; '+(trail.length-1)+' bước tiến đã thực hiện.'}
  $('benchResult').textContent=out;
  }catch(e){$('benchResult').textContent=e.message}}
 window.addEventListener('DOMContentLoaded',initPage);
@@ -417,15 +417,15 @@ window.addEventListener('DOMContentLoaded', () => {
         body:JSON.stringify({course:course.id,lesson:lesson().id,question,history}), signal:controller.signal
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Chưa nhận được phản hồi.');
-      if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('Phản hồi đang trống.');
+      if (!response.ok) throw new Error(data.error || 'Kết nối trả lời bị gián đoạn. Bạn hãy gửi lại câu hỏi.');
+      if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('Hãy gửi lại câu hỏi để nhận phản hồi đầy đủ.');
       if (ticket !== generation) return;
       add(data.reply, false);
       history.push({role:'user',content:question},{role:'assistant',content:data.reply.slice(0,4000)});
       history = history.slice(-6); status.textContent = '';
     } catch (error) {
       if (ticket === generation) {
-        status.textContent = error.name === 'AbortError' ? 'Hết thời gian chờ. Bạn có thể gửi lại câu hỏi.' : (error instanceof TypeError ? 'Chưa kết nối được trợ lý. Bạn hãy thử lại sau.' : error.message);
+        status.textContent = error.name === 'AbortError' ? 'Hết thời gian chờ. Bạn có thể gửi lại câu hỏi.' : (error instanceof TypeError ? 'Kết nối với trợ lý bị gián đoạn. Kiểm tra mạng rồi gửi lại câu hỏi.' : error.message);
         if (!input.value) input.value = question;
       }
     } finally {

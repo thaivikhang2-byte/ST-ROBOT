@@ -1,5 +1,5 @@
 import { ROUTES } from '../../constants/routes.js';
-import { NAV_ITEMS } from '../navbar/template.js';
+import { NAV_ITEMS } from '../navbar/template.js?v=copy-v4';
 
 export const getFooterTemplate = () => `
   <footer class="footer">
@@ -13,7 +13,7 @@ export const getFooterTemplate = () => `
           <h2 id="footer-nav">Điều hướng</h2>
           <ul>
             ${NAV_ITEMS.map((item) => `<li><a href="${item.href}">${item.label}</a></li>`).join('')}
-            <li><a href="${ROUTES.DANG_KY}">Đăng ký lớp học</a></li>
+            <li><a href="${ROUTES.DANG_KY}">Chọn khóa học</a></li>
           </ul>
         </nav>
         <section aria-labelledby="footer-contact">

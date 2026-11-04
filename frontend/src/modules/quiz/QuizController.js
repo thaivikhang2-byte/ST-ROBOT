@@ -1,6 +1,6 @@
-import { QuizService } from './QuizService.js?v=quiz-20261103-v3';
-import { ReviewService } from './ReviewService.js?v=quiz-20261103-v3';
-import { QuizRenderer } from './QuizRenderer.js?v=quiz-20261103-v3';
+import { QuizService } from './QuizService.js?v=copy-v4';
+import { ReviewService } from './ReviewService.js?v=copy-v4';
+import { QuizRenderer } from './QuizRenderer.js?v=copy-v4';
 const el = id => document.getElementById(id);
 
 export class QuizController {
@@ -107,7 +107,7 @@ export class QuizController {
             const link = document.createElement('a'); link.href = url; link.download = `strobot-on-tap-${courseId}.json`;
             document.body.append(link); link.click(); link.remove();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
-            el('reviewDataNotice').textContent = 'Đã tạo bản JSON từ các lượt ôn đã lưu của khóa này. Bản tải không chứa nhật ký hay dữ liệu đánh giá trước – sau.';
+            el('reviewDataNotice').textContent = 'Đã tạo bản JSON gồm các lượt ôn đã lưu của khóa này. Hãy giữ tệp để đối chiếu kết quả khi cần.';
         } catch {
             el('reviewDataNotice').textContent = 'Chưa tải được dữ liệu. Hãy kiểm tra quyền tải tệp và lưu trữ của trình duyệt.';
         }
@@ -145,7 +145,7 @@ export class QuizController {
         this.renderer.summary(report, this.scopeLabel(), this.questions, this.responses, this.config.courseId, saved);
         const evidenceSaved = this.review.recordCompletedAttempt({ completed: true, id: this.attemptId, courseId: this.config.courseId, mode: this.config.mode,
             answers: this.questions.map((question, index) => ({ questionId: question.id, choice: this.responses[index] })) });
-        if (this.config.mode === 'review') el('quizStorageNotice').textContent = 'Lượt ôn theo lỗi được tách khỏi lịch sử kiểm tra thông thường để tránh so sánh những đề khác phạm vi.';
+        if (this.config.mode === 'review') el('quizStorageNotice').textContent = 'Xem lại đáp án và gợi ý cho lượt ôn tiếp theo bên dưới.';
         el('btnRestartQuiz').textContent = this.config.mode === 'review' ? 'Lập lượt ôn mới' : 'Làm lại cùng phạm vi';
         this.renderer.reviewOutcome(this.review.plan(this.config.courseId), evidenceSaved);
     }

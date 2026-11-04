@@ -243,7 +243,7 @@
           ]
         ],
         "prereq": "Biết tín hiệu số, đơn vị ms/µs và dùng Serial Monitor; lắp phần cứng khi có giáo viên kiểm tra.",
-        "labGuide": "Bàn thí nghiệm tính quan hệ Echo–khoảng cách và ngưỡng. Để chạy code cảm biến, chọn môi trường Arduino có đúng HC-SR04 hoặc kit Uno đã lắp đúng; demo AVR8js LED không tự có đầy đủ module siêu âm.",
+        "labGuide": "Dùng bàn thí nghiệm để tính quan hệ Echo–khoảng cách và kiểm tra ngưỡng. Chạy code cảm biến trong môi trường có module HC-SR04 hoặc trên kit Uno đã lắp đúng. Chọn AVR8js LED cho bài đèn; chọn môi trường có HC-SR04 cho bài đo siêu âm.",
         "objectives": [
           "Mô tả chức năng riêng của Trig và Echo.",
           "Tính d = v × t/2 với đơn vị nhất quán.",
@@ -425,7 +425,7 @@
           ]
         ],
         "prereq": "Đã đo khoảng cách có xử lý timeout; biết tính trung bình và lập bảng bằng cm.",
-        "labGuide": "Có thể thu dữ liệu từ môi trường hỗ trợ HC-SR04 hoặc dùng bảng số liệu giả định có ghi rõ. Sketch mẫu chạy tính offset trong Serial, không tự đọc cảm biến và không chứng minh một kit đã được hiệu chuẩn ngoài thực tế.",
+        "labGuide": "Thu dữ liệu từ môi trường hỗ trợ HC-SR04 hoặc dùng bảng số liệu giả định có ghi rõ. Sketch mẫu tính và in offset trong Serial từ số liệu đã khai báo. Để hiệu chuẩn kit thật, thu số đo cảm biến rồi kiểm chứng kết quả bù tại các mốc mới.",
         "objectives": [
           "Tính sai số có dấu và sai số tuyệt đối từ cặp đo–chuẩn.",
           "Phân biệt lệch hệ thống với dao động ngẫu nhiên.",
@@ -516,7 +516,7 @@
           ]
         ],
         "prereq": "Đã học cảnh báo một ngưỡng, dữ liệu hợp lệ và kiểm thử biên; biết biến bool lưu trạng thái.",
-        "labGuide": "Dùng bảng chuỗi số liệu để kiểm thử trí nhớ trạng thái. Bàn thí nghiệm ngưỡng đơn chỉ kiểm tra phép so sánh, không tự đại diện đủ hysteresis; dùng sketch hoặc tự ghi bảng OFF/ON để kiểm chứng dự án hai ngưỡng.",
+        "labGuide": "Dùng chuỗi khoảng cách trong bàn thí nghiệm để theo dõi trạng thái qua hai ngưỡng 20/25 cm. Đối chiếu kết quả với bảng OFF/ON và sketch của bài. Kiểm tra thêm trường hợp mất Echo trong môi trường có cảm biến hoặc bằng bộ dữ liệu lỗi được ghi rõ.",
         "objectives": [
           "Vẽ được sơ đồ hai trạng thái OFF/ON với hai ngưỡng riêng.",
           "Dự đoán chuỗi đầu ra có xét trạng thái trước đó.",
@@ -708,7 +708,7 @@
           ]
         ],
         "prereq": "Hoàn thành bài Cấu trúc và truyền động; biết một vòng là 360°, góc vuông là 90° và quy ước tọa độ của bàn lưới.",
-        "labGuide": "Bàn lưới chỉ kiểm tra logic đổi hướng, không đo được ma sát hoặc góc bánh thật. Trong nền tảng robot, dùng các lệnh quay theo độ và kiểm tra cấu hình robot. GearsBot không dùng nguyên API VEX IQ; với kit thật hãy dùng công cụ cấu hình Drivetrain của VEXcode IQ.",
+        "labGuide": "Dùng bàn lưới để kiểm tra logic đổi hướng. Đo góc quay và ảnh hưởng của ma sát bằng robot hoặc nền tảng có mô hình chuyển động tương ứng. Trong GearsBot, dùng lệnh theo cấu hình của nền tảng; với kit VEX IQ, cấu hình Drivetrain trong VEXcode IQ đúng thế hệ thiết bị.",
         "objectives": [
           "Theo dõi đồng thời vị trí và hướng khi robot tiến, rẽ trái hoặc rẽ phải.",
           "Giải thích vì sao góc quay thân robot khác góc quay của từng bánh.",
@@ -1068,7 +1068,7 @@
           ]
         ],
         "prereq": "Hiểu chuyển động vi sai, góc quay, độ trễ và clamp/giới hạn giá trị. Cần phân biệt hướng trên lưới với số đo heading trên thiết bị.",
-        "labGuide": "Chạy phần tính toán trong editor Python trước. Muốn thử phản hồi thực cần nền tảng có số đo hướng và lệnh riêng cho hai bánh. Kiểm tra cấu hình/đơn vị/dấu của nền tảng đó; bàn lưới nội bộ không thể chứng minh độ ổn định P. Nếu thử VEX IQ thật, dùng API đúng thế hệ và giữ tốc độ thấp.",
+        "labGuide": "Chạy phần tính toán P trong editor Python trước. Đánh giá phản hồi trên nền tảng có số đo hướng và lệnh riêng cho hai bánh; ghi cấu hình, đơn vị, quy ước dấu và chuỗi sai số theo thời gian. Dùng bàn lưới cho logic tuyến; thử VEX IQ thật bằng API đúng thế hệ và giữ tốc độ thấp.",
         "objectives": [
           "Tính sai lệch góc ngắn nhất và tín hiệu điều khiển P theo quy ước dấu được công bố.",
           "Giải thích bão hòa, dao động và vai trò tốc độ nền trong điều khiển hướng.",
@@ -1280,7 +1280,7 @@
           ]
         ],
         "prereq": "Đã hiểu trạng thái ma trận và các lệnh hiển thị/xóa màn hình trong MakeCode.",
-        "labGuide": "Dùng MakeCode để kích hoạt nút A/B của simulator. Bàn ma trận chỉ biểu diễn các điểm sáng, không thay thế toàn bộ cơ chế sự kiện; ghi nhận đúng môi trường đang thử.",
+        "labGuide": "Dùng MakeCode để kích hoạt nút A/B và quan sát chương trình sự kiện. Dùng bàn thí nghiệm nội bộ để đối chiếu quy tắc đếm và đặt lại; ghi tên môi trường cùng chuỗi thao tác đã thử.",
         "objectives": [
           "Mô tả khi nào lệnh ngoài trình xử lý và trong trình xử lý chạy.",
           "Gán hành vi A hiển thị, B xóa rồi kiểm tra nhiều thứ tự.",
@@ -1604,7 +1604,7 @@
           ]
         ],
         "prereq": "Biết biến, if/else và sự kiện; cần hai chương trình/thiết bị hoặc tính năng simulator có radio phù hợp.",
-        "labGuide": "Chọn editor có hỗ trợ radio và hai phiên thiết bị/simulator khi có. Bàn bộ đếm nội bộ không mô phỏng sóng radio hay mất gói; dùng nó cho quy tắc cập nhật trạng thái, không làm bằng chứng về phạm vi kết nối.",
+        "labGuide": "Chọn editor hỗ trợ radio với hai phiên thiết bị hoặc simulator phù hợp. Dùng bàn bộ đếm nội bộ để kiểm tra quy tắc cập nhật trạng thái. Đánh giá truyền nhận, mất gói và phạm vi kết nối bằng môi trường radio hoặc bo micro:bit thật; ghi điều kiện của từng phép thử.",
         "objectives": [
           "Đặt cùng nhóm radio trên bên gửi và bên nhận.",
           "Chỉ nhận đúng tên bản tin và miền số đã quy ước.",
@@ -1830,7 +1830,7 @@
           ]
         ],
         "prereq": "Biết một vòng là 360°, phân biệt trục chủ động/bị động và thao tác dừng chương trình. Nếu dùng kit thật cần có người hướng dẫn kiểm tra cơ khí.",
-        "labGuide": "Bàn logic màu trong trang không mô phỏng cơ khí tay gạt. Dùng nó để xem liên hệ giữa màu và hành động, còn tỷ số truyền hãy kiểm tra trên sơ đồ/bảng tính hoặc kit thực. Nếu dùng GearsBot, coi đó là robot bổ trợ. Với SPIKE thật, dùng ứng dụng LEGO Education SPIKE và trợ giúp đúng phiên bản; giả mã không phải API Python SPIKE.",
+        "labGuide": "Dùng bàn logic màu để đối chiếu màu đầu vào và hành động. Kiểm tra tỷ số truyền trên sơ đồ, bảng tính hoặc bộ truyền thật; quan sát cơ khí tay gạt trên kit hay nền tảng có cơ cấu tương ứng. GearsBot hỗ trợ luyện thuật toán robot. Khi triển khai SPIKE, chuyển giả mã sang API hoặc khối lệnh trong ứng dụng LEGO Education SPIKE đúng phiên bản.",
         "objectives": [
           "Phân biệt góc motor, góc trục ra và góc của tay gạt trong một cơ cấu.",
           "Xác định vị trí nghỉ, phạm vi chuyển động và điều kiện dừng trước khi chạy.",
@@ -1920,7 +1920,7 @@
           ]
         ],
         "prereq": "Biết câu điều kiện nếu–nếu không, đọc bảng kết quả và giữ cố định một biến khi so sánh.",
-        "labGuide": "Bàn màu nội bộ cho phép chủ động chọn đỏ/xanh/khác/không có vật để kiểm thử logic. Nó không mô phỏng ánh sáng, phổ màu hay thông số cảm biến SPIKE. Khi dùng robot bên ngoài, xem loại cảm biến và điều kiện sân của nền tảng; với SPIKE thật, đọc trợ giúp cảm biến trong ứng dụng LEGO tương ứng.",
+        "labGuide": "Chủ động chọn đỏ, xanh, khác hoặc trạng thái trống trong bàn màu để kiểm thử các nhánh logic. Đánh giá ánh sáng, khả năng nhận màu và thông số cảm biến trên robot hoặc kit thật, đồng thời ghi loại cảm biến và điều kiện sân. Với SPIKE, đối chiếu trợ giúp cảm biến trong ứng dụng LEGO đang dùng.",
         "objectives": [
           "Phân biệt màu thật của vật và kết quả phân loại do cảm biến trả về.",
           "Thiết kế bảng đo có đỏ, xanh và trường hợp chưa xác định.",
@@ -2100,7 +2100,7 @@
           ]
         ],
         "prereq": "Hoàn thành cơ cấu, đọc màu và chống đếm lặp. Biết tính phân số thành phần trăm và lập bảng kỳ vọng–thực tế.",
-        "labGuide": "Bàn logic cho phép tập thiết kế bộ thử, nhánh quyết định và đếm chu kỳ. Nó không xác nhận độ chính xác cảm biến hoặc độ bền cơ cấu thật. Kết quả dự án SPIKE phải phân biệt rõ kiểm thử logic và thử bộ lắp ráp bằng phần cứng; không gọi mô hình GearsBot là bản sao cơ khí SPIKE.",
+        "labGuide": "Dùng bàn logic để thiết kế bộ thử, kiểm tra nhánh quyết định và đếm chu kỳ. Đo độ chính xác cảm biến và độ bền cơ cấu trên bộ lắp ráp SPIKE thật. Ghi riêng kết quả kiểm thử logic, luyện thuật toán trên GearsBot và thử phần cứng để đối chiếu từng bước phát triển dự án.",
         "objectives": [
           "Đặt yêu cầu kiểm thử cho trạm phân loại với tập vật đã xác định trước.",
           "Tính tỷ lệ đúng trên toàn bộ lượt thử và báo cáo riêng kẹt/chưa xác định.",
@@ -2190,7 +2190,7 @@
           ]
         ],
         "prereq": "Biết tỷ lệ, vòng/phút (rpm), góc quay và ý nghĩa định tính của mô-men. Xác định được bánh chủ động và bánh bị động.",
-        "labGuide": "Dùng editor Python cho phép tính và sơ đồ để hiểu tỷ số; bàn màu không mô phỏng bánh răng. Muốn quan sát cơ khí hãy dùng bộ truyền thật hoặc nền tảng có mô hình bánh răng tương ứng. Không khẳng định mọi bộ truyền SPIKE được mô phỏng bởi GearsBot hay một robot mặc định khác.",
+        "labGuide": "Dùng editor Python và sơ đồ để tính, đối chiếu tỷ số truyền. Quan sát chuyển động trên bộ truyền thật hoặc nền tảng có mô hình bánh răng phù hợp. Ghi số răng, cách ghép và cấu hình đang dùng; kiểm tra riêng cơ cấu SPIKE thực tế.",
         "objectives": [
           "Tính tỷ số tốc độ và góc từ số răng của một cặp bánh răng ngoài.",
           "Giải thích mối đánh đổi giữa tốc độ và mô-men khi bỏ qua tổn hao.",
@@ -2758,7 +2758,7 @@
           ]
         ],
         "prereq": "Biết tọa độ lưới, ô vật cản, hàng đợi vào trước–ra trước và cách biểu diễn một tuyến bằng danh sách ô.",
-        "labGuide": "Dùng editor Python cho thuật toán đồ thị trước; dữ liệu bản đồ được khai báo trong chương trình. Bàn lưới hiện luyện thực thi tuyến, không phải trình tạo bản đồ tự động. Khi chuyển sang VEXcode VR/GearsBot phải có cách khớp ô bản đồ, kích thước sân, hướng đầu và chuyển đường thành lệnh của nền tảng.",
+        "labGuide": "Chạy thuật toán đồ thị trong editor Python với bản đồ đã khai báo, rồi dùng bàn lưới để kiểm tra tuyến tìm được. Khi chuyển sang VEXcode VR hoặc GearsBot, khớp ô bản đồ với kích thước sân, đặt hướng đầu và chuyển đường đi thành lệnh của nền tảng.",
         "objectives": [
           "Mô tả BFS như phép duyệt theo lớp sử dụng hàng đợi FIFO và tập đã thăm.",
           "Dựng lại một đường đi bằng thông tin cha và xử lý trường hợp không có đường.",
