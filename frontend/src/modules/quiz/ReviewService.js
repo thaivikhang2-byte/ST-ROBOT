@@ -1,9 +1,11 @@
 import { quizCourses, quizQuestions } from '../../data/quiz.js?v=copy-v4';
+import { resolveGeneratedQuestion, getGenerationCapacity } from './generation/QuestionEngine.js?v=generated-v6';
 
 export const REVIEW_STORAGE_KEY = 'strobot.review.evidence.v1';
 export const MAX_REVIEW_ATTEMPTS = 120;
 const DAY = 24 * 60 * 60 * 1000;
 const questionsById = new Map(quizQuestions.map(question => [question.id, question]));
+const resolveQuestion = id => questionsById.get(id) || resolveGeneratedQuestion(id);
 const validCourse = id => quizCourses.some(course => course.id === id);
 const copyQuestion = question => ({ ...question, opts: [...question.opts] });
 
@@ -18,13 +20,13 @@ export class ReviewService {
     validAttempt(attempt) {
         return attempt && typeof attempt === 'object'
             && typeof attempt.id === 'string' && attempt.id.length > 0 && attempt.id.length <= 150
-            && validCourse(attempt.courseId) && ['quiz', 'review'].includes(attempt.mode)
+            && validCourse(attempt.courseId) && ['quiz', 'review', 'generated'].includes(attempt.mode)
             && typeof attempt.completedAt === 'string' && Number.isFinite(Date.parse(attempt.completedAt))
             && new Date(attempt.completedAt).getUTCFullYear() >= 2000 && new Date(attempt.completedAt).getUTCFullYear() <= 2200
             && Array.isArray(attempt.answers) && attempt.answers.length >= 1 && attempt.answers.length <= 18
             && new Set(attempt.answers.map(answer => answer?.questionId)).size === attempt.answers.length
             && attempt.answers.every(answer => {
-                const question = questionsById.get(answer?.questionId);
+                const question = resolveQuestion(answer?.questionId);
                 return question?.courseId === attempt.courseId && Number.isInteger(answer.choice)
                     && answer.choice >= 0 && answer.choice < question.opts.length;
             });
@@ -76,12 +78,13 @@ export class ReviewService {
         // Preserve completion insertion order even if the device clock moves backward.
         for (const attempt of attempts.filter(item => item.courseId === courseId)) {
             for (const answer of attempt.answers) {
-                const question = questionsById.get(answer.questionId);
+                const question = resolveQuestion(answer.questionId);
                 const previous = evidence.get(question.id);
                 const right = question.ans === answer.choice;
                 const streak = right ? (previous?.streak || 0) + 1 : 0;
                 const interval = right ? (streak === 1 ? 1 : streak === 2 ? 3 : 7) * DAY : 0;
                 evidence.set(question.id, { questionId: question.id, lessonId: question.lessonId,
+                    skillId: question.skillId || null, templateId: question.templateId || null, source: question.source || 'bank',
                     attempts: (previous?.attempts || 0) + 1, correct: (previous?.correct || 0) + Number(right),
                     latestCorrect: right, lastAt: attempt.completedAt, streak,
                     dueAt: new Date(Date.parse(attempt.completedAt) + interval).toISOString() });
@@ -93,11 +96,13 @@ export class ReviewService {
         if (!validCourse(courseId)) throw new RangeError('Chọn khóa học trước khi ôn theo lỗi.');
         if (!Number.isInteger(limit) || limit < 1 || limit > 18) throw new RangeError('Số câu ôn phải từ 1 đến 18.');
         const { evidence, status, attempts } = this.evidence(courseId);
-        const pool = quizQuestions.filter(question => question.courseId === courseId);
+        const staticPool = quizQuestions.filter(question => question.courseId === courseId);
+        const practicedGenerated = [...evidence.keys()].filter(id => id.startsWith('gen:v1:')).map(resolveQuestion).filter(Boolean);
+        const pool = [...staticPool, ...practicedGenerated];
         const wrong = pool.filter(question => evidence.get(question.id)?.latestCorrect === false)
             .sort((a, b) => Date.parse(evidence.get(a.id).lastAt) - Date.parse(evidence.get(b.id).lastAt) || a.id.localeCompare(b.id));
         const weakLessons = new Set(wrong.map(question => question.lessonId));
-        const unseen = pool.filter(question => !evidence.has(question.id) && weakLessons.has(question.lessonId));
+        const unseen = staticPool.filter(question => !evidence.has(question.id) && weakLessons.has(question.lessonId));
         const due = pool.filter(question => evidence.get(question.id)?.latestCorrect && Date.parse(evidence.get(question.id).dueAt) <= this.now())
             .sort((a, b) => Date.parse(evidence.get(a.id).dueAt) - Date.parse(evidence.get(b.id).dueAt) || a.id.localeCompare(b.id));
         const candidates = [
@@ -109,7 +114,7 @@ export class ReviewService {
         const course = quizCourses.find(item => item.id === courseId);
         const lessons = course.lessons.map(lesson => {
             const rows = [...evidence.values()].filter(item => item.lessonId === lesson.id);
-            return { ...lesson, distinct: rows.length, questionCount: pool.filter(question => question.lessonId === lesson.id).length,
+            return { ...lesson, distinct: rows.length, questionCount: staticPool.filter(question => question.lessonId === lesson.id).length + getGenerationCapacity(courseId, lesson.id),
                 attempts: rows.reduce((sum, item) => sum + item.attempts, 0), correct: rows.reduce((sum, item) => sum + item.correct, 0),
                 latestCorrect: rows.filter(item => item.latestCorrect).length, latestWrong: rows.filter(item => !item.latestCorrect).length,
                 insufficient: rows.length < 3 };

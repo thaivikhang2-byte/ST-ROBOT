@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="../src/assets/css/base.css">
   <link rel="stylesheet" href="../src/assets/css/layout.css">
   <link rel="stylesheet" href="../src/assets/css/components.css">
-  <link rel="stylesheet" href="../src/assets/css/pages/quiz.css?v=copy-v4">
+  <link rel="stylesheet" href="../src/assets/css/pages/quiz.css?v=generated-v6">
 </head>
 <body>
   <a href="#main" class="skip-link">Chuyển đến nội dung chính</a>
@@ -20,12 +20,24 @@
     <section id="quizIntroArea" class="quiz-box" aria-labelledby="quizSetupTitle">
       <div class="quiz-section-head"><h2 id="quizSetupTitle" tabindex="-1">Bạn muốn kiểm tra phần nào?</h2><p>Chọn khóa học trước, sau đó chọn một bài cụ thể hoặc tất cả bài trong khóa.</p></div>
       <form id="quizSetupForm">
+        <div class="quiz-new-practice">
+          <div><h3>Luyện câu mới</h3><p>Thay đổi số liệu và tình huống theo từng kỹ năng. Đáp án và lời giải được dựng từ quy tắc của mỗi dạng bài.</p></div>
+          <button id="btnGeneratedPractice" class="btn btn--primary" type="button">Luyện câu mới</button>
+        </div>
+        <div class="field quiz-source-field"><label class="label" for="quizQuestionSource">Nguồn câu hỏi</label><select class="select" id="quizQuestionSource"><option value="bank">Ngân hàng câu hỏi</option><option value="generated">Sinh câu mới theo kỹ năng</option></select></div>
         <div class="quiz-setup-grid">
           <div class="field"><label class="label" for="quizCourseSelect">Khóa học <span aria-hidden="true">*</span></label><select class="select" id="quizCourseSelect" required><option value="">— Chọn khóa học —</option></select></div>
           <div class="field"><label class="label" for="quizLessonSelect">Phạm vi kiến thức</label><select class="select" id="quizLessonSelect" disabled><option value="all">Chọn khóa học trước</option></select></div>
           <div class="field"><label class="label" for="quizQuestionCount">Số câu hỏi</label><select class="select" id="quizQuestionCount" disabled><option value="">—</option></select></div>
         </div>
+        <fieldset id="quizGeneratedSettings" class="quiz-generation-settings" hidden>
+          <legend>Tùy chỉnh câu mới</legend>
+          <div class="field"><label class="label" for="quizGeneratedLevel">Mức độ</label><select class="select" id="quizGeneratedLevel"><option value="all">Kết hợp các mức độ</option></select></div>
+          <label class="quiz-check"><input type="checkbox" id="quizPersonalized"><span>Ưu tiên bài tôi cần ôn<small>Dựa trên câu trả lời gần nhất trong hồ sơ của khóa này.</small></span></label>
+          <label class="quiz-check"><input type="checkbox" id="quizAiPlan"><span>AI gợi ý dạng bài<small>AI chọn dạng bài phù hợp; bộ sinh tại chỗ dựng câu và kiểm tra đáp án.</small></span></label>
+        </fieldset>
         <div id="quizScopeSummary" class="quiz-scope-summary" aria-live="polite">Chọn khóa học và phạm vi để tạo lượt kiểm tra.</div>
+        <div class="quiz-generation-status-row"><p id="quizGenerationStatus" class="quiz-small" role="status" data-state="idle"></p><button id="quizCancelGeneration" class="btn btn--sm" type="button" hidden>Hủy gợi ý AI</button></div>
         <p id="quizSetupError" class="quiz-error" role="alert" hidden></p>
         <div class="quiz-setup-footer"><p>Mỗi câu có một đáp án đúng. Chọn đáp án rồi bấm <strong>Xác nhận</strong> để xem giải thích.</p><button id="btnInitQuiz" class="btn btn--primary" type="submit" disabled>Bắt đầu làm bài</button></div>
       </form>
@@ -49,6 +61,7 @@
     <section id="quizActiveGame" class="quiz-box" aria-labelledby="targetQuestionPlaceholder" hidden>
       <div class="quiz-session-top"><p id="quizSessionScope"></p><button id="quizExitBtn" class="btn btn--sm" type="button">Chọn lại nội dung</button></div>
       <div class="quiz-progress-head"><span id="quizProgressText" aria-live="polite"></span><span id="quizAnsweredText"></span></div><progress id="quizProgress" max="1" value="0" aria-label="Số câu đã xác nhận"></progress>
+      <p id="quizQuestionSourceLabel" class="quiz-source-label" hidden></p>
       <p id="quizQuestionReason" class="review-question-reason" hidden></p>
       <p id="quizQuestionLesson" class="quiz-topic"></p><h2 id="targetQuestionPlaceholder" tabindex="-1"></h2>
       <form id="quizAnswerForm"><fieldset class="quiz-answer-fieldset" aria-labelledby="targetQuestionPlaceholder"><legend class="visually-hidden">Chọn một đáp án</legend><div id="answerOptionsArea"></div></fieldset><button id="confirmAnswerBtn" class="btn btn--primary" type="submit" disabled>Xác nhận đáp án</button></form>
@@ -57,6 +70,7 @@
     </section>
     <section id="quizSummaryArea" class="quiz-box" aria-labelledby="quizResultTitle" hidden>
       <div class="quiz-result-head"><span class="section-badge">Đã hoàn thành lượt ôn tập</span><h2 id="quizResultTitle" tabindex="-1">Kết quả của bạn</h2><p id="quizResultScope"></p><div id="quizScorePercent" class="quiz-score"></div><p id="totalScoreText"></p></div>
+      <p id="quizResultSource" class="quiz-source-label" hidden></p>
       <div id="quizResultTopics" class="quiz-result-topics"></div><p id="quizStorageNotice" class="quiz-small" role="status"></p>
       <section class="review-next" aria-labelledby="reviewNextTitle"><h3 id="reviewNextTitle">Bước ôn tiếp theo</h3><p id="reviewSaveNotice" class="quiz-small" role="status"></p><p id="reviewNextStatus"></p><button id="btnReviewNext" class="btn btn--primary" type="button" disabled>Ôn theo lỗi của tôi</button></section>
       <div class="quiz-result-actions"><button id="btnRestartQuiz" class="btn btn--primary" type="button">Làm lại cùng phạm vi</button><button id="btnBackIntro" class="btn" type="button">Chọn khóa hoặc bài khác</button></div>
@@ -66,6 +80,6 @@
   <dialog id="quizExitDialog" class="dialog" aria-labelledby="quizExitTitle"><div class="dialog-body"><h2 id="quizExitTitle">Chọn lại nội dung kiểm tra?</h2><p>Lượt đang làm sẽ kết thúc mà không lưu kết quả. Chọn “Tiếp tục làm bài” để hoàn thành lượt này.</p></div><div class="dialog-foot"><button id="quizContinueBtn" class="btn" type="button">Tiếp tục làm bài</button><button id="quizDiscardBtn" class="btn btn--primary" type="button">Chọn lại nội dung</button></div></dialog>
   <dialog id="reviewDeleteDialog" class="dialog" aria-labelledby="reviewDeleteTitle"><div class="dialog-body"><h2 id="reviewDeleteTitle">Xóa dữ liệu của khóa này?</h2><p id="reviewDeleteDescription"></p><p>Nhật ký học, các khóa khác và dữ liệu đánh giá trước – sau được giữ nguyên. Hãy tải bản JSON trước nếu muốn giữ hồ sơ ôn tập.</p></div><div class="dialog-foot"><button id="btnCancelDeleteReview" class="btn" type="button">Giữ dữ liệu</button><button id="btnConfirmDeleteReview" class="btn btn--primary" type="button">Xóa dữ liệu khóa này</button></div></dialog>
   <div id="footer-container"></div><div id="backtotop-container"></div><div id="chatbox-container"></div>
-  <script type="module" src="../src/app.js?v=lesson-code-v5"></script>
+  <script type="module" src="../src/app.js?v=generated-v6"></script>
 </body>
 </html>

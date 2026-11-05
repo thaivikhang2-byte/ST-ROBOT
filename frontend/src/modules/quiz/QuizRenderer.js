@@ -27,11 +27,18 @@ export class QuizRenderer {
     }
     showIntro() { this.view('setup'); }
     showGame(scope) { this.view('questions'); el('quizSessionScope').textContent = scope; }
-    setupSummary(course, lesson, count, available) {
+    setupSummary(course, lesson, count, available, generation = null) {
         const host = el('quizScopeSummary');
         host.replaceChildren();
         if (!course) { host.textContent = 'Chọn khóa học và phạm vi để tạo lượt kiểm tra.'; return; }
         host.append(node('strong', `${course.name} · ${lesson ? lesson.title : 'Tất cả 6 bài'}`));
+        if (generation) {
+            const focus = generation.focusTitles.length ? `Ưu tiên bài cần ôn: ${generation.focusTitles.join('; ')}.` : generation.requestedFocus ? 'Hoàn thành thêm lượt luyện để cập nhật ưu tiên cá nhân. Lượt này chia đều cho 6 bài.' : lesson ? 'Tập trung vào bài đã chọn.' : 'Chia đều cho 6 bài trong khóa.';
+            host.append(node('p', `${count} câu mới · ${generation.level}. ${focus}`));
+            host.append(node('p', `${new Intl.NumberFormat('vi-VN').format(available)} biến thể từ ${generation.templateCount} dạng bài trong phạm vi này. Số liệu, phương án và lời giải được kiểm tra theo quy tắc.`));
+            if (generation.aiPlan) host.append(node('p', 'AI gợi ý dạng bài khi kết nối sẵn sàng. Bộ sinh tại chỗ luôn có thể tạo lượt luyện.'));
+            return;
+        }
         host.append(node('p', lesson ? `${count} câu hỏi bám sát bài này.` : `${count} câu, chia đều cho 6 bài trong khóa. Ngân hàng có ${available} câu để thay đổi đề giữa các lượt.`));
     }
     history(records) {
@@ -73,9 +80,9 @@ export class QuizRenderer {
         for (const row of plan.lessons) {
             const item = node('li'); item.dataset.lessonId = row.id;
             const link = node('a', row.title); link.href = lessonHref(course.id, row.id);
-            item.append(link, node('p', `${row.distinct}/${row.questionCount} câu khác nhau · ${row.correct}/${row.attempts} lần trả lời đúng trong các lượt đã lưu.`),
+            item.append(link, node('p', `${row.distinct} câu khác nhau · ${row.correct}/${row.attempts} lần trả lời đúng trong các lượt đã lưu.`),
                 node('p', `Kết quả gần nhất của từng câu đã luyện: ${row.latestCorrect} đúng, ${row.latestWrong} cần ôn lại.`),
-                node('p', row.insufficient ? 'Hãy luyện đủ 3 câu khác nhau để theo dõi kết quả của bài.' : 'Đã luyện đủ 3 câu khác nhau trong bài. Theo dõi lịch ôn để tiếp tục củng cố kiến thức.', 'quiz-small'));
+                node('p', row.insufficient ? 'Hãy luyện đủ 3 câu khác nhau để theo dõi kết quả của bài.' : 'Đã có dữ liệu từ ít nhất 3 câu khác nhau. Tiếp tục luyện và theo dõi lịch ôn để củng cố kiến thức.', 'quiz-small'));
             list.append(item);
         }
         host.append(list);
@@ -87,10 +94,22 @@ export class QuizRenderer {
             ? (result.replacedCorruptData ? 'Đã lưu lượt này; dữ liệu lỗi trước đó đã được bỏ qua.' : 'Đã ghi nhận lượt hoàn thành vào hồ sơ ôn trên trình duyệt này.')
             : 'Chưa lưu được hồ sơ ôn. Gợi ý dưới đây chỉ dựa trên dữ liệu đã lưu trước đó; bạn vẫn xem được đáp án lượt này.';
     }
-    question(question, lessonTitle, index, total, response, answeredCount, reason = null) {
+    generatedSourceLabel(config) {
+        if (config?.mode === 'review') return 'Ôn theo lỗi · Câu sinh theo kỹ năng có đáp án được kiểm tra theo quy tắc';
+        const rotation = config?.recycled ? ' Đã xoay vòng các câu đã luyện; mỗi lượt vẫn gồm các câu khác nhau.' : '';
+        const title = config?.recycled ? 'Luyện theo kỹ năng' : 'Câu mới';
+        if (config?.planSource === 'ai') return `${title} · AI gợi ý dạng bài · Đáp án đã kiểm tra theo quy tắc.${rotation}`;
+        if (config?.planSource === 'fallback') return `Đang dùng bộ sinh câu đã kiểm tra · Số liệu và đáp án được dựng tại chỗ.${rotation}`;
+        return `${title} · Bộ sinh theo kỹ năng · Đáp án đã kiểm tra theo quy tắc.${rotation}`;
+    }
+    question(question, lessonTitle, index, total, response, answeredCount, reason = null, config = null) {
         const answered = response !== null;
+        const generated = question.source === 'generated';
+        el('quizQuestionSourceLabel').hidden = !generated;
+        el('quizQuestionSourceLabel').textContent = generated ? this.generatedSourceLabel(config) : '';
+        el('quizQuestionSourceLabel').dataset.source = generated ? config?.planSource || 'local' : 'bank';
         el('quizQuestionReason').hidden = !reason;
-        el('quizQuestionReason').textContent = reason ? `Vì sao ôn câu này: ${reason}` : '';
+        el('quizQuestionReason').textContent = reason ? `${config?.mode === 'generated' ? 'Vì sao luyện câu này' : 'Vì sao ôn câu này'}: ${reason}` : '';
         el('quizActiveGame').dataset.questionId = question.id;
         el('quizProgressText').textContent = `Câu ${index + 1} / ${total}`;
         el('quizAnsweredText').textContent = `Đã xác nhận ${answeredCount}/${total} câu`;
@@ -120,8 +139,12 @@ export class QuizRenderer {
         if (answered) feedback.append(node('strong', response === question.ans ? 'Đúng.' : 'Chưa đúng.'), node('p', `Đáp án đúng: ${question.opts[question.ans]}`), node('p', question.exp));
         el('targetQuestionPlaceholder').focus();
     }
-    summary(report, scope, questions, responses, courseId, saved) {
+    summary(report, scope, questions, responses, courseId, saved, config = null) {
         this.view('results');
+        const hasGenerated = questions.some(question => question.source === 'generated');
+        el('quizResultSource').hidden = !hasGenerated;
+        el('quizResultSource').textContent = hasGenerated ? this.generatedSourceLabel(config) : '';
+        el('quizResultSource').dataset.source = hasGenerated ? config?.planSource || 'local' : 'bank';
         el('quizResultScope').textContent = scope;
         el('quizScorePercent').textContent = `${report.percentage}%`;
         el('totalScoreText').textContent = `Bạn trả lời đúng ${report.correct} / ${report.total} câu.`;

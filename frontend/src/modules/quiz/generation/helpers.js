@@ -1,0 +1,46 @@
+// Small, deterministic building blocks for verified practice templates.
+export function formatNumber(value, digits = 2) {
+    if (!Number.isFinite(value) || !Number.isInteger(digits) || digits < 0 || digits > 8) throw new TypeError('Invalid numeric question value');
+    // Stabilize decimal halves produced by floating-point formula evaluation.
+    const scale = 10 ** digits, magnitude = Math.abs(value);
+    const rounded = Math.sign(value) * Math.round((magnitude + Number.EPSILON * Math.max(1, magnitude) * 4) * scale) / scale;
+    let text = (rounded === 0 ? 0 : rounded).toFixed(digits);
+    if (text.includes('.')) text = text.replace(/0+$/, '').replace(/\.$/, '');
+    // Keep released option order independent of browser/ICU locale versions.
+    return text.replace('.', ',');
+}
+
+export function mixedRadix(index, dimensions) {
+    if (!Array.isArray(dimensions) || dimensions.some(values => !Array.isArray(values) || !values.length)) throw new TypeError('Question dimensions must be nonempty arrays');
+    const capacity = dimensions.reduce((total, values) => total * values.length, 1);
+    if (!Number.isSafeInteger(index) || index < 0 || index >= capacity) throw new RangeError('Question variant is outside its declared domain');
+    const values = Array(dimensions.length);
+    for (let position = dimensions.length - 1; position >= 0; position--) {
+        values[position] = dimensions[position][index % dimensions[position].length];
+        index = Math.floor(index / dimensions[position].length);
+    }
+    return values;
+}
+
+export function hashString(value) {
+    let hash = 2166136261;
+    for (const character of String(value)) { hash ^= character.codePointAt(0); hash = Math.imul(hash, 16777619); }
+    return hash >>> 0;
+}
+
+export function choiceQuestion({ stem, correct, distractors, explanation }) {
+    if (![stem, correct, explanation].every(value => typeof value === 'string' && value.trim()) || !Array.isArray(distractors)) throw new TypeError('Question text is incomplete');
+    const wrong = [...new Set(distractors.filter(value => typeof value === 'string' && value.trim() && value !== correct))].slice(0, 3);
+    if (wrong.length < 2) throw new RangeError('A question needs at least two distinct wrong answers');
+    const options = [correct, ...wrong];
+    // A stable rotation avoids always placing the answer first without changing identity.
+    const offset = hashString(stem) % options.length;
+    const opts = [...options.slice(offset), ...options.slice(0, offset)];
+    return { q: stem, opts, ans: opts.indexOf(correct), exp: explanation };
+}
+
+export function numericQuestion({ stem, correct, distractors, explanation, unit = '', digits = 2 }) {
+    if (!Array.isArray(distractors) || distractors.some(value => !Number.isFinite(value))) throw new TypeError('Numeric distractors must be finite');
+    const option = value => `${formatNumber(value, digits)}${unit ? ' ' + unit : ''}`;
+    return choiceQuestion({ stem, correct: option(correct), distractors: distractors.map(option), explanation });
+}

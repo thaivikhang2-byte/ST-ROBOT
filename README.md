@@ -111,6 +111,8 @@ Bộ kiểm thử xác nhận câu hỏi không lẫn khóa/bài, phân bổ đ�
 
 ## Ôn tập theo lỗi
 
+Trang Kiểm tra có nút **Luyện câu mới**: 60 dạng bài tạo 23.399 biến thể số liệu/tình huống cho đủ 30 bài, kèm tính đáp án và kiểm tra phương án trùng. Có chọn mức độ, tập trung vào bài cần ôn, tránh lặp câu gần đây và lưu kết quả để ôn lại. Tùy chọn AI gợi ý dạng bài sử dụng AI server; bộ sinh tại chỗ hoạt động độc lập khi AI gián đoạn. Xem [cách sinh, kiểm tra và triển khai](docs/generated-practice.md).
+
 Trên trang **Kiểm tra**, hoàn thành một lượt rồi chọn **Ôn theo lỗi của tôi**. Mỗi lượt chọn tối đa 6 câu trong đúng khóa: ưu tiên câu có đáp án gần nhất chưa đúng, câu chưa làm trong bài đang có lỗi, rồi câu đã đến ngày ôn lại. Mỗi câu hiện lý do được chọn. Sau các lần đúng liên tiếp, lịch ôn lần lượt là 1, 3 và 7 ngày; trả lời sai thì ưu tiên ôn ngay.
 
 Hồ sơ lưu đáp án từng câu của tối đa 120 lượt hoàn thành gần nhất. Lượt bỏ dở không được ghi nhận; lịch sử điểm cũ không tự chuyển thành dữ liệu lỗi từng câu. Có nút tải JSON và xóa dữ liệu kiểm tra, ôn tập riêng của khóa đã chọn. Nhật ký học, các khóa khác và dữ liệu đánh giá trước–sau được giữ lại.

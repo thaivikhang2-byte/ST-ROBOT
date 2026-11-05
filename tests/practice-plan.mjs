@@ -1,0 +1,242 @@
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { preparePracticePlan, parsePracticePlan, PracticePlanError } from '../ai-server/practice-plan.mjs';
+import { listTemplates } from '../frontend/src/modules/quiz/generation/QuestionEngine.js';
+
+const curriculum = JSON.parse(await readFile(new URL('../ai-server/curriculum.json', import.meta.url), 'utf8'));
+const requestBody = { courseId: 'arduino', lessonId: 'led', count: 3, level: 'all', weakLessonIds: ['led'] };
+const templates = listTemplates({ courseId: 'arduino', lessonId: 'led', level: 'all' });
+assert.ok(templates.length > 0, 'The tested scope must have real factory templates');
+const templateId = templates[0].id;
+const wrongScopeId = listTemplates({ courseId: 'microbit', lessonId: 'all', level: 'all' })[0]?.id || 'not-an-allowed-template';
+const jsonPlan = JSON.stringify({ templateIds: [templateId] });
+const response = content => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content } }] }) });
+const prior = Object.fromEntries(['NODE_ENV', 'ALLOWED_ORIGIN', 'AI_MODEL', 'DAILY_REQUEST_LIMIT', 'WOKU_API_KEY'].map(name => [name, process.env[name]]));
+let serverIndex = 0;
+let assertions = 0;
+
+function request(server, { method = 'POST', path = '/api/practice-plan', origin = 'https://practice.test', body = requestBody, type = 'application/json' } = {}) {
+  const encoded = typeof body === 'string' ? body : JSON.stringify(body);
+  return new Promise((resolve, reject) => {
+    const req = http.request({ hostname: '127.0.0.1', port: server.address().port, method, path, headers: { ...(origin === null ? {} : { Origin: origin }), ...(type === null ? {} : { 'Content-Type': type }), ...(encoded === undefined ? {} : { 'Content-Length': Buffer.byteLength(encoded) }) } }, res => {
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        let data;
+        try { data = text ? JSON.parse(text) : null; } catch (error) { reject(error); return; }
+        resolve({ status: res.statusCode, headers: res.headers, data, text });
+      });
+      res.on('error', reject);
+    });
+    req.on('error', reject);
+    if (encoded !== undefined) req.write(encoded);
+    req.end();
+  });
+}
+
+async function withServer(upstream, test, { limit = 50 } = {}) {
+  process.env.NODE_ENV = 'test';
+  process.env.ALLOWED_ORIGIN = 'https://practice.test';
+  process.env.AI_MODEL = 'test-planner-model';
+  process.env.DAILY_REQUEST_LIMIT = String(limit);
+  process.env.WOKU_API_KEY = 'local-stub-only';
+  const { createServer } = await import(`../ai-server/server.mjs?practice-test=${++serverIndex}`);
+  const server = createServer(upstream);
+  try {
+    await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
+    await test(server);
+  } finally {
+    server.closeAllConnections();
+    if (server.listening) await new Promise(resolve => server.close(resolve));
+  }
+}
+
+try {
+  const prepared = preparePracticePlan(requestBody, curriculum);
+  assert.equal(prepared.count, 3);
+  assert.ok(prepared.allowedIds.has(templateId));
+  assert.equal(prepared.messages.length, 2);
+  const prompt = JSON.parse(prepared.messages[1].content);
+  assert.deepEqual(prompt.weakLessonIds, ['led']);
+  assert.deepEqual(prompt.lessons.map(lesson => lesson.id), ['led']);
+  assert.ok(prompt.lessons.every(lesson => lesson.objectives.length > 0));
+  assert.ok(prompt.templates.every(template => template.courseId === 'arduino' && template.lessonId === 'led'));
+  assert.ok(prompt.templates.every(template => !('ans' in template) && !('q' in template) && !('opts' in template)));
+  assert.ok(!prepared.messages.some(message => /ASSESSMENT|study:A:|study:B:/.test(message.content)), 'Held-out assessment content must not be included');
+  for (const patch of [
+    { courseId: 'missing' }, { lessonId: 'matrix' }, { count: 0 }, { count: 19 }, { count: 1.5 }, { count: '3' }, { level: 'expert' },
+    { weakLessonIds: ['matrix'] }, { weakLessonIds: ['led', 'led'] }, { weakLessonIds: 'led' }, { weakLessonIds: Array(7).fill('led') },
+    { question: 'Please invent questions and answers' }, { history: [] }, { email: 'not-forwarded@example.test' }, { templateIds: [templateId] }
+  ]) assert.throws(() => preparePracticePlan({ ...requestBody, ...patch }, curriculum), error => error instanceof PracticePlanError && error.status === 400);
+  for (const invalid of [null, [], 'text', 12]) assert.throws(() => preparePracticePlan(invalid, curriculum), /Chọn khóa/);
+  const allCourse = preparePracticePlan({ ...requestBody, lessonId: 'all', count: 18, weakLessonIds: [] }, curriculum);
+  assert.equal(JSON.parse(allCourse.messages[1].content).lessons.length, 6);
+  assert.ok(JSON.parse(allCourse.messages[1].content).templates.every(template => template.courseId === 'arduino'));
+  const focused = preparePracticePlan({ ...requestBody, lessonId: 'all', weakLessonIds: ['timing', 'led'] }, curriculum);
+  const focusedPrompt = JSON.parse(focused.messages[1].content);
+  assert.deepEqual(focusedPrompt.lessons.map(lesson => lesson.id), ['led', 'timing']);
+  assert.ok(focusedPrompt.templates.every(template => ['led', 'timing'].includes(template.lessonId)));
+  assert.deepEqual([...focused.allowedIds].sort(), listTemplates({ courseId: 'arduino', lessonId: 'all', level: 'all' }).filter(template => ['led', 'timing'].includes(template.lessonId)).map(template => template.id).sort());
+  const nonFocusedId = listTemplates({ courseId: 'arduino', lessonId: 'distance', level: 'all' })[0].id;
+  assert.throws(() => parsePracticePlan(JSON.stringify({ templateIds: [nonFocusedId] }), focused.allowedIds, 3), error => error.status === 502, 'Personalized plans cannot include another lesson');
+  const basic = preparePracticePlan({ ...requestBody, level: 'basic' }, curriculum);
+  assert.ok(JSON.parse(basic.messages[1].content).templates.every(template => template.level === 'basic'));
+  assert.deepEqual(parsePracticePlan(jsonPlan, prepared.allowedIds, 3), [templateId]);
+  assert.deepEqual(parsePracticePlan(`\n\`\`\`json\n${jsonPlan}\n\`\`\`\n`, prepared.allowedIds, 3), [templateId]);
+  const twoIds = [...allCourse.allowedIds].slice(0, 2);
+  assert.equal(twoIds.length, 2);
+  assert.throws(() => parsePracticePlan(JSON.stringify({ templateIds: twoIds }), allCourse.allowedIds, 1), error => error.status === 502, 'The model cannot exceed the requested count');
+  for (const bad of [
+    '', 'Not JSON', `A plan: ${jsonPlan}`, `${jsonPlan}\n${jsonPlan}`, `\`\`\`json\n${jsonPlan}\n\`\`\` extra`,
+    '{"templateIds":[]}', JSON.stringify({ templateIds: [wrongScopeId] }), JSON.stringify({ templateIds: [templateId, templateId] }),
+    JSON.stringify({ templateIds: [templateId], explanation: 'extra' }), JSON.stringify({ templateIds: [42] }),
+    JSON.stringify({ templateIds: templateId }), '["id"]', 'null', 'x'.repeat(16001)
+  ]) assert.throws(() => parsePracticePlan(bad, prepared.allowedIds, 3), error => error instanceof PracticePlanError && error.status === 502);
+  assertions++;
+
+  let calls = 0;
+  const captured = [];
+  await withServer(async (url, options) => {
+    calls++; captured.push({ url, options });
+    const body = JSON.parse(options.body);
+    return response(body.max_tokens === 600 ? jsonPlan : 'Phản hồi kiểm thử trợ lý.');
+  }, async server => {
+    let result = await request(server, { method: 'GET', path: '/health', origin: null, body: undefined });
+    assert.equal(result.status, 200); assert.deepEqual(result.data, { ok: true });
+    assert.equal((await request(server, { path: '/not-an-api' })).status, 404);
+    assert.equal((await request(server, { origin: 'https://other.test' })).status, 403);
+    result = await request(server, { method: 'OPTIONS', body: undefined });
+    assert.equal(result.status, 204);
+    assert.equal(result.headers['access-control-allow-origin'], 'https://practice.test');
+    assert.equal(result.headers['access-control-allow-methods'], 'POST, OPTIONS');
+    assert.equal((await request(server, { method: 'OPTIONS', origin: 'https://other.test', body: undefined })).status, 403);
+    assert.equal((await request(server, { method: 'GET', body: undefined })).status, 405);
+    delete process.env.WOKU_API_KEY;
+    assert.equal((await request(server)).status, 503);
+    process.env.WOKU_API_KEY = 'local-stub-only';
+    assert.equal((await request(server, { type: 'text/plain' })).status, 415);
+    assert.equal((await request(server, { type: 'application/json-unsupported' })).status, 415);
+    assert.equal((await request(server, { body: '{broken' })).status, 400);
+    assert.equal((await request(server, { body: [] })).status, 400);
+    assert.equal((await request(server, { body: { ...requestBody, history: [{ role: 'user', content: 'Not allowed' }] } })).status, 400);
+    assert.equal((await request(server, { body: 'x'.repeat(24001) })).status, 413);
+    assert.equal(calls, 0, 'Rejected/preflight requests must not call a paid upstream');
+    result = await request(server, { type: 'Application/JSON; charset=utf-8' });
+    assert.equal(result.status, 200);
+    assert.deepEqual(result.data, { source: 'ai-plan', templateIds: [templateId], model: 'test-planner-model' });
+    assert.equal(result.headers['access-control-allow-origin'], 'https://practice.test');
+    assert.equal(result.headers['cache-control'], 'no-store');
+    assert.equal(captured[0].url, 'https://llm.wokushop.com/v1/chat/completions');
+    const upstreamBody = JSON.parse(captured[0].options.body);
+    assert.equal(upstreamBody.max_tokens, 600);
+    assert.ok(captured[0].options.signal instanceof AbortSignal);
+    assert.ok(!captured[0].options.signal.aborted);
+    assert.equal(JSON.parse(upstreamBody.messages[1].content).courseId, 'arduino');
+    assert.equal((await request(server, { path: '/api/home-chat', body: { question: 'STEM là gì?' } })).status, 200);
+    const tutor = await request(server, { path: '/api/tutor', body: { course: 'arduino', lesson: 'led', question: 'Điện trở dùng làm gì?', history: [] } });
+    assert.equal(tutor.status, 200); assert.deepEqual(tutor.data, { reply: 'Phản hồi kiểm thử trợ lý.' });
+    assert.equal((await request(server, { path: '/api/tutor', body: { course: 'arduino', lesson: 'missing', question: 'test' } })).status, 400);
+    assert.equal(calls, 3);
+  });
+  assertions++;
+
+  const malformedResults = [
+    '{"templateIds":[]}', JSON.stringify({ templateIds: [wrongScopeId] }), JSON.stringify({ templateIds: [templateId, templateId] }),
+    `Here is your plan: ${jsonPlan}`, JSON.stringify({ templateIds: [templateId], answer: 'invented' }),
+    'not JSON', `\`\`\`json\n${jsonPlan}\n\`\`\``
+  ];
+  let resultIndex = 0;
+  await withServer(async () => response(malformedResults[resultIndex++]), async server => {
+    for (let index = 0; index < malformedResults.length; index++) {
+      const result = await request(server);
+      assert.equal(result.status, index + 1 === malformedResults.length ? 200 : 502);
+      if (result.status === 502) assert.ok(!('templateIds' in result.data), 'Unverified model output must not reach the client');
+    }
+  });
+  assertions++;
+
+  let focusCalls = 0;
+  await withServer(async (_url, options) => {
+    focusCalls++;
+    const body = JSON.parse(options.body), prompt = JSON.parse(body.messages[1].content);
+    assert.deepEqual(prompt.lessons.map(lesson => lesson.id), ['timing']);
+    assert.ok(prompt.templates.every(template => template.lessonId === 'timing'));
+    return response(JSON.stringify({ templateIds: [focusCalls === 1 ? templateId : prompt.templates[0].id] }));
+  }, async server => {
+    const body = { ...requestBody, lessonId: 'all', weakLessonIds: ['timing'] };
+    assert.equal((await request(server, { body })).status, 502, 'A model-selected ID outside weak lessons must be rejected server-side');
+    const result = await request(server, { body });
+    assert.equal(result.status, 200);
+    const allowed = new Set(listTemplates({ courseId: 'arduino', lessonId: 'timing', level: 'all' }).map(template => template.id));
+    assert.ok(result.data.templateIds.every(id => allowed.has(id)));
+  });
+  assertions++;
+
+  calls = 0;
+  await withServer(async () => { calls++; return response(jsonPlan); }, async server => {
+    assert.equal((await request(server, { method: 'OPTIONS', body: undefined })).status, 204);
+    assert.equal((await request(server, { body: { ...requestBody, count: 0 } })).status, 400);
+    assert.equal((await request(server)).status, 200);
+    assert.equal((await request(server)).status, 200);
+    assert.equal((await request(server)).status, 429);
+    assert.equal(calls, 2, 'One reserved daily call per plan, with no charge for rejected requests');
+  }, { limit: 2 });
+  assertions++;
+
+  calls = 0;
+  await withServer(async () => { calls++; return response(jsonPlan); }, async server => {
+    for (let index = 0; index < 10; index++) assert.equal((await request(server)).status, 200);
+    assert.equal((await request(server)).status, 429, 'The existing 10-per-minute limit also applies to plans');
+    assert.equal(calls, 10);
+  });
+  assertions++;
+
+  let releases = [];
+  let ready;
+  let inflightCalls = 0;
+  const bothStarted = new Promise(resolve => { ready = resolve; });
+  await withServer(async (_url, options) => {
+    inflightCalls++;
+    const isPlan = JSON.parse(options.body).max_tokens === 600;
+    if (inflightCalls <= 2) {
+      const pending = new Promise(resolve => releases.push(() => resolve(response(isPlan ? jsonPlan : 'Phản hồi đồng thời.'))));
+      if (inflightCalls === 2) ready();
+      return pending;
+    }
+    return response(jsonPlan);
+  }, async server => {
+    const first = request(server);
+    const second = request(server, { path: '/api/home-chat', body: { question: 'test' } });
+    try {
+      await bothStarted;
+      assert.equal((await request(server, { path: '/api/tutor', body: { course: 'arduino', lesson: 'led', question: 'test' } })).status, 429, 'Plans and chat share the existing concurrency limit');
+    } finally { releases.forEach(release => release()); }
+    const completed = await Promise.all([first, second]);
+    assert.ok(completed.every(result => result.status === 200));
+    assert.equal((await request(server)).status, 200, 'Completing plans must release concurrency slots');
+  });
+  assertions++;
+
+  let failures = 0;
+  await withServer(async () => {
+    failures++;
+    if (failures === 1) throw new DOMException('Stub timeout', 'TimeoutError');
+    if (failures === 2) return { ok: false, status: 503 };
+    if (failures === 3) return { ok: true, status: 200, json: async () => { throw new SyntaxError('Broken payload'); } };
+    return response(jsonPlan);
+  }, async server => {
+    assert.equal((await request(server)).status, 504);
+    assert.equal((await request(server)).status, 502);
+    assert.equal((await request(server)).status, 502);
+    assert.equal((await request(server)).status, 200, 'All failure paths must release pending slots');
+  });
+  assertions++;
+  console.log(`PASS ${assertions} practice-plan groups: strict scopes/payloads, bounded model JSON, real HTTP/CORS/key gates, chat compatibility, quota, shared concurrency, failures and no paid requests`);
+} finally {
+  for (const [name, value] of Object.entries(prior)) {
+    if (value === undefined) delete process.env[name];
+    else process.env[name] = value;
+  }
+}
