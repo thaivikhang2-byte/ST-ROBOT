@@ -17,6 +17,7 @@ parser.add_argument('--chromium', default='/usr/bin/chromium')
 parser.add_argument('--output', default='/tmp/strobot-chat-recovery-results.json')
 args = parser.parse_args()
 results = []
+AI_ORIGIN = 'https://st-robot-1.onrender.com'
 QUESTION = 'Bộ đếm có count = 33; presses = 3; chạy count += presses. Sau lượt này count bằng bao nhiêu?'
 
 
@@ -35,6 +36,8 @@ def prepare(browser, mobile=False):
     def route_request(route):
         url = urlparse(route.request.url)
         if url.path == '/api/home-chat':
+            require(f'{url.scheme}://{url.netloc}' == AI_ORIGIN,
+                    'Home chat contacted the wrong AI service: ' + route.request.url)
             requests.append(route.request.post_data_json)
             if fixture.get('hold'):
                 fixture['held'] = route
@@ -258,6 +261,7 @@ with sync_playwright() as playwright:
                 traceback.print_exc()
             Path(args.output).write_text(json.dumps({'passed': sum(row['status'] == 'passed' for row in results),
                                                       'failed': sum(row['status'] == 'failed' for row in results),
+                                                      'ai_origin_verified': AI_ORIGIN,
                                                       'live_ai_requests': 0, 'results': results}, ensure_ascii=False, indent=2))
     finally:
         browser.close()

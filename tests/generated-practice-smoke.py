@@ -31,6 +31,7 @@ parser.add_argument('--only', help='Run group names matching this regular expres
 args = parser.parse_args()
 BASE = args.base.rstrip('/')
 PUBLIC = BASE + '/frontend/public/'
+AI_ORIGIN = 'https://st-robot-1.onrender.com'
 REVIEW_KEY = 'strobot.review.evidence.v1'
 ASSESSMENT_KEY = 'strobot.assessment.v1'
 HISTORY_KEY = 'strobot.quiz.history.v1'
@@ -556,13 +557,16 @@ def main():
                     continue
                 started = time.monotonic()
                 context = browser.new_context(viewport={'width': 1440, 'height': 1000}, accept_downloads=True)
-                fixture = {'mode': 'unavailable', 'calls': [], 'headers': [], 'held': [], 'response': {}}
+                fixture = {'mode': 'unavailable', 'calls': [], 'headers': [], 'held': [], 'response': {}, 'urls': []}
                 errors, blocked = [], set()
 
                 def route_request(route):
                     request = route.request
                     parsed = urlparse(request.url)
                     if parsed.path == '/api/practice-plan':
+                        require(f'{parsed.scheme}://{parsed.netloc}' == AI_ORIGIN,
+                                'Practice planner contacted the wrong AI service: ' + request.url)
+                        fixture['urls'].append(request.url)
                         headers = {'access-control-allow-origin': '*',
                                    'access-control-allow-methods': 'POST, OPTIONS',
                                    'access-control-allow-headers': 'Content-Type'}
@@ -614,7 +618,8 @@ def main():
                         pass
                 finally:
                     row.update(duration_seconds=round(time.monotonic() - started, 2),
-                               planner_requests=len(fixture['calls']), blocked_external_hosts=sorted(blocked))
+                               planner_requests=len(fixture['calls']), planner_urls_verified=sorted(set(fixture['urls'])),
+                               blocked_external_hosts=sorted(blocked))
                     # Complete held interception handlers even when browser-side
                     # AbortController has already cancelled the fetch. Leaving
                     # them pending can leak Playwright tasks across contexts.

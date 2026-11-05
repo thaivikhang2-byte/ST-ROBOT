@@ -23,6 +23,7 @@ parser.add_argument('--chromium', default='/usr/bin/chromium')
 args = parser.parse_args()
 BASE = args.base.rstrip('/')
 PUBLIC = BASE + '/frontend/public/'
+AI_ORIGIN = 'https://st-robot-1.onrender.com'
 results = []
 api_requests = []
 blocked = set()
@@ -106,13 +107,15 @@ with sync_playwright() as p:
             route.fulfill(status=200, content_type='text/html', body='<html><title>Lab integration fixture</title><body><canvas id="labFixture"></canvas></body></html>')
             return
         if parsed.path in ['/api/home-chat', '/api/tutor']:
+            require(f'{parsed.scheme}://{parsed.netloc}' == AI_ORIGIN,
+                    'Chat/tutor contacted the wrong AI service: ' + request.url)
             kind = 'home' if parsed.path.endswith('home-chat') else 'tutor'
             if request.method == 'OPTIONS':
                 route.fulfill(status=204, headers={'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type'})
                 return
             require(request.method == 'POST', 'AI must POST')
             data = request.post_data_json
-            api_requests.append({'kind': kind, 'data': data})
+            api_requests.append({'kind': kind, 'data': data, 'url': request.url})
             status = 200 if reply_mode[kind] == 'ok' else 503
             body = {'reply': 'Phản hồi AI kiểm thử: mạch điện và thuật toán.'} if status == 200 else {'error': 'Dịch vụ AI kiểm thử đang bận.'}
             route.fulfill(status=status, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps(body))
@@ -873,7 +876,7 @@ with sync_playwright() as p:
     checked('mobile menu, persistent theme and page overflow', mobile)
     browser.close()
 
-summary = {'checks': results, 'passed': sum(r['status'] == 'passed' for r in results), 'failed': sum(r['status'] == 'failed' for r in results), 'external_hosts_blocked': sorted(blocked), 'uncaught_page_errors': page_errors, 'ai_requests_mocked': len(api_requests), 'live_ai_requests': 0}
+summary = {'checks': results, 'passed': sum(r['status'] == 'passed' for r in results), 'failed': sum(r['status'] == 'failed' for r in results), 'external_hosts_blocked': sorted(blocked), 'uncaught_page_errors': page_errors, 'ai_requests_mocked': len(api_requests), 'ai_urls_verified': sorted({request['url'] for request in api_requests}), 'live_ai_requests': 0}
 pathlib.Path(args.output).write_text(json.dumps(summary, ensure_ascii=False, indent=2))
 print(json.dumps({'passed': summary['passed'], 'failed': summary['failed'], 'results': args.output}, ensure_ascii=False))
 sys.exit(1 if summary['failed'] else 0)

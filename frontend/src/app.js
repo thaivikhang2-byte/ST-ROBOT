@@ -1,6 +1,6 @@
 import { Navbar } from './components/navbar/index.js?v=copy-v4';
 import { Footer } from './components/footer/index.js?v=copy-v4';
-import { Chatbox } from './components/chatbox/index.js?v=chat-recovery-v8';
+import { Chatbox } from './components/chatbox/index.js?v=ai-host-v9';
 import { BackToTop } from './components/backtotop/index.js';
 import { ThemeService } from './services/ThemeService.js';
 import { Router } from './router/Router.js';
@@ -9,7 +9,7 @@ import { ROUTES } from './constants/routes.js?v=copy-v4';
 // Module Controllers
 import { HomeController } from './modules/home/HomeController.js?v=lesson-code-v5';
 import { KitController } from './modules/kit/KitController.js?v=copy-v4';
-import { QuizController } from './modules/quiz/QuizController.js?v=simple-quiz-v7';
+import { QuizController } from './modules/quiz/QuizController.js?v=ai-host-v9';
 import { AssessmentController } from './modules/assessment/AssessmentController.js?v=copy-v4';
 import { GioiThieuController } from './modules/gioithieu/GioiThieuController.js';
 import { DangKyController } from './modules/dangky/DangKyController.js';

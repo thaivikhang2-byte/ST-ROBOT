@@ -28,14 +28,14 @@ Các trang HTML ở thư mục gốc chuyển về `frontend/public/` và giữ 
 - Nội dung 30 bài có mục tiêu, kiến thức theo bước, ví dụ có đơn vị, lỗi thường gặp, tự kiểm tra và nguồn chính thức.
 - micro:bit nạp sẵn mã MicroPython vào editor trong khung; có thêm biến thể MakeCode JavaScript và chương trình gửi/nhận radio riêng.
 - Tìm/lọc bộ kit, thông số chi tiết, quiz ôn tập và chọn khóa từ trang đăng ký.
-- AI trang chủ và AI Tutor tiếp tục gọi dịch vụ đã cấu hình tại `st-robot.onrender.com`; giao diện mới không thay endpoint hay gửi khóa bí mật từ trình duyệt.
+- AI trang chủ, AI Tutor và bộ gợi ý dạng câu cùng gọi dịch vụ `st-robot-1.onrender.com`; khóa bí mật được giữ trên máy chủ.
 - Chế độ sáng/tối và menu điện thoại.
 
 Tiến độ và nhật ký lưu trong trình duyệt. Biểu mẫu đăng ký hiện chỉ mở khóa tự học; không tạo tài khoản, gửi thông tin liên hệ hay xác nhận thanh toán.
 
 ## AI server
 
-API nằm trong `ai-server/server.mjs`; giáo trình AI và giáo trình hiển thị được đồng bộ từ `ai-server/curriculum.json`. Để chạy riêng: `cd ai-server` rồi `npm start` (Node >=22). Cần cấu hình `WOKU_API_KEY` an toàn ở phía máy chủ, `AI_MODEL` đúng ID được tài khoản nhà cung cấp hỗ trợ và `ALLOWED_ORIGIN` phù hợp với website. Frontend vẫn dùng endpoint triển khai cũ; khởi động server local không tự đổi endpoint đó.
+API nằm trong `ai-server/server.mjs`; giáo trình AI và giáo trình hiển thị được đồng bộ từ `ai-server/curriculum.json`. Để chạy riêng: `cd ai-server` rồi `npm start` (Node >=22). Cần cấu hình `WOKU_API_KEY` an toàn ở phía máy chủ, `AI_MODEL` đúng ID được tài khoản nhà cung cấp hỗ trợ và `ALLOWED_ORIGIN` phù hợp với website. Frontend dùng dịch vụ triển khai nêu trên; khởi động server local không tự đổi endpoint đó.
 
 Chat tự thử lại tối đa một lần khi nhà cung cấp gặp lỗi tạm thời, trong tổng thời gian 55 giây. Lỗi khóa, model và hạn mức được phân loại riêng; khung chat giữ câu hỏi, hỗ trợ thử lại mà không nhân đôi hội thoại. Xem [cách kiểm tra lỗi AI đang triển khai](docs/ai-troubleshooting.md). Kiểm thử `node tests/chat-upstream.mjs` và `python3 tests/chat-recovery-smoke.py --base http://127.0.0.1:5500` dùng upstream giả lập, không xác nhận tài khoản AI thật đang hoạt động.
 

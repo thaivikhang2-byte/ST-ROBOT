@@ -4,7 +4,7 @@ Thông báo cũ “Kết nối trả lời bị gián đoạn. Vui lòng gửi l
 
 ## Kiểm tra bản đang chạy
 
-Frontend gọi `https://st-robot.onrender.com/api/home-chat`; AI Tutor gọi `/api/tutor` trên cùng dịch vụ. GitHub Pages chỉ phục vụ frontend. Sau khi cập nhật GitHub, dịch vụ AI trên Render cần triển khai commit mới để áp dụng bản sửa máy chủ. `GET /health` chỉ xác nhận tiến trình hoạt động, không kiểm tra khóa hoặc model với nhà cung cấp.
+Frontend gọi `https://st-robot-1.onrender.com/api/home-chat`; AI Tutor gọi `/api/tutor` và bộ gợi ý dạng câu gọi `/api/practice-plan` trên cùng dịch vụ. GitHub Pages chỉ phục vụ frontend. Khi sửa mã API, dịch vụ AI trên Render cần triển khai commit mới để áp dụng bản sửa máy chủ. `GET /health` chỉ xác nhận tiến trình hoạt động, không kiểm tra khóa hoặc model với nhà cung cấp.
 
 Trong Render, mở dịch vụ AI → Logs. Bản mới ghi JSON `ai_upstream_failure` với `status`, `code`, số lần thử và `requestId`. Đối chiếu `requestId` với phản hồi API nếu cần. Không đưa khóa API, câu hỏi, hội thoại hay toàn bộ phản hồi lỗi của nhà cung cấp vào log.
 

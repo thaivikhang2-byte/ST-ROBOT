@@ -1,7 +1,7 @@
 import { getChatboxTemplate } from './template.js';
 import { $, $$ } from '../../utils/dom.js';
 
-const AI_URL = 'https://st-robot.onrender.com/api/home-chat';
+const AI_URL = 'https://st-robot-1.onrender.com/api/home-chat';
 
 export class Chatbox {
     constructor(containerId) {

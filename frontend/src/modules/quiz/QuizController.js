@@ -4,7 +4,7 @@ import { QuizRenderer } from './QuizRenderer.js?v=simple-quiz-v7';
 import { createAutomaticPractice, getDifficultyLevel, listAutomaticTemplates } from './generation/AutomaticPractice.js?v=simple-quiz-v7';
 
 const el = id => document.getElementById(id);
-const PRACTICE_PLAN_URL = 'https://st-robot.onrender.com/api/practice-plan';
+const PRACTICE_PLAN_URL = 'https://st-robot-1.onrender.com/api/practice-plan';
 const DIFFICULTY_NAMES = { easy: 'Dễ', medium: 'Vừa', hard: 'Khó' };
 const PLAN_TIMEOUT = 4000;
 const PLAN_CACHE_TTL = 5 * 60 * 1000;
