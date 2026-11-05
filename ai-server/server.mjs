@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { preparePracticePlan, parsePracticePlan, PracticePlanError } from './practice-plan.mjs';
 import { requestChatCompletion, ChatUpstreamError } from './chat-upstream.mjs';
+import { normalizeAllowedOrigin } from './origin-policy.mjs';
 const curriculum = JSON.parse(readFileSync(new URL('./curriculum.json', import.meta.url), 'utf8'));
-const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://thaivikhang2-byte.github.io';
+const allowedOrigin = normalizeAllowedOrigin(process.env.ALLOWED_ORIGIN);
 const model = process.env.AI_MODEL?.trim() || 'gemini-4-argon';
 const maxDaily = Number(process.env.DAILY_REQUEST_LIMIT || 50);
 if (!Number.isInteger(maxDaily) || maxDaily < 1 || maxDaily > 1000) throw new Error('DAILY_REQUEST_LIMIT must be 1..1000');
@@ -15,7 +16,14 @@ export function createServer(upstream = fetch) {
     const headers = {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin'};
     if (origin === allowedOrigin) headers['Access-Control-Allow-Origin'] = allowedOrigin;
     const reply = (status, data) => { res.writeHead(status, headers); res.end(JSON.stringify(data)); };
-    if (req.url === '/health' && req.method === 'GET') return reply(200, {ok:true});
+    if (req.url === '/health' && req.method === 'GET') {
+      const revision = process.env.RENDER_GIT_COMMIT;
+      return reply(200, {
+        ok:true,
+        revision:typeof revision === 'string' && /^[a-f0-9]{40}$/i.test(revision) ? revision : null,
+        ai:{keyConfigured:Boolean(process.env.WOKU_API_KEY?.trim()),modelConfigured:Boolean(process.env.AI_MODEL?.trim()),allowedOrigin}
+      });
+    }
     const homeChat = req.url === '/api/home-chat';
     const practicePlan = req.url === '/api/practice-plan';
     if (!homeChat && !practicePlan && req.url !== '/api/tutor') return reply(404, {error:'Kiểm tra đường dẫn yêu cầu rồi thử lại.'});

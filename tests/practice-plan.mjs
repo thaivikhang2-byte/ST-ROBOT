@@ -118,7 +118,9 @@ try {
     return response(body.max_tokens === 600 ? jsonPlan : 'Phản hồi kiểm thử trợ lý.');
   }, async server => {
     let result = await request(server, { method: 'GET', path: '/health', origin: null, body: undefined });
-    assert.equal(result.status, 200); assert.deepEqual(result.data, { ok: true });
+    assert.equal(result.status, 200); assert.equal(result.data.ok, true);
+    assert.deepEqual(result.data.ai, { keyConfigured: true, modelConfigured: true, allowedOrigin: 'https://practice.test' });
+    assert.ok(result.data.revision === null || /^[a-f0-9]{40}$/i.test(result.data.revision));
     assert.equal((await request(server, { path: '/not-an-api' })).status, 404);
     assert.equal((await request(server, { origin: 'https://other.test' })).status, 403);
     result = await request(server, { method: 'OPTIONS', body: undefined });

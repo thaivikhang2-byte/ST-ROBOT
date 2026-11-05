@@ -39,6 +39,8 @@ API nằm trong `ai-server/server.mjs`; giáo trình AI và giáo trình hiển 
 
 Chat tự thử lại tối đa một lần khi nhà cung cấp gặp lỗi tạm thời, trong tổng thời gian 55 giây. Lỗi khóa, model và hạn mức được phân loại riêng; khung chat giữ câu hỏi, hỗ trợ thử lại mà không nhân đôi hội thoại. Xem [cách kiểm tra lỗi AI đang triển khai](docs/ai-troubleshooting.md). Kiểm thử `node tests/chat-upstream.mjs` và `python3 tests/chat-recovery-smoke.py --base http://127.0.0.1:5500` dùng upstream giả lập, không xác nhận tài khoản AI thật đang hoạt động.
 
+Máy chủ chuẩn hóa `ALLOWED_ORIGIN` khi người triển khai dán URL GitHub Pages có đường dẫn, dấu `/` cuối hoặc khoảng trắng; vẫn chỉ cấp quyền cho đúng origin. Mở `https://st-robot-1.onrender.com/health` để xem commit và các cờ có/thiếu cấu hình mà không phải vào bảng điều khiển Render. Các cờ này không thay thế kiểm tra phản hồi AI thật. Chạy `node tests/origin-policy.mjs` để kiểm tra CORS bằng HTTP tại chỗ.
+
 ## Kiểm tra giao diện
 
 Bộ smoke test dùng Python, Playwright, pypdf và Chromium. Sau khi phục vụ thư mục dự án qua Python như trên:

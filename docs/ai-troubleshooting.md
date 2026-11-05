@@ -4,7 +4,11 @@ Thông báo cũ “Kết nối trả lời bị gián đoạn. Vui lòng gửi l
 
 ## Kiểm tra bản đang chạy
 
-Frontend gọi `https://st-robot-1.onrender.com/api/home-chat`; AI Tutor gọi `/api/tutor` và bộ gợi ý dạng câu gọi `/api/practice-plan` trên cùng dịch vụ. GitHub Pages chỉ phục vụ frontend. Khi sửa mã API, dịch vụ AI trên Render cần triển khai commit mới để áp dụng bản sửa máy chủ. `GET /health` chỉ xác nhận tiến trình hoạt động, không kiểm tra khóa hoặc model với nhà cung cấp.
+Frontend gọi `https://st-robot-1.onrender.com/api/home-chat`; AI Tutor gọi `/api/tutor` và bộ gợi ý dạng câu gọi `/api/practice-plan` trên cùng dịch vụ. GitHub Pages chỉ phục vụ frontend. Khi sửa mã API, dịch vụ AI trên Render cần triển khai commit mới để áp dụng bản sửa máy chủ.
+
+Có thể mở `https://st-robot-1.onrender.com/health` ngay trên điện thoại. `ok` xác nhận tiến trình hoạt động; `revision` cho biết commit Render đang chạy nếu có biến `RENDER_GIT_COMMIT`. `ai.keyConfigured` và `ai.modelConfigured` chỉ xác nhận có nhập giá trị cấu hình; chúng không xác thực khóa/model với nhà cung cấp. `ai.allowedOrigin` là địa chỉ website được phép kết nối. Phản hồi không chứa khóa API hoặc giá trị model. Nếu chỉ có `{"ok":true}`, máy chủ đang chạy bản chưa có phần kiểm tra cấu hình này.
+
+`ALLOWED_ORIGIN` được chuẩn hóa về origin (giao thức, tên miền, cổng) trước khi kiểm tra. Ví dụ `https://thaivikhang2-byte.github.io/ST-ROBOT/` và cùng URL có dấu `/` cuối hoặc khoảng trắng ngoài đều trở thành `https://thaivikhang2-byte.github.io`. Cấu hình sai định dạng trước đây gây 403 ở yêu cầu OPTIONS, khiến trình duyệt chỉ báo lỗi kết nối. Website khác, cổng khác và giao thức khác vẫn bị từ chối; không dùng wildcard để bỏ qua kiểm tra.
 
 Trong Render, mở dịch vụ AI → Logs. Bản mới ghi JSON `ai_upstream_failure` với `status`, `code`, số lần thử và `requestId`. Đối chiếu `requestId` với phản hồi API nếu cần. Không đưa khóa API, câu hỏi, hội thoại hay toàn bộ phản hồi lỗi của nhà cung cấp vào log.
 
@@ -26,6 +30,7 @@ Không đổi dịch vụ AI sang câu trả lời dựng sẵn khi kết nối 
 
 ```sh
 node tests/chat-upstream.mjs
+node tests/origin-policy.mjs
 node tests/practice-plan.mjs
 node start-web.cjs
 # Trong terminal khác:
