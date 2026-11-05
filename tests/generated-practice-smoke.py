@@ -259,7 +259,9 @@ def lesson_scopes(page, fixture):
                     for q in questions), 'Hard practice used an ineligible question')
         observed.append({'course': course['id'], 'lesson': lesson, 'sources': source_counts(questions)})
         page.locator('#btnBackIntro').click()
-    return {'factory_lesson_scopes': 30, 'canonical_round_trips': 180, 'ui_scopes': observed}
+    require(not fixture['calls'], 'Fixed hard tiers requested AI planning across the five courses')
+    return {'factory_lesson_scopes': 30, 'canonical_round_trips': 180, 'ui_scopes': observed,
+            'fixed_tier_planner_requests': 0}
 
 
 def difficulty_changes_questions(page, fixture):
@@ -268,8 +270,16 @@ def difficulty_changes_questions(page, fixture):
     observations = []
     for difficulty, bank_kind in (('easy', 'core'), ('medium', 'apply'), ('hard', 'reason')):
         setup(page, lesson='led', count=12, difficulty=difficulty)
+        calls_before = len(fixture['calls'])
         start(page)
         expect(page.locator('#quizActiveGame')).to_have_attribute('data-difficulty', difficulty)
+        if difficulty == 'medium':
+            require(len(fixture['calls']) == calls_before + 1,
+                    'Medium practice omitted its useful automatic planning request')
+        else:
+            require(len(fixture['calls']) == calls_before,
+                    'Fixed easy/hard tier consumed a planner request: ' + difficulty)
+            expect(page.locator('#quizActiveGame')).to_have_attribute('data-plan-source', 'local')
         questions = complete(page, 12)
         generated = [q for q in questions if q['id'].startswith('gen:')]
         bank = [q for q in questions if not q['id'].startswith('gen:')]
@@ -280,9 +290,12 @@ def difficulty_changes_questions(page, fixture):
         expected = {'basic'} if difficulty == 'easy' else {'apply'} if difficulty == 'hard' else {'basic', 'apply'}
         require(levels == expected, 'Arduino LED difficulty changed only the label: ' + repr(levels))
         observations.append({'difficulty': difficulty, 'generated_levels': sorted(levels),
-                             'bank_kind': bank_kind, 'sources': source_counts(questions)})
+                             'bank_kind': bank_kind, 'sources': source_counts(questions),
+                             'planner_requests': len(fixture['calls']) - calls_before})
         page.locator('#btnBackIntro').click()
-    return {'questions_graded': 36, 'actual_composition': observations}
+    require(len(fixture['calls']) == 1, 'Only the medium tier should ask for an AI plan')
+    return {'questions_graded': 36, 'actual_composition': observations,
+            'total_planner_requests': len(fixture['calls'])}
 
 
 def restart_excludes_completed(page, fixture):

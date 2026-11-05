@@ -10,6 +10,8 @@ Có thể mở `https://st-robot-1.onrender.com/health` ngay trên điện tho�
 
 `ALLOWED_ORIGIN` được chuẩn hóa về origin (giao thức, tên miền, cổng) trước khi kiểm tra. Ví dụ `https://thaivikhang2-byte.github.io/ST-ROBOT/` và cùng URL có dấu `/` cuối hoặc khoảng trắng ngoài đều trở thành `https://thaivikhang2-byte.github.io`. Cấu hình sai định dạng trước đây gây 403 ở yêu cầu OPTIONS, khiến trình duyệt chỉ báo lỗi kết nối. Website khác, cổng khác và giao thức khác vẫn bị từ chối; không dùng wildcard để bỏ qua kiểm tra.
 
+Một hồi quy khác đã tái hiện: khi quiz chuyển sang gọi lập kế hoạch tự động, các lượt đó dùng chung toàn bộ hạn mức và hai chỗ xử lý với chat. Trình duyệt bỏ yêu cầu sau 4 giây nhưng máy chủ trước đây vẫn đợi tới 20 giây, dẫn đến chat nhận 429 bận hoặc hết lượt. Bản sửa giới hạn riêng phần lập kế hoạch, dành chỗ cho chat và hủy upstream khi client ngắt kết nối. Dễ/Khó chọn mẫu tại chỗ; Vừa vẫn có gợi ý AI. Điều này sửa hồi quy dùng chung tài nguyên; lỗi HTTP 502 từ nhà cung cấp vẫn cần đối chiếu mã lỗi riêng, không quy mọi lỗi mất kết nối cho cùng một nguyên nhân.
+
 Trong Render, mở dịch vụ AI → Logs. Bản mới ghi JSON `ai_upstream_failure` với `status`, `code`, số lần thử và `requestId`. Đối chiếu `requestId` với phản hồi API nếu cần. Không đưa khóa API, câu hỏi, hội thoại hay toàn bộ phản hồi lỗi của nhà cung cấp vào log.
 
 | Mã lỗi | Việc cần kiểm tra |

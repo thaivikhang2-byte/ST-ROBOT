@@ -115,7 +115,7 @@ Bộ kiểm thử xác nhận câu hỏi không lẫn khóa/bài, phân bổ đ�
 
 ## Ôn tập theo lỗi
 
-60 dạng bài tạo 23.399 biến thể số liệu/tình huống cho đủ 30 bài, kèm tính đáp án và kiểm tra phương án trùng. Dễ chọn nhóm nhiệm vụ nền tảng của từng bài; Vừa phối các nhóm; Khó chọn nhóm yêu cầu cao hơn. AI tự gợi ý dạng bài theo phạm vi, mức độ và bài cần ôn; chương trình vẫn tính đáp án và giữ phân bổ đều khi làm cả khóa. Khi AI gián đoạn, bộ chọn tại chỗ tiếp tục chuẩn bị đề. Xem [cách sinh, kiểm tra và triển khai](docs/generated-practice.md).
+60 dạng bài tạo 23.399 biến thể số liệu/tình huống cho đủ 30 bài, kèm tính đáp án và kiểm tra phương án trùng. Dễ chọn nhóm nhiệm vụ nền tảng của từng bài; Vừa phối các nhóm; Khó chọn nhóm yêu cầu cao hơn. Dễ/Khó chọn mẫu tại chỗ; mức Vừa tự nhận gợi ý AI theo phạm vi và bài cần ôn. Chương trình vẫn tính đáp án và chia đều khi làm cả khóa. Phần lập kế hoạch có giới hạn phụ để dành lượt và chỗ xử lý cho chat, đồng thời hủy công việc khi trình duyệt bỏ yêu cầu. Khi AI gián đoạn, bộ chọn tại chỗ tiếp tục chuẩn bị đề. Xem [cách sinh, kiểm tra và triển khai](docs/generated-practice.md).
 
 Trên trang **Kiểm tra**, hoàn thành một lượt rồi chọn **Ôn theo kết quả**. Mỗi lượt chọn tối đa 6 câu trong đúng khóa: ưu tiên câu có đáp án gần nhất chưa đúng, câu chưa làm trong bài đang có lỗi, rồi câu đã đến ngày ôn lại. Mỗi câu hiện lý do được chọn. Sau các lần đúng liên tiếp, lịch ôn lần lượt là 1, 3 và 7 ngày; trả lời sai thì ưu tiên ôn ngay.
 

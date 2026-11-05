@@ -111,6 +111,10 @@ export class QuizController {
         if (message) this.generationStatus(message, 'idle');
     }
     async preparePlan(chosen, weakLessonIds, token) {
+        // Easy and hard already select one fixed task tier per lesson. A remote
+        // plan cannot change that choice, so keep those quizzes local and leave
+        // the shared AI service available for meaningful planning and chat.
+        if (chosen.difficulty !== 'medium') return { templateIds: [], source: 'local' };
         const now = Date.now();
         for (const [key, cached] of this.planCache) if (cached.expiresAt <= now) this.planCache.delete(key);
         const key = JSON.stringify([chosen.courseId, chosen.lessonId, chosen.count, chosen.difficulty, weakLessonIds]);

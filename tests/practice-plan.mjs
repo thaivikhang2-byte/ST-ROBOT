@@ -14,8 +14,18 @@ const wrongScopeId = listTemplates({ courseId: 'microbit', lessonId: 'all', leve
 const jsonPlan = JSON.stringify({ templateIds: [templateId] });
 const response = content => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content } }] }) });
 const prior = Object.fromEntries(['NODE_ENV', 'ALLOWED_ORIGIN', 'AI_MODEL', 'DAILY_REQUEST_LIMIT', 'WOKU_API_KEY'].map(name => [name, process.env[name]]));
+const actualNow = Date.now;
 let serverIndex = 0;
 let assertions = 0;
+
+async function within(promise, label, milliseconds = 2000) {
+  let timer;
+  try {
+    return await Promise.race([promise, new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(label)), milliseconds);
+    })]);
+  } finally { clearTimeout(timer); }
+}
 
 function request(server, { method = 'POST', path = '/api/practice-plan', origin = 'https://practice.test', body = requestBody, type = 'application/json' } = {}) {
   const encoded = typeof body === 'string' ? body : JSON.stringify(body);
@@ -113,7 +123,7 @@ try {
   let calls = 0;
   const captured = [];
   await withServer(async (url, options) => {
-    calls++; captured.push({ url, options });
+    calls++; captured.push({ url, options, abortedAtStart: options.signal.aborted });
     const body = JSON.parse(options.body);
     return response(body.max_tokens === 600 ? jsonPlan : 'Phản hồi kiểm thử trợ lý.');
   }, async server => {
@@ -148,7 +158,7 @@ try {
     const upstreamBody = JSON.parse(captured[0].options.body);
     assert.equal(upstreamBody.max_tokens, 600);
     assert.ok(captured[0].options.signal instanceof AbortSignal);
-    assert.ok(!captured[0].options.signal.aborted);
+    assert.equal(captured[0].abortedAtStart, false, 'The provider must receive a live signal; completed operations may be aborted for cleanup');
     assert.equal(JSON.parse(upstreamBody.messages[1].content).courseId, 'arduino');
     assert.equal((await request(server, { path: '/api/home-chat', body: { question: 'STEM là gì?' } })).status, 200);
     const tutor = await request(server, { path: '/api/tutor', body: { course: 'arduino', lesson: 'led', question: 'Điện trở dùng làm gì?', history: [] } });
@@ -163,14 +173,13 @@ try {
     `Here is your plan: ${jsonPlan}`, JSON.stringify({ templateIds: [templateId], answer: 'invented' }),
     'not JSON', `\`\`\`json\n${jsonPlan}\n\`\`\``
   ];
-  let resultIndex = 0;
-  await withServer(async () => response(malformedResults[resultIndex++]), async server => {
-    for (let index = 0; index < malformedResults.length; index++) {
+  for (let index = 0; index < malformedResults.length; index++) {
+    await withServer(async () => response(malformedResults[index]), async server => {
       const result = await request(server);
       assert.equal(result.status, index + 1 === malformedResults.length ? 200 : 502);
       if (result.status === 502) assert.ok(!('templateIds' in result.data), 'Unverified model output must not reach the client');
-    }
-  });
+    });
+  }
   assertions++;
 
   let focusCalls = 0;
@@ -192,28 +201,27 @@ try {
 
   const lowerId = templates.find(template => template.level === 'basic').id;
   const higherId = templates.find(template => template.level === 'apply').id;
-  let difficultyCalls = 0;
-  let chooseWrong = true;
-  await withServer(async (_url, options) => {
-    difficultyCalls++;
-    const planPrompt = JSON.parse(JSON.parse(options.body).messages[1].content);
-    const expectedLevel = planPrompt.difficulty === 'hard' ? 'apply' : 'basic';
-    assert.ok(planPrompt.templates.every(template => template.level === expectedLevel));
-    const selected = chooseWrong ? (expectedLevel === 'basic' ? higherId : lowerId) : planPrompt.templates[0].id;
-    return response(JSON.stringify({ templateIds: [selected] }));
-  }, async server => {
-    for (const difficulty of ['easy', 'hard']) {
+  for (const difficulty of ['easy', 'hard']) {
+    let difficultyCalls = 0;
+    let chooseWrong = true;
+    await withServer(async (_url, options) => {
+      difficultyCalls++;
+      const planPrompt = JSON.parse(JSON.parse(options.body).messages[1].content);
+      const expectedLevel = planPrompt.difficulty === 'hard' ? 'apply' : 'basic';
+      assert.ok(planPrompt.templates.every(template => template.level === expectedLevel));
+      const selected = chooseWrong ? (expectedLevel === 'basic' ? higherId : lowerId) : planPrompt.templates[0].id;
+      return response(JSON.stringify({ templateIds: [selected] }));
+    }, async server => {
       const body = { ...requestBody, difficulty };
-      chooseWrong = true;
       assert.equal((await request(server, { body })).status, 502, `${difficulty} plans reject a valid scoped ID at the wrong template level`);
       chooseWrong = false;
       const result = await request(server, { body });
       assert.equal(result.status, 200);
       assert.deepEqual(result.data.templateIds, [difficulty === 'easy' ? lowerId : higherId]);
-    }
-    for (const difficulty of ['invalid', null, 2]) assert.equal((await request(server, { body: { ...requestBody, difficulty } })).status, 400);
-    assert.equal(difficultyCalls, 4, 'Invalid difficulty choices must not consume upstream calls');
-  });
+      for (const invalid of ['invalid', null, 2]) assert.equal((await request(server, { body: { ...requestBody, difficulty: invalid } })).status, 400);
+      assert.equal(difficultyCalls, 2, 'Invalid difficulty choices must not consume upstream calls');
+    });
+  }
   assertions++;
 
   calls = 0;
@@ -221,38 +229,79 @@ try {
     assert.equal((await request(server, { method: 'OPTIONS', body: undefined })).status, 204);
     assert.equal((await request(server, { body: { ...requestBody, count: 0 } })).status, 400);
     assert.equal((await request(server)).status, 200);
-    assert.equal((await request(server)).status, 200);
-    assert.equal((await request(server)).status, 429);
-    assert.equal(calls, 2, 'One reserved daily call per plan, with no charge for rejected requests');
+    assert.equal((await request(server)).status, 429, 'Automatic plans must leave a daily request for a learner question');
+    assert.equal((await request(server, { path: '/api/home-chat', body: { question: 'Câu hỏi vẫn được trả lời.' } })).status, 200);
+    assert.equal((await request(server, { path: '/api/home-chat', body: { question: 'Đã dùng hết tổng hạn mức.' } })).status, 429);
+    assert.equal(calls, 2, 'Planner reservation preserves the original total daily cap and does not charge rejected requests');
   }, { limit: 2 });
   assertions++;
 
   calls = 0;
   await withServer(async () => { calls++; return response(jsonPlan); }, async server => {
-    for (let index = 0; index < 10; index++) assert.equal((await request(server)).status, 200);
-    assert.equal((await request(server)).status, 429, 'The existing 10-per-minute limit also applies to plans');
+    for (let index = 0; index < 10; index++) assert.equal((await request(server, { path: '/api/home-chat', body: { question: 'Kiểm tra hạn mức chung.' } })).status, 200);
+    assert.equal((await request(server)).status, 429, 'The existing global 10-per-minute limit still includes plans');
     assert.equal(calls, 10);
   });
   assertions++;
 
+  calls = 0;
+  await withServer(async () => { calls++; return response(jsonPlan); }, async server => {
+    assert.equal((await request(server)).status, 200);
+    assert.equal((await request(server)).status, 200);
+    assert.equal((await request(server)).status, 429, 'Automatic planning has its own two-per-minute ceiling');
+    assert.equal((await request(server, { path: '/api/home-chat', body: { question: 'Câu hỏi có ưu tiên riêng.' } })).status, 200);
+    assert.equal(calls, 3);
+  });
+  assertions++;
+
+  let logicalNow = actualNow();
+  try {
+    Date.now = () => logicalNow;
+    calls = 0;
+    await withServer(async () => { calls++; return response(jsonPlan); }, async server => {
+      for (let index = 0; index < 10; index++) {
+        assert.equal((await request(server)).status, 200);
+        logicalNow += 61000;
+      }
+      assert.equal((await request(server)).status, 429, 'Automatic plans cannot consume the whole default daily allowance');
+      assert.equal((await request(server, { path: '/api/home-chat', body: { question: 'Câu hỏi sau mười lượt tạo đề.' } })).status, 200);
+      assert.equal(calls, 11);
+    });
+  } finally { Date.now = actualNow; }
+  assertions++;
+
+  calls = 0;
+  await withServer(async () => { calls++; return response(jsonPlan); }, async server => {
+    assert.equal((await request(server)).status, 429, 'A one-call deployment reserves its only daily request for chat');
+    assert.equal((await request(server, { path: '/api/home-chat', body: { question: 'Câu hỏi duy nhất trong ngày.' } })).status, 200);
+    assert.equal((await request(server, { path: '/api/home-chat', body: { question: 'Câu hỏi vượt hạn mức.' } })).status, 429);
+    assert.equal(calls, 1);
+  }, { limit: 1 });
+  assertions++;
+
   let releases = [];
   let ready;
+  let planReady;
   let inflightCalls = 0;
   const bothStarted = new Promise(resolve => { ready = resolve; });
+  const planStarted = new Promise(resolve => { planReady = resolve; });
   await withServer(async (_url, options) => {
     inflightCalls++;
     const isPlan = JSON.parse(options.body).max_tokens === 600;
     if (inflightCalls <= 2) {
       const pending = new Promise(resolve => releases.push(() => resolve(response(isPlan ? jsonPlan : 'Phản hồi đồng thời.'))));
+      if (inflightCalls === 1) planReady();
       if (inflightCalls === 2) ready();
       return pending;
     }
     return response(jsonPlan);
   }, async server => {
     const first = request(server);
+    await within(planStarted, 'The first planning request never reached the provider fixture');
+    assert.equal((await request(server)).status, 429, 'Only one automatic plan may occupy a slot; preserve the second slot for chat');
     const second = request(server, { path: '/api/home-chat', body: { question: 'test' } });
     try {
-      await bothStarted;
+      await within(bothStarted, 'A held planner prevented the chat request from reaching the provider');
       assert.equal((await request(server, { path: '/api/tutor', body: { course: 'arduino', lesson: 'led', question: 'test' } })).status, 429, 'Plans and chat share the existing concurrency limit');
     } finally { releases.forEach(release => release()); }
     const completed = await Promise.all([first, second]);
@@ -261,22 +310,82 @@ try {
   });
   assertions++;
 
-  let failures = 0;
-  await withServer(async () => {
-    failures++;
-    if (failures === 1) throw new DOMException('Stub timeout', 'TimeoutError');
-    if (failures === 2) return { ok: false, status: 503 };
-    if (failures === 3) return { ok: true, status: 200, json: async () => { throw new SyntaxError('Broken payload'); } };
+  let started, aborted;
+  const cancellationStarted = new Promise(resolve => { started = resolve; });
+  const cancellationObserved = new Promise(resolve => { aborted = resolve; });
+  let cancellationCalls = 0;
+  let capturedSignal;
+  await withServer(async (_url, options) => {
+    cancellationCalls++;
+    if (cancellationCalls === 1) {
+      capturedSignal = options.signal;
+      return new Promise(() => {
+        // Deliberately ignore cancellation at transport level: the server must
+        // still release its own slot instead of awaiting this stuck operation.
+        options.signal.addEventListener('abort', aborted, { once: true });
+        started();
+      });
+    }
     return response(jsonPlan);
   }, async server => {
-    assert.equal((await request(server)).status, 504);
-    assert.equal((await request(server)).status, 502);
-    assert.equal((await request(server)).status, 502);
-    assert.equal((await request(server)).status, 200, 'All failure paths must release pending slots');
+    const encoded = JSON.stringify(requestBody);
+    let client;
+    const clientClosed = new Promise((resolve, reject) => {
+      client = http.request({ hostname: '127.0.0.1', port: server.address().port, method: 'POST', path: '/api/practice-plan', headers: {
+        Origin: 'https://practice.test', 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(encoded)
+      } }, res => { res.resume(); res.once('end', () => reject(new Error('Canceled client unexpectedly received an HTTP response'))); });
+      client.on('error', resolve);
+      client.end(encoded);
+    });
+    await within(cancellationStarted, 'The cancellable plan never reached the provider');
+    assert.ok(capturedSignal instanceof AbortSignal && !capturedSignal.aborted);
+    client.destroy();
+    await within(clientClosed, 'Canceled client socket did not close');
+    await within(cancellationObserved, 'Client cancellation did not abort the provider request');
+    assert.ok(capturedSignal.aborted);
+    assert.equal((await request(server)).status, 200, 'A canceled plan must release its planner slot immediately');
+    assert.equal((await request(server, { path: '/api/home-chat', body: { question: 'Chat vẫn hoạt động sau khi hủy tạo đề.' } })).status, 200);
+    assert.equal(cancellationCalls, 3, 'Canceling a plan must not silently retry the paid provider');
   });
   assertions++;
-  console.log(`PASS ${assertions} practice-plan groups: strict scopes/payloads, bounded model JSON, real HTTP/CORS/key gates, chat compatibility, quota, shared concurrency, failures and no paid requests`);
+
+  let deadlineCalls = 0;
+  let deadlineSignal;
+  await withServer(async (_url, options) => {
+    deadlineCalls++;
+    if (deadlineCalls === 1) {
+      deadlineSignal = options.signal;
+      return new Promise(() => {});
+    }
+    return response(jsonPlan);
+  }, async server => {
+    const began = performance.now();
+    const timedOut = await within(request(server), 'The server did not end a stuck planner before the browser deadline', 4800);
+    const elapsed = performance.now() - began;
+    assert.equal(timedOut.status, 504);
+    assert.ok(elapsed >= 3400 && elapsed < 4800, `Expected the real 3.5-second planning deadline, observed ${elapsed} ms`);
+    assert.ok(deadlineSignal instanceof AbortSignal && deadlineSignal.aborted, 'Deadline must abort the provider signal even when its promise never settles');
+    assert.equal((await request(server)).status, 200, 'An expired planner must release its slot while the client remains connected');
+    assert.equal((await request(server, { path: '/api/home-chat', body: { question: 'Chat sau khi tạo đề quá thời gian.' } })).status, 200);
+    assert.equal(deadlineCalls, 3, 'A timed-out planner is not retried or left occupying chat capacity');
+  });
+  assertions++;
+
+  for (const [failure, status] of [
+    [() => { throw new DOMException('Stub timeout', 'TimeoutError'); }, 504],
+    [() => ({ ok: false, status: 503 }), 502],
+    [() => ({ ok: true, status: 200, json: async () => { throw new SyntaxError('Broken payload'); } }), 502]
+  ]) {
+    let failures = 0;
+    await withServer(async () => ++failures === 1 ? failure() : response(jsonPlan), async server => {
+      assert.equal((await request(server)).status, status);
+      assert.equal((await request(server)).status, 200, 'Each failure path must release its planner slot');
+    });
+  }
+  assertions++;
+  console.log(`PASS ${assertions} practice-plan groups: strict scopes/payloads, bounded model JSON, real HTTP/CORS/key gates, reserved chat capacity, original total quotas, canceled-client cleanup and no paid requests`);
 } finally {
+  Date.now = actualNow;
   for (const [name, value] of Object.entries(prior)) {
     if (value === undefined) delete process.env[name];
     else process.env[name] = value;

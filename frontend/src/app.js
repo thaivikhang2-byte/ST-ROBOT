@@ -9,7 +9,7 @@ import { ROUTES } from './constants/routes.js?v=copy-v4';
 // Module Controllers
 import { HomeController } from './modules/home/HomeController.js?v=lesson-code-v5';
 import { KitController } from './modules/kit/KitController.js?v=copy-v4';
-import { QuizController } from './modules/quiz/QuizController.js?v=ai-host-v9';
+import { QuizController } from './modules/quiz/QuizController.js?v=quiz-priority-v10';
 import { AssessmentController } from './modules/assessment/AssessmentController.js?v=copy-v4';
 import { GioiThieuController } from './modules/gioithieu/GioiThieuController.js';
 import { DangKyController } from './modules/dangky/DangKyController.js';
