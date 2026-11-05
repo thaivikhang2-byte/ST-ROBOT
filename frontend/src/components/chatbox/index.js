@@ -8,6 +8,7 @@ export class Chatbox {
         this.container = $(containerId);
         this.history = [];
         this.busy = false;
+        this.failedExchange = null;
     }
 
     render() {
@@ -37,17 +38,26 @@ export class Chatbox {
         });
         if (!input || !button) return;
         input.maxLength = 3000;
-        const submit = async () => {
-            const question = input.value.trim();
+        const submit = async (retry = null) => {
+            const question = retry?.question || input.value.trim();
             if (!question || this.busy) return;
+            if (!retry && this.failedExchange?.question === question) retry = this.failedExchange;
+            this.failedExchange = null;
             this.busy = true;
             button.disabled = true;
             chips.forEach(b => b.disabled = true);
-            this.appendMessage(question, 'user');
-            input.value = '';
-            const pending = this.appendMessage('AI đang trả lời…', 'assistant');
+            $('#chatForm')?.setAttribute('aria-busy', 'true');
+            $$('.chat-retry').forEach(b => b.remove());
+            if (!retry) this.appendMessage(question, 'user');
+            if (!retry || input.value.trim() === question) input.value = '';
+            const pending = retry?.bubble || this.appendMessage('', 'assistant');
+            pending.textContent = 'AI đang trả lời…';
+            pending.dataset.state = 'pending';
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 75000);
+            const waitingTimer = setTimeout(() => {
+                pending.textContent = 'Trợ lý đang kết nối, bạn chờ một chút nhé…';
+            }, 15000);
             try {
                 const response = await fetch(AI_URL, {
                     method: 'POST',
@@ -57,25 +67,47 @@ export class Chatbox {
                 });
                 let data;
                 try { data = await response.json(); }
-                catch { throw new Error('Kết nối trả lời bị gián đoạn. Hãy gửi lại sau 60 giây.'); }
-                if (!response.ok) throw new Error(data.error || 'Gửi câu hỏi bị gián đoạn. Hãy thử lại.');
-                if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('Hãy gửi lại câu hỏi để nhận phản hồi đầy đủ.');
+                catch { throw new Error('Máy chủ chưa trả lời đầy đủ. Bạn có thể thử lại.'); }
+                if (!response.ok) {
+                    const error = new Error(typeof data?.error === 'string' && data.error.trim()
+                        ? data.error.slice(0, 500) : response.status === 429
+                            ? 'Trợ lý đang bận. Bạn hãy thử lại sau một phút.'
+                            : 'Trợ lý đang gặp gián đoạn. Bạn có thể thử lại.');
+                    error.retryable = data?.retryable !== false;
+                    throw error;
+                }
+                if (typeof data?.reply !== 'string' || !data.reply.trim()) throw new Error('Trợ lý chưa gửi được câu trả lời. Bạn có thể thử lại.');
                 pending.textContent = data.reply;
+                pending.dataset.state = 'complete';
                 this.history.push({ role: 'user', content: question }, { role: 'assistant', content: data.reply.slice(0, 4000) });
                 this.history = this.history.slice(-6);
             } catch (error) {
                 pending.textContent = error.name === 'AbortError'
                     ? 'Chờ phản hồi quá lâu. Bạn hãy gửi lại câu hỏi.'
                     : error instanceof TypeError ? 'Kết nối với trợ lý bị gián đoạn. Kiểm tra mạng rồi thử lại.' : error.message;
+                pending.dataset.state = 'failed';
+                this.failedExchange = { question, bubble: pending };
+                if (error.retryable !== false) {
+                    const actions = document.createElement('div');
+                    const retryButton = document.createElement('button');
+                    retryButton.type = 'button';
+                    retryButton.className = 'btn btn--sm chat-retry';
+                    retryButton.textContent = 'Thử lại';
+                    retryButton.addEventListener('click', () => submit(this.failedExchange));
+                    actions.append(retryButton);
+                    pending.append(actions);
+                }
                 if (!input.value) input.value = question;
             } finally {
                 clearTimeout(timer);
+                clearTimeout(waitingTimer);
                 this.busy = false;
                 button.disabled = false;
                 chips.forEach(b => b.disabled = false);
+                $('#chatForm')?.removeAttribute('aria-busy');
                 const messages = $('#chatMessageContainer');
                 if (messages) messages.scrollTop = messages.scrollHeight;
-                input.focus();
+                if (!panel.hidden) input.focus();
             }
         };
         $('#chatForm')?.addEventListener('submit', event => {

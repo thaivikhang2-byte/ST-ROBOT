@@ -35,7 +35,9 @@ Tiến độ và nhật ký lưu trong trình duyệt. Biểu mẫu đăng ký h
 
 ## AI server
 
-Mã API `ai-server/server.mjs` được giữ nguyên; giáo trình AI và giáo trình hiển thị được đồng bộ từ `ai-server/curriculum.json`. Để chạy riêng: `cd ai-server` rồi `npm start` (Node >=22). Cần cấu hình `WOKU_API_KEY` an toàn ở phía máy chủ để có phản hồi thật, cùng `ALLOWED_ORIGIN` phù hợp với website. Frontend vẫn dùng endpoint triển khai cũ; khởi động server local không tự đổi endpoint đó.
+API nằm trong `ai-server/server.mjs`; giáo trình AI và giáo trình hiển thị được đồng bộ từ `ai-server/curriculum.json`. Để chạy riêng: `cd ai-server` rồi `npm start` (Node >=22). Cần cấu hình `WOKU_API_KEY` an toàn ở phía máy chủ, `AI_MODEL` đúng ID được tài khoản nhà cung cấp hỗ trợ và `ALLOWED_ORIGIN` phù hợp với website. Frontend vẫn dùng endpoint triển khai cũ; khởi động server local không tự đổi endpoint đó.
+
+Chat tự thử lại tối đa một lần khi nhà cung cấp gặp lỗi tạm thời, trong tổng thời gian 55 giây. Lỗi khóa, model và hạn mức được phân loại riêng; khung chat giữ câu hỏi, hỗ trợ thử lại mà không nhân đôi hội thoại. Xem [cách kiểm tra lỗi AI đang triển khai](docs/ai-troubleshooting.md). Kiểm thử `node tests/chat-upstream.mjs` và `python3 tests/chat-recovery-smoke.py --base http://127.0.0.1:5500` dùng upstream giả lập, không xác nhận tài khoản AI thật đang hoạt động.
 
 ## Kiểm tra giao diện
 
