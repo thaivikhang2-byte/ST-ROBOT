@@ -3,42 +3,22 @@
 .quiz-header-banner h1 { margin-block:var(--space-3); }
 .quiz-header-banner p,.quiz-section-head p { color:var(--color-text-muted); margin-bottom:0; }
 .section-badge { display:inline-block; padding:5px 12px; border-radius:var(--radius-full); background:var(--color-primary-soft); color:var(--color-primary); font-size:var(--text-xs); font-weight:700; }
-.quiz-steps { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-5); list-style:none; margin:0 0 var(--space-6); padding:0; }
-.quiz-steps li { display:flex; align-items:center; gap:8px; margin:0; color:var(--color-text-muted); font-size:var(--text-sm); }
-.quiz-steps li span { display:grid; place-items:center; width:30px; height:30px; border:1px solid var(--color-border-control); border-radius:50%; font-weight:700; }
-.quiz-steps [aria-current="step"] { color:var(--color-primary); font-weight:700; }
-.quiz-steps [aria-current="step"] span { color:var(--color-on-primary); background:var(--color-primary); border-color:var(--color-primary); }
 .quiz-box { padding:clamp(20px,4vw,36px); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-surface); box-shadow:var(--shadow-md); }
 .quiz-section-head { margin-bottom:var(--space-5); }
 .quiz-section-head h2 { font-size:var(--text-xl); }
-.quiz-setup-grid { display:grid; grid-template-columns:1fr 1.4fr .8fr; gap:16px; }
+.quiz-setup-grid { display:grid; grid-template-columns:1.2fr 1.5fr .7fr .7fr; gap:16px; }
 .quiz-setup-grid .field { min-width:0; }
 .quiz-setup-grid select { width:100%; }
-.quiz-new-practice { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding:20px; margin-bottom:22px; border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-primary-soft); }
-.quiz-new-practice > div { flex:1 1 22rem; min-width:0; }
-.quiz-new-practice h3 { font-size:var(--text-lg); margin:0 0 6px; }
-.quiz-new-practice p { font-size:var(--text-sm); color:var(--color-text-muted); line-height:1.7; margin:0; }
-.quiz-source-field { max-width:28rem; }
-.quiz-source-field select,.quiz-generation-settings select { width:100%; }
-.quiz-generation-settings { display:grid; grid-template-columns:minmax(9rem,.8fr) minmax(0,1fr) minmax(0,1.1fr); gap:18px; min-width:0; margin:18px 0; padding:16px; border:1px solid var(--color-border); border-radius:var(--radius-md); }
-.quiz-generation-settings[hidden] { display:none; }
-.quiz-generation-settings legend { padding-inline:7px; font-size:var(--text-sm); font-weight:700; }
-.quiz-generation-settings .field { min-width:0; margin:0; }
-.quiz-check { display:flex; align-items:flex-start; gap:10px; font-size:var(--text-sm); line-height:1.6; cursor:pointer; }
-.quiz-check input { accent-color:var(--color-primary); flex:0 0 auto; margin-top:5px; }
-.quiz-check span { min-width:0; }
-.quiz-check small { display:block; margin-top:5px; color:var(--color-text-muted); font-size:var(--text-xs); }
 .quiz-generation-status-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
 .quiz-generation-status-row p { flex:1 1 18rem; margin-block:0 16px; }
 .quiz-generation-status-row p:empty { display:none; }
 .quiz-generation-status-row .btn { margin-bottom:16px; }
-.quiz-source-label { padding:10px 12px; border:1px solid var(--color-border); border-radius:var(--radius-sm); color:var(--color-text-muted); background:var(--color-surface-muted); font-size:var(--text-xs); line-height:1.7; overflow-wrap:anywhere; }
 .quiz-scope-summary p + p { margin-top:8px; }
 .quiz-scope-summary { margin-block:18px; padding:16px; border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-surface-muted); color:var(--color-text-muted); }
 .quiz-scope-summary strong { display:block; color:var(--color-text); margin-bottom:6px; }
 .quiz-scope-summary p { margin:0; }
 .quiz-setup-footer,.quiz-session-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
-.quiz-setup-footer p { flex:1 1 22rem; margin:0; color:var(--color-text-muted); font-size:var(--text-sm); }
+.quiz-setup-footer { justify-content:flex-end; }
 .quiz-error { color:var(--color-danger); }
 .quiz-history { border-top:1px solid var(--color-border); margin-top:28px; padding-top:22px; }
 .quiz-history h3 { font-size:var(--text-base); }
@@ -99,8 +79,7 @@
 #targetQuestionPlaceholder,.review-body h4,.quiz-feedback p { white-space:pre-wrap; }
 .review-body .review-explanation { padding:12px; background:var(--color-surface-muted); border-radius:var(--radius-sm); }
 @media(max-width:48rem) { .quiz-setup-grid { grid-template-columns:1fr; gap:6px; } .quiz-container { padding-block:var(--space-6); } .quiz-setup-footer .btn { width:100%; } .quiz-session-top p { max-width:100%; } }
-@media(max-width:48rem) { .quiz-generation-settings { grid-template-columns:1fr; } .quiz-new-practice { padding:16px; } .quiz-new-practice .btn { width:100%; } }
-@media(max-width:30rem) { .quiz-steps { gap:12px; justify-content:space-between; } .quiz-steps li { font-size:.6875rem; gap:5px; } .quiz-steps li span { width:24px; height:24px; } .answer-btn { padding:12px; gap:9px; } .quiz-result-actions .btn { width:100%; } .quiz-question-nav .btn { font-size:.8125rem; } }
+@media(max-width:30rem) { .answer-btn { padding:12px; gap:9px; } .quiz-result-actions .btn { width:100%; } .quiz-question-nav .btn { font-size:.8125rem; } }
 .quiz-adaptive { margin-top:28px; padding:24px 0 0; border-top:1px solid var(--color-border); }
 .quiz-adaptive h3,.review-next h3 { font-size:var(--text-lg); }
 .quiz-adaptive > p,.review-next > p { font-size:var(--text-sm); line-height:1.75; }
@@ -116,3 +95,5 @@
 .review-question-reason { color:var(--color-text); font-size:var(--text-sm); line-height:1.7; }
 .review-next { margin-top:22px; }
 @media(max-width:30rem) { .review-data-actions .btn { width:100%; white-space:normal; } }
+.quiz-extra-actions { display:flex; align-items:center; flex-wrap:wrap; gap:20px; font-size:var(--text-sm); }
+#quizProgressDetails > summary { color:var(--color-text-muted); font-size:var(--text-sm); }

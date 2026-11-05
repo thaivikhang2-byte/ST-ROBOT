@@ -56,6 +56,24 @@ def ordinary_bank(page):
     }''')
 
 
+def resolve_question(page, question_id, bank):
+    if question_id not in bank:
+        question = page.evaluate('''async id => {
+            const {resolveGeneratedQuestion} = await import(new URL('../src/modules/quiz/generation/QuestionEngine.js', location.href));
+            return resolveGeneratedQuestion(id);
+        }''', question_id)
+        require(question is not None and question['id'] == question_id,
+                'Active question has no reproducible canonical answer: ' + str(question_id))
+        bank[question_id] = question
+    return bank[question_id]
+
+
+def open_progress(page):
+    details = page.locator('#quizProgressDetails')
+    if details.get_attribute('open') is None:
+        details.locator(':scope > summary').click()
+
+
 def review_plan(page, course='arduino'):
     return page.evaluate('''async course => {
         const {ReviewService} = await import(new URL('../src/modules/quiz/ReviewService.js?v=quiz-20261103-v3', location.href));
@@ -68,7 +86,7 @@ def complete_quiz(page, bank, count, wrong_first=False):
     expect(page.locator('#quizActiveGame')).to_be_visible()
     for index in range(count):
         question_id = page.locator('#quizActiveGame').get_attribute('data-question-id')
-        question = bank[question_id]
+        question = resolve_question(page, question_id, bank)
         choice = (question['ans'] + 1) % len(question['opts']) if wrong_first and index == 0 else question['ans']
         page.locator(f'#answerOptionsArea input[value="{choice}"]').check()
         page.locator('#confirmAnswerBtn').click()
@@ -92,12 +110,14 @@ def adaptive_completed_and_aborted(page):
     attempted = complete_quiz(page, bank, 3, wrong_first=True)
     saved = page.evaluate('(key) => JSON.parse(localStorage.getItem(key))', REVIEW_KEY)
     require(len(saved['attempts']) == 1, 'Ordinary completion did not create exactly one evidence attempt')
+    require(saved['attempts'][0]['mode'] == 'generated', 'Automatic mixed practice did not use its detailed evidence record')
     require(len(saved['attempts'][0]['answers']) == 3, 'Detailed choices are missing from completed evidence')
     plan = review_plan(page)
     require(plan['items'][0]['question']['id'] == attempted[0], 'Latest wrong question is not first in the review plan')
     require(plan['items'][0]['reasonType'] == 'wrong', 'Review does not explain why the question was selected')
     require(all(item['question']['courseId'] == 'arduino' for item in plan['items']), 'Review crossed course boundaries')
     page.locator('#btnBackIntro').click()
+    open_progress(page)
     expect(page.locator('#reviewEvidence')).to_contain_text('LED')
     page.locator('#quizCourseSelect').select_option('microbit')
     require(review_plan(page, 'microbit')['hasEvidence'] is False, 'Arduino work affected micro:bit evidence')
@@ -107,7 +127,7 @@ def adaptive_completed_and_aborted(page):
     expect(page.locator('#quizQuestionReason')).to_be_visible()
     expect(page.locator('#quizQuestionReason')).to_contain_text('gần nhất')
     question_id = page.locator('#quizActiveGame').get_attribute('data-question-id')
-    question = bank[question_id]
+    question = resolve_question(page, question_id, bank)
     page.locator(f'#answerOptionsArea input[value="{question["ans"]}"]').check()
     page.locator('#confirmAnswerBtn').click()
     page.locator('#quizExitBtn').click()
@@ -119,7 +139,8 @@ def adaptive_completed_and_aborted(page):
     require(review_plan(page)['items'][0]['question']['id'] == attempted[0], 'Plan did not survive page reload')
     page.locator('#btnAdaptiveReview').click()
     reviewed = complete_quiz(page, bank, len(plan['items']))
-    require(reviewed == [attempted[0]], 'Review did not use the planned question')
+    require(reviewed == [item['question']['id'] for item in plan['items']], 'Review did not use the planned questions in order')
+    require(reviewed[0] == attempted[0], 'Review did not prioritize the latest wrong question')
     next_plan = review_plan(page)
     require(next_plan['items'] == [], 'Corrected question still appears immediately as an unresolved error')
     require(next_plan['nextDueAt'], 'A corrected question has no next review date')
@@ -143,6 +164,7 @@ def review_export_and_targeted_delete(page):
     complete_quiz(page, bank, 3)
     page.locator('#btnBackIntro').click()
     page.locator('#quizCourseSelect').select_option('arduino')
+    open_progress(page)
     with page.expect_download() as download_info:
         page.locator('#btnExportReview').click()
     backup = json.loads(Path(download_info.value.path()).read_text(encoding='utf-8-sig'))
@@ -150,7 +172,12 @@ def review_export_and_targeted_delete(page):
             'Practice export lacks its explicit format or course scope')
     require(len(backup['attempts']) == 1 and len(backup['attempts'][0]['answers']) == 3,
             'Practice export omitted the actual recorded answers')
-    history_before = page.evaluate('JSON.parse(localStorage.getItem("strobot.quiz.history.v1"))')
+    # Old aggregate history remains readable and must be cleared only for the
+    # selected course; new mixed sessions are stored as per-question evidence.
+    history_before = [{'id': 'legacy-' + course, 'courseId': course, 'lessonId': 'all',
+                       'correct': 1, 'total': 3, 'percentage': 33, 'createdAt': '2026-11-01T00:00:00Z'}
+                      for course in ['arduino', 'microbit']]
+    page.evaluate('(records) => localStorage.setItem("strobot.quiz.history.v1", JSON.stringify(records))', history_before)
     page.locator('#btnDeleteReview').click()
     expect(page.locator('#reviewDeleteDialog')).to_be_visible()
     page.locator('#btnCancelDeleteReview').click()
@@ -173,6 +200,7 @@ def corrupt_review_storage(page):
     page.evaluate('(key) => localStorage.setItem(key, "{broken-json")', REVIEW_KEY)
     page.reload(wait_until='domcontentloaded')
     page.locator('#quizCourseSelect').select_option('arduino')
+    open_progress(page)
     expect(page.locator('#reviewPlanStatus')).to_contain_text('không hợp lệ')
     expect(page.locator('#btnAdaptiveReview')).to_be_disabled()
     bank = ordinary_bank(page)
@@ -186,6 +214,7 @@ def corrupt_review_storage(page):
 def blocked_review_storage(page):
     goto(page, 'quiz.html')
     page.locator('#quizCourseSelect').select_option('arduino')
+    open_progress(page)
     expect(page.locator('#btnAdaptiveReview')).to_be_disabled()
     expect(page.locator('#reviewPlanStatus')).to_contain_text('chặn')
     bank = ordinary_bank(page)
@@ -399,7 +428,7 @@ def mobile_features(page):
     goto(page, 'quiz.html')
     page.locator('#quizCourseSelect').select_option('arduino')
     layouts = {'review': no_overflow(page)}
-    expect(page.locator('#btnAdaptiveReview')).to_have_accessible_name('Ôn theo lỗi của tôi')
+    expect(page.locator('#btnAdaptiveReview')).to_have_accessible_name('Ôn theo kết quả')
     goto(page, 'assessment.html')
     layouts['assessment_setup'] = no_overflow(page)
     create_participant(page, 'MOB001', 'adaptive', 'BA')

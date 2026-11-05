@@ -3,6 +3,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { preparePracticePlan, parsePracticePlan, PracticePlanError } from '../ai-server/practice-plan.mjs';
 import { listTemplates } from '../frontend/src/modules/quiz/generation/QuestionEngine.js';
+import { listAutomaticTemplates } from '../frontend/src/modules/quiz/generation/DifficultyPolicy.js';
 
 const curriculum = JSON.parse(await readFile(new URL('../ai-server/curriculum.json', import.meta.url), 'utf8'));
 const requestBody = { courseId: 'arduino', lessonId: 'led', count: 3, level: 'all', weakLessonIds: ['led'] };
@@ -59,6 +60,7 @@ try {
   assert.ok(prepared.allowedIds.has(templateId));
   assert.equal(prepared.messages.length, 2);
   const prompt = JSON.parse(prepared.messages[1].content);
+  assert.ok(!Object.hasOwn(prompt, 'difficulty'), 'Legacy requests must keep their original policy');
   assert.deepEqual(prompt.weakLessonIds, ['led']);
   assert.deepEqual(prompt.lessons.map(lesson => lesson.id), ['led']);
   assert.ok(prompt.lessons.every(lesson => lesson.objectives.length > 0));
@@ -70,6 +72,7 @@ try {
     { weakLessonIds: ['matrix'] }, { weakLessonIds: ['led', 'led'] }, { weakLessonIds: 'led' }, { weakLessonIds: Array(7).fill('led') },
     { question: 'Please invent questions and answers' }, { history: [] }, { email: 'not-forwarded@example.test' }, { templateIds: [templateId] }
   ]) assert.throws(() => preparePracticePlan({ ...requestBody, ...patch }, curriculum), error => error instanceof PracticePlanError && error.status === 400);
+  for (const difficulty of ['expert', 'EASY', null, 1, [], {}, undefined]) assert.throws(() => preparePracticePlan({ ...requestBody, difficulty }, curriculum), error => error.status === 400);
   for (const invalid of [null, [], 'text', 12]) assert.throws(() => preparePracticePlan(invalid, curriculum), /Chọn khóa/);
   const allCourse = preparePracticePlan({ ...requestBody, lessonId: 'all', count: 18, weakLessonIds: [] }, curriculum);
   assert.equal(JSON.parse(allCourse.messages[1].content).lessons.length, 6);
@@ -83,6 +86,17 @@ try {
   assert.throws(() => parsePracticePlan(JSON.stringify({ templateIds: [nonFocusedId] }), focused.allowedIds, 3), error => error.status === 502, 'Personalized plans cannot include another lesson');
   const basic = preparePracticePlan({ ...requestBody, level: 'basic' }, curriculum);
   assert.ok(JSON.parse(basic.messages[1].content).templates.every(template => template.level === 'basic'));
+  for (const difficulty of ['easy', 'medium', 'hard']) {
+    for (const course of curriculum) {
+      const selection = preparePracticePlan({ courseId: course.id, lessonId: 'all', count: 12, level: 'all', weakLessonIds: [], difficulty }, curriculum);
+      const eligible = listAutomaticTemplates({ courseId: course.id, lessonId: 'all', difficulty });
+      assert.deepEqual([...selection.allowedIds].sort(), eligible.map(template => template.id).sort(), 'Server eligibility must match the browser policy in every course');
+      assert.equal(JSON.parse(selection.messages[1].content).difficulty, difficulty);
+    }
+  }
+  assert.throws(() => preparePracticePlan({ ...requestBody, level: 'basic', difficulty: 'hard' }, curriculum), error => error.status === 400, 'Traditional level filters must intersect the difficulty policy');
+  const focusedEasy = preparePracticePlan({ ...requestBody, lessonId: 'all', weakLessonIds: ['led', 'timing'], difficulty: 'easy' }, curriculum);
+  assert.ok(JSON.parse(focusedEasy.messages[1].content).templates.every(template => ['led', 'timing'].includes(template.lessonId) && template.level === 'basic'));
   assert.deepEqual(parsePracticePlan(jsonPlan, prepared.allowedIds, 3), [templateId]);
   assert.deepEqual(parsePracticePlan(`\n\`\`\`json\n${jsonPlan}\n\`\`\`\n`, prepared.allowedIds, 3), [templateId]);
   const twoIds = [...allCourse.allowedIds].slice(0, 2);
@@ -171,6 +185,32 @@ try {
     assert.equal(result.status, 200);
     const allowed = new Set(listTemplates({ courseId: 'arduino', lessonId: 'timing', level: 'all' }).map(template => template.id));
     assert.ok(result.data.templateIds.every(id => allowed.has(id)));
+  });
+  assertions++;
+
+  const lowerId = templates.find(template => template.level === 'basic').id;
+  const higherId = templates.find(template => template.level === 'apply').id;
+  let difficultyCalls = 0;
+  let chooseWrong = true;
+  await withServer(async (_url, options) => {
+    difficultyCalls++;
+    const planPrompt = JSON.parse(JSON.parse(options.body).messages[1].content);
+    const expectedLevel = planPrompt.difficulty === 'hard' ? 'apply' : 'basic';
+    assert.ok(planPrompt.templates.every(template => template.level === expectedLevel));
+    const selected = chooseWrong ? (expectedLevel === 'basic' ? higherId : lowerId) : planPrompt.templates[0].id;
+    return response(JSON.stringify({ templateIds: [selected] }));
+  }, async server => {
+    for (const difficulty of ['easy', 'hard']) {
+      const body = { ...requestBody, difficulty };
+      chooseWrong = true;
+      assert.equal((await request(server, { body })).status, 502, `${difficulty} plans reject a valid scoped ID at the wrong template level`);
+      chooseWrong = false;
+      const result = await request(server, { body });
+      assert.equal(result.status, 200);
+      assert.deepEqual(result.data.templateIds, [difficulty === 'easy' ? lowerId : higherId]);
+    }
+    for (const difficulty of ['invalid', null, 2]) assert.equal((await request(server, { body: { ...requestBody, difficulty } })).status, 400);
+    assert.equal(difficultyCalls, 4, 'Invalid difficulty choices must not consume upstream calls');
   });
   assertions++;
 

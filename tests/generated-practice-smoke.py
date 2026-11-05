@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Exercise generated practice in Chromium against a locally served checkout.
+"""Exercise automatic mixed practice against a locally served checkout.
 
 The browser uses the real local question factory and canonical resolver. Only the
-optional planner HTTP response is stubbed; every other external request is
+automatic planner HTTP response is stubbed; every other external request is
 blocked, so this suite never calls a paid AI service.
 
     python3 tests/generated-practice-smoke.py --base http://127.0.0.1:5500
@@ -44,15 +44,16 @@ def require(condition, message):
 
 def goto(page):
     page.goto(PUBLIC + 'quiz.html', wait_until='domcontentloaded')
-    expect(page.locator('#quizQuestionSource')).to_be_visible()
+    expect(page.locator('#quizDifficulty')).to_be_visible()
 
 
 def modules(page):
     return page.evaluate('''async () => {
         const engine = await import('/frontend/src/modules/quiz/generation/QuestionEngine.js');
+        const automatic = await import('/frontend/src/modules/quiz/generation/AutomaticPractice.js');
         const {quizCourses, quizQuestions} = await import('/frontend/src/data/quiz.js');
         const {ReviewService} = await import('/frontend/src/modules/quiz/ReviewService.js');
-        window.__practiceSmoke = {engine, quizCourses,
+        window.__practiceSmoke = {engine, automatic, quizCourses,
             bank: Object.fromEntries(quizQuestions.map(q => [q.id, q])), ReviewService};
         return {courses: quizCourses, templates: engine.listTemplates()};
     }''')
@@ -61,7 +62,7 @@ def modules(page):
 def canonical(page, question_id):
     question = page.evaluate('''id => {
         const {engine, bank} = window.__practiceSmoke;
-        return id.startsWith('gen:') ? engine.resolveGeneratedQuestion(id) : bank[id];
+        return bank[id] || engine.resolveGeneratedQuestion(id);
     }''', question_id)
     require(question is not None, 'Active question has no canonical resolver: ' + str(question_id))
     return question
@@ -79,12 +80,15 @@ def current_question(page):
     return question
 
 
-def complete(page, count, wrong_first=False):
+def complete(page, count, wrong_first=False, wrong_generated=False):
     questions = []
+    wrong_count = 0
     for index in range(count):
         question = current_question(page)
-        choice = ((question['ans'] + 1) % len(question['opts'])
-                  if wrong_first and index == 0 else question['ans'])
+        make_wrong = (wrong_first and index == 0) or (
+            wrong_generated and wrong_count == 0 and question['id'].startswith('gen:'))
+        choice = (question['ans'] + 1) % len(question['opts']) if make_wrong else question['ans']
+        wrong_count += int(make_wrong)
         page.locator(f'#answerOptionsArea input[value="{choice}"]').check()
         page.locator('#confirmAnswerBtn').click()
         expect(page.locator('#feedbackBox')).to_contain_text(question['exp'])
@@ -93,7 +97,8 @@ def complete(page, count, wrong_first=False):
         page.locator('#forwardBtn').click()
         questions.append(question)
     expect(page.locator('#quizSummaryArea')).to_be_visible()
-    correct = count - int(wrong_first)
+    require(not wrong_generated or wrong_count == 1, 'No generated question was available to test a real mistake')
+    correct = count - wrong_count
     percent = (correct * 100 * 2 // count + 1) // 2
     expect(page.locator('#quizScorePercent')).to_have_text(f'{percent}%')
     expect(page.locator('#totalScoreText')).to_contain_text(f'{correct} / {count}')
@@ -102,19 +107,17 @@ def complete(page, count, wrong_first=False):
     return questions
 
 
-def setup(page, course='arduino', lesson='all', count=6, source='generated', level='all'):
+def setup(page, course='arduino', lesson='all', count=6, difficulty='medium'):
     page.locator('#quizCourseSelect').select_option(course)
-    page.locator('#quizQuestionSource').select_option(source)
     page.locator('#quizLessonSelect').select_option(lesson)
-    if source == 'generated':
-        page.locator('#quizGeneratedLevel').select_option(level)
+    page.locator('#quizDifficulty').select_option(difficulty)
     if page.locator('#quizQuestionCount').input_value() != str(count):
         page.locator('#quizQuestionCount').select_option(str(count))
 
 
 def start(page):
     page.locator('#btnInitQuiz').click()
-    expect(page.locator('#quizActiveGame')).to_be_visible(timeout=26000)
+    expect(page.locator('#quizActiveGame')).to_be_visible(timeout=7000)
 
 
 def abort(page):
@@ -142,81 +145,143 @@ def no_overflow(page):
     return sizes
 
 
-def bank_default(page, fixture):
+def open_progress(page):
+    if not page.locator('#quizProgressDetails').evaluate('(details) => details.open'):
+        page.locator('#quizProgressDetails > summary').click()
+
+
+def source_counts(questions):
+    generated = sum(q['id'].startswith('gen:') for q in questions)
+    return {'bank': len(questions) - generated, 'generated': generated}
+
+
+def eligible_templates(page, course, lesson='all', difficulty='medium'):
+    return page.evaluate('''scope => window.__practiceSmoke.automatic.listAutomaticTemplates(scope)''',
+                         {'courseId': course, 'lessonId': lesson, 'difficulty': difficulty})
+
+
+def wait_for_planner_calls(page, fixture, expected):
+    deadline = time.monotonic() + 2
+    while len(fixture['calls']) < expected and time.monotonic() < deadline:
+        page.wait_for_timeout(20)
+    require(len(fixture['calls']) == expected, 'Expected planner request was not intercepted')
+
+
+def simple_setup(page, fixture):
     goto(page)
     modules(page)
-    expect(page.locator('#quizQuestionSource')).to_have_value('bank')
-    expect(page.locator('#quizGeneratedSettings')).to_be_hidden()
-    setup(page, lesson='led', count=3, source='bank')
-    start(page)
-    questions = complete(page, 3)
-    require(all(not q['id'].startswith('gen:') for q in questions), 'Bank default silently used generated IDs')
-    require(not fixture['calls'], 'Unchecked AI made a planner request')
-    history = page.evaluate('(key) => JSON.parse(localStorage.getItem(key))', HISTORY_KEY)
-    require(len(history) == 1 and history[0]['total'] == 3, 'Ordinary bank history changed')
-    return {'bank_default': True, 'canonical_questions_graded': 3, 'planner_calls': 0}
+    expect(page.locator('#quizDifficulty')).to_have_value('medium')
+    values = page.locator('#quizDifficulty option').evaluate_all('(options) => options.map(o => o.value)')
+    require(values == ['easy', 'medium', 'hard'], 'Difficulty must have exactly three understandable choices')
+    require(page.locator('#quizDifficulty option').all_text_contents() == ['Dễ', 'Vừa', 'Khó'],
+            'Difficulty labels do not match the simplified interface')
+    for selector in ('#quizQuestionSource', '#quizGeneratedSettings', '#quizGeneratedLevel',
+                     '#quizPersonalized', '#quizAiPlan', '#btnGeneratedPractice',
+                     '#quizQuestionSourceLabel', '#quizResultSource'):
+        require(page.locator(selector).count() == 0, 'Obsolete source or AI control remains: ' + selector)
+    controls = page.locator('#quizSetupForm select').evaluate_all('(selects) => selects.map(s => s.id).sort()')
+    require(controls == sorted(['quizCourseSelect', 'quizLessonSelect', 'quizQuestionCount', 'quizDifficulty']),
+            'Setup contains extra technical choices: ' + repr(controls))
+    require(not page.locator('#quizProgressDetails').evaluate('(details) => details.open'),
+            'Progress and data should be collapsed on first load')
+    expect(page.locator('#quizProgressDetails > summary')).to_have_text('Tiến độ và dữ liệu')
+    expect(page.locator('#btnAdaptiveReview')).to_have_text('Ôn theo kết quả')
+    expect(page.locator('#btnAdaptiveReview')).to_be_visible()
+    setup(page, count=18)
+    layout = no_overflow(page)
+    page.screenshot(path='/tmp/strobot-automatic-practice-desktop-setup.png', full_page=True)
+    require(not fixture['calls'], 'Planner started before the user requested a quiz')
+    return {'setup_selects': controls, 'difficulty_values': values, 'layout': layout,
+            'screenshot': '/tmp/strobot-automatic-practice-desktop-setup.png'}
 
 
 def course_coverage(page, fixture):
     goto(page)
     catalog = modules(page)
     observations = []
-    for course, count in zip(COURSES, (6, 12, 18, 6, 6)):
+    for course, count in zip(COURSES, (6, 12, 18, 6, 18)):
         setup(page, course=course, count=count)
         start(page)
         questions = complete(page, count)
         expected_lessons = {l['id'] for c in catalog['courses'] if c['id'] == course for l in c['lessons']}
         counts = Counter(q['lessonId'] for q in questions)
-        require(set(counts) == expected_lessons, 'Whole-course generation missed a lesson: ' + course)
-        require(set(counts.values()) == {count // 6}, 'Unfocused practice is not evenly balanced: ' + repr(counts))
-        require(all(q['courseId'] == course and q['source'] == 'generated' for q in questions),
-                'Generated practice crossed a source or course boundary')
-        expect(page.locator('#quizResultSource')).not_to_contain_text('AI gợi ý')
+        require(set(counts) == expected_lessons, 'Whole-course practice missed a lesson: ' + course)
+        require(set(counts.values()) == {count // 6}, 'Automatic practice lost balanced coverage: ' + repr(counts))
+        require(all(q['courseId'] == course for q in questions), 'Practice crossed course boundaries')
+        sources = source_counts(questions)
+        if count == 18:
+            require(sources['bank'] > 0 and sources['generated'] > 0, 'Automatic practice did not combine both sources')
+            require(sources['generated'] > sources['bank'], 'Fresh variants should form most of a new full-length session')
         page.locator('#btnBackIntro').click()
-        observations.append({'course': course, 'count': count, 'lessons': dict(counts)})
+        observations.append({'course': course, 'count': count, 'lessons': dict(counts), 'sources': sources})
     stored = page.evaluate('(key) => JSON.parse(localStorage.getItem(key))', REVIEW_KEY)
     require(len(stored['attempts']) == 5 and all(a['mode'] == 'generated' for a in stored['attempts']),
-            'Generated completions did not save distinct generated evidence')
+            'Automatic completions did not save practice evidence')
     require(page.evaluate('(key) => JSON.parse(localStorage.getItem(key) || "[]")', HISTORY_KEY) == [],
-            'Generated variants contaminated fixed-bank score history')
-    require(not fixture['calls'], 'Local generation contacted the planner without opt-in')
-    return {'courses': observations, 'questions_graded': sum(o['count'] for o in observations), 'planner_calls': 0}
+            'Mixed practice contaminated the old fixed-bank score history')
+    require(fixture['calls'], 'Starting automatic practice never requested a planner')
+    return {'courses': observations, 'canonical_questions_graded': sum(o['count'] for o in observations)}
 
 
-def lesson_scope_and_levels(page, fixture):
+def lesson_scopes(page, fixture):
     goto(page)
     catalog = modules(page)
-    # All 30 requested lesson scopes are real factory calls, including canonical
-    # round trips. The UI additionally starts one lesson in each of the 5 courses.
-    generated = page.evaluate('''() => {
-        const {engine, quizCourses} = window.__practiceSmoke;
+    scopes = page.evaluate('''() => {
+        const {engine, automatic, quizCourses, bank} = window.__practiceSmoke;
         return quizCourses.flatMap(course => course.lessons.map(lesson => {
-            const questions = engine.createGeneratedQuiz({courseId: course.id,
-                lessonId: lesson.id, count: 3, seed: 'browser-lesson-scope'});
+            const questions = automatic.createAutomaticPractice({courseId: course.id,
+                lessonId: lesson.id, count: 6, difficulty: 'medium', seed: 'browser-lesson-scope'});
             return {courseId: course.id, lessonId: lesson.id, questions,
-                resolved: questions.map(q => engine.resolveGeneratedQuestion(q.id))};
+                resolved: questions.map(q => bank[q.id] || engine.resolveGeneratedQuestion(q.id))};
         }));
     }''')
-    require(len(generated) == 30, 'Expected 30 distinct curriculum lesson scopes')
-    for scope in generated:
-        require(scope['questions'] == scope['resolved'], 'Generated ID did not reconstruct exact content')
-        require(all(q['courseId'] == scope['courseId'] and q['lessonId'] == scope['lessonId']
-                    for q in scope['questions']), 'Factory escaped requested lesson scope')
+    require(len(scopes) == 30, 'Expected all 30 curriculum lesson scopes')
+    for scope in scopes:
+        require(len(scope['questions']) == 6 and len({q['id'] for q in scope['questions']}) == 6,
+                'Automatic lesson factory returned a wrong count or duplicate IDs')
+        for question, resolved in zip(scope['questions'], scope['resolved']):
+            require(resolved and all(question[key] == resolved[key] for key in ('id', 'q', 'opts', 'ans', 'exp')),
+                    'An automatic question did not reconstruct its exact canonical content')
+            require(question['courseId'] == scope['courseId'] and question['lessonId'] == scope['lessonId'],
+                    'Automatic factory escaped the chosen lesson')
     observed = []
     for course in catalog['courses']:
         lesson = course['lessons'][0]['id']
-        templates = [t for t in catalog['templates'] if t['courseId'] == course['id'] and t['lessonId'] == lesson]
-        level = next((t['level'] for t in templates if t['level'] != 'basic'), templates[0]['level'])
-        setup(page, course=course['id'], lesson=lesson, count=3, level=level)
-        expect(page.locator('#quizGeneratedSettings')).to_be_visible()
+        setup(page, course=course['id'], lesson=lesson, count=3, difficulty='hard')
+        allowed = {t['id'] for t in eligible_templates(page, course['id'], lesson, 'hard')}
         start(page)
+        expect(page.locator('#quizActiveGame')).to_have_attribute('data-difficulty', 'hard')
         questions = complete(page, 3)
-        require(all(q['courseId'] == course['id'] and q['lessonId'] == lesson and q['level'] == level
-                    for q in questions), 'Level or lesson control did not affect the generated questions')
-        observed.append({'course': course['id'], 'lesson': lesson, 'level': level})
+        require(all(q['courseId'] == course['id'] and q['lessonId'] == lesson for q in questions),
+                'Lesson selector did not constrain the actual questions')
+        require(all(q['templateId'] in allowed if q['id'].startswith('gen:') else q['id'].endswith(':reason')
+                    for q in questions), 'Hard practice used an ineligible question')
+        observed.append({'course': course['id'], 'lesson': lesson, 'sources': source_counts(questions)})
         page.locator('#btnBackIntro').click()
-    require(not fixture['calls'], 'Level controls unexpectedly called AI')
-    return {'factory_lesson_scopes': 30, 'canonical_round_trips': 90, 'ui_scopes': observed}
+    return {'factory_lesson_scopes': 30, 'canonical_round_trips': 180, 'ui_scopes': observed}
+
+
+def difficulty_changes_questions(page, fixture):
+    goto(page)
+    modules(page)
+    observations = []
+    for difficulty, bank_kind in (('easy', 'core'), ('medium', 'apply'), ('hard', 'reason')):
+        setup(page, lesson='led', count=12, difficulty=difficulty)
+        start(page)
+        expect(page.locator('#quizActiveGame')).to_have_attribute('data-difficulty', difficulty)
+        questions = complete(page, 12)
+        generated = [q for q in questions if q['id'].startswith('gen:')]
+        bank = [q for q in questions if not q['id'].startswith('gen:')]
+        require(generated and bank, 'Difficulty did not retain the automatic mix')
+        require(all(q['id'].endswith(':' + bank_kind) for q in bank),
+                'Difficulty did not change the bank question category')
+        levels = {q['level'] for q in generated}
+        expected = {'basic'} if difficulty == 'easy' else {'apply'} if difficulty == 'hard' else {'basic', 'apply'}
+        require(levels == expected, 'Arduino LED difficulty changed only the label: ' + repr(levels))
+        observations.append({'difficulty': difficulty, 'generated_levels': sorted(levels),
+                             'bank_kind': bank_kind, 'sources': source_counts(questions)})
+        page.locator('#btnBackIntro').click()
+    return {'questions_graded': 36, 'actual_composition': observations}
 
 
 def restart_excludes_completed(page, fixture):
@@ -228,93 +293,81 @@ def restart_excludes_completed(page, fixture):
     page.locator('#btnRestartQuiz').click()
     second = complete(page, 6)
     overlap = {q['id'] for q in first} & {q['id'] for q in second}
-    require(not overlap, 'Restart repeated recently completed variant IDs: ' + repr(overlap))
-    require(len(evidence(page)['attempts']) == 2, 'Restart failed to save each completed session once')
-    return {'first_questions': 6, 'restart_questions': 6, 'repeated_ids': 0}
+    require(not overlap, 'Restart repeated recent completed IDs: ' + repr(overlap))
+    require(len(evidence(page)['attempts']) == 2, 'Restart did not save each completion exactly once')
+    return {'first_sources': source_counts(first), 'restart_sources': source_counts(second), 'repeated_ids': 0}
 
 
-def generated_review_reload(page, fixture):
+def mixed_review_reload(page, fixture):
     goto(page)
     modules(page)
-    setup(page, lesson='led', count=3)
+    setup(page, lesson='led', count=6)
     start(page)
-    initial = complete(page, 3, wrong_first=True)
-    wrong_id = initial[0]['id']
+    initial = complete(page, 6, wrong_generated=True)
+    wrong_id = next(q['id'] for q in initial if q['id'].startswith('gen:'))
     plan = review_plan(page)
     require(plan['items'] and plan['items'][0]['question']['id'] == wrong_id,
-            'Adaptive review did not reconstruct the generated mistake first')
-    require(plan['items'][0]['reasonType'] == 'wrong', 'Generated review omitted the selection reason')
+            'Adaptive review did not reconstruct the latest mistake first')
+    require(plan['items'][0]['reasonType'] == 'wrong', 'Review omitted its selection reason')
     for item in plan['items']:
-        require(item['question'] == canonical(page, item['question']['id']), 'Review trusted altered question content')
+        resolved = canonical(page, item['question']['id'])
+        require(all(item['question'][key] == resolved[key] for key in ('id', 'q', 'opts', 'ans', 'exp')),
+                'Review altered canonical mixed-practice content')
     page.reload(wait_until='domcontentloaded')
     modules(page)
     page.locator('#quizCourseSelect').select_option('arduino')
     reloaded_plan = review_plan(page)
-    require(reloaded_plan['items'][0]['question']['id'] == wrong_id, 'Generated mistake was lost on reload')
+    require(reloaded_plan['items'][0]['question']['id'] == wrong_id, 'Mistake was lost on reload')
     page.locator('#btnAdaptiveReview').click()
     expect(page.locator('#quizQuestionReason')).to_be_visible()
     reviewed = complete(page, len(reloaded_plan['items']))
-    require(reviewed[0]['id'] == wrong_id, 'Adaptive session switched away from its planned generated mistake')
+    require(reviewed[0]['id'] == wrong_id, 'Adaptive session ignored its planned mistake')
     page.reload(wait_until='domcontentloaded')
     modules(page)
-    rows = evidence(page)['evidence']
-    corrected = next(row for row in rows if row['questionId'] == wrong_id)
+    corrected = next(row for row in evidence(page)['evidence'] if row['questionId'] == wrong_id)
     require(corrected['latestCorrect'] and corrected['attempts'] == 2 and corrected['streak'] == 1,
-            'Correcting a generated mistake did not persist as fresh evidence')
+            'Correcting a mistake did not persist as fresh evidence')
     require(all(item['question']['id'] != wrong_id for item in review_plan(page)['items']),
-            'Corrected generated mistake remains immediately due')
-    require(review_plan(page, 'microbit')['hasEvidence'] is False, 'Generated review affected another course')
-    return {'wrong_id': wrong_id, 'review_questions': len(reviewed), 'reload_preserves_correction': True}
+            'Corrected mistake remains immediately due')
+    require(not review_plan(page, 'microbit')['hasEvidence'], 'Review changed another course')
+    return {'wrong_id': wrong_id, 'initial_sources': source_counts(initial),
+            'review_questions': len(reviewed), 'reload_preserves_correction': True}
 
 
-def personalized_scope(page, fixture):
+def configure_ai(page, fixture, course='arduino', lesson='led', count=6):
     goto(page)
     modules(page)
-    setup(page, lesson='led', count=3)
-    start(page)
-    complete(page, 3, wrong_first=True)
-    page.locator('#btnBackIntro').click()
-    setup(page, count=12)
-    page.locator('#quizPersonalized').check()
-    start(page)
-    expect(page.locator('#quizQuestionReason')).to_be_visible()
-    focused = complete(page, 12)
-    require({q['lessonId'] for q in focused} == {'led'}, 'Explicit focus did not restrict practice to the weak lesson')
-    page.locator('#btnBackIntro').click()
-    page.locator('#quizPersonalized').uncheck()
-    start(page)
-    balanced = complete(page, 12)
-    require(set(Counter(q['lessonId'] for q in balanced).values()) == {2}
-            and len({q['lessonId'] for q in balanced}) == 6,
-            'Turning focus off did not restore even whole-course coverage')
-    return {'weak_lesson': 'led', 'focused_questions': 12, 'balanced_lessons': 6}
-
-
-def configure_ai(page, fixture):
-    goto(page)
-    catalog = modules(page)
-    setup(page, lesson='led', count=3)
-    page.locator('#quizAiPlan').check()
-    templates = [t for t in catalog['templates'] if t['courseId'] == 'arduino' and t['lessonId'] == 'led']
-    preferred = templates[-1]['id']
+    setup(page, course=course, lesson=lesson, count=count)
+    preferred = eligible_templates(page, course, lesson)[-1]['id']
     fixture['response'] = {'source': 'ai-plan', 'templateIds': [preferred]}
     return preferred
 
 
-def ai_success(page, fixture):
+def ai_success_cache(page, fixture):
     preferred = configure_ai(page, fixture)
     fixture['mode'] = 'success'
     start(page)
-    question = current_question(page)
-    require(question['templateId'] == preferred, 'Valid AI template preference was not applied to first question')
-    expect(page.locator('#quizQuestionSourceLabel')).to_contain_text('AI gợi ý dạng bài')
-    questions = complete(page, 3)
-    expect(page.locator('#quizResultSource')).to_contain_text('AI gợi ý dạng bài')
-    require(len(fixture['calls']) == 1, 'AI opt-in did not make exactly one planning request')
+    expect(page.locator('#quizActiveGame')).to_have_attribute('data-plan-source', 'ai')
+    questions = complete(page, 6)
+    generated = [q for q in questions if q['id'].startswith('gen:')]
+    require(generated[0]['templateId'] == preferred,
+            'AI preference did not affect the first actual generated task in medium practice')
+    require(len(fixture['calls']) == 1, 'Automatic start did not request exactly one plan')
     payload = fixture['calls'][0]
-    require(payload['courseId'] == 'arduino' and payload['lessonId'] == 'led'
-            and payload['count'] == 3 and payload['level'] == 'all', 'Planner request lost selected scope')
-    return {'planner_calls': 1, 'preferred_template': preferred, 'canonical_questions_graded': len(questions)}
+    require(payload['courseId'] == 'arduino' and payload['lessonId'] == 'led' and payload['count'] == 6
+            and payload['difficulty'] == 'medium', 'Planner request lost selected difficulty or scope')
+    require(not any(re.search('key|token|secret', key, re.I) for key in payload),
+            'Frontend planner request contains a credential field')
+    require(all(not any(re.search('authorization|api-key', key, re.I) for key in headers)
+                for headers in fixture['headers']), 'Frontend planner request sent an API credential')
+    page.locator('#btnRestartQuiz').click()
+    expect(page.locator('#quizActiveGame')).to_be_visible()
+    expect(page.locator('#quizActiveGame')).to_have_attribute('data-plan-source', 'ai')
+    second = complete(page, 6)
+    require(len(fixture['calls']) == 1, 'Same-scope restart ignored the successful plan cache')
+    require(not ({q['id'] for q in questions if q['id'].startswith('gen:')} & {q['id'] for q in second}),
+            'Cached AI plan reused recent generated questions')
+    return {'planner_calls': 1, 'preferred_template': preferred, 'cached_restart_questions': 6}
 
 
 def fallback(page, fixture, mode):
@@ -322,49 +375,61 @@ def fallback(page, fixture, mode):
     fixture['mode'] = mode
     if mode == 'invalid':
         fixture['response'] = {'source': 'ai-plan', 'templateIds': ['outside-curriculum-template']}
+    started = time.monotonic()
+    start(page)
+    elapsed = time.monotonic() - started
+    expect(page.locator('#quizActiveGame')).to_have_attribute('data-plan-source', 'fallback')
+    expect(page.locator('#quizGenerationStatus')).to_have_attribute('data-state', 'ready')
+    questions = complete(page, 6)
+    require(source_counts(questions)['generated'] > 0, 'Planner failure did not reach the real local factory')
+    require(len(fixture['calls']) == 1, 'Planner failure retried or omitted its request')
     if mode == 'timeout':
-        page.locator('#btnInitQuiz').click()
-        expect(page.locator('#quizGenerationStatus')).to_have_attribute('data-state', 'loading')
-        expect(page.locator('#quizActiveGame')).to_be_visible(timeout=26000)
-    else:
-        start(page)
-    expect(page.locator('#quizGenerationStatus')).to_have_attribute('data-state', 'fallback')
-    source = page.locator('#quizQuestionSourceLabel').inner_text()
-    require('AI gợi ý dạng bài' not in source, 'Fallback incorrectly claimed a successful AI plan')
-    questions = complete(page, 3)
-    require(all(q['source'] == 'generated' for q in questions), 'Fallback did not use the real local factory')
-    expect(page.locator('#quizResultSource')).not_to_contain_text('AI gợi ý dạng bài')
-    require(len(fixture['calls']) == 1, 'Fallback retried or omitted the optional planner request')
-    return {'failure_mode': mode, 'working_canonical_questions': 3, 'truthful_source': source}
+        require(elapsed <= 5.5, 'Automatic fallback exceeded the 4-second wait plus browser overhead')
+    return {'failure_mode': mode, 'working_canonical_questions': 6, 'start_seconds': round(elapsed, 2)}
+
+
+def failure_cooldown(page, fixture):
+    configure_ai(page, fixture)
+    fixture['mode'] = 'unavailable'
+    start(page)
+    first = complete(page, 6)
+    fixture['mode'] = 'success'
+    page.locator('#btnRestartQuiz').click()
+    expect(page.locator('#quizActiveGame')).to_be_visible()
+    complete(page, 6)
+    require(len(fixture['calls']) == 1, 'Immediate retry ignored the failure cooldown')
+    return {'planner_requests_during_cooldown': 1, 'completed_sessions': 2, 'first_sources': source_counts(first)}
 
 
 def cancelled_late_reply(page, fixture):
     configure_ai(page, fixture)
+    old_response = dict(fixture['response'])
     fixture['mode'] = 'hold'
     page.locator('#btnInitQuiz').click()
     expect(page.locator('#quizGenerationStatus')).to_have_attribute('data-state', 'loading')
+    wait_for_planner_calls(page, fixture, 1)
     expect(page.locator('#quizCancelGeneration')).to_be_visible()
     expect(page.locator('#btnInitQuiz')).to_be_disabled()
-    # Scope changes remain usable and invalidate the old in-flight request.
+    old_routes = list(fixture['held'])
     page.locator('#quizCourseSelect').select_option('microbit')
-    page.locator('#quizAiPlan').uncheck()
-    page.locator('#quizQuestionCount').select_option('6')
+    preferred = eligible_templates(page, 'microbit')[0]['id']
+    fixture['response'] = {'source': 'ai-plan', 'templateIds': [preferred]}
+    fixture['mode'] = 'success'
     start(page)
     first_id = current_question(page)['id']
-    for route in fixture['held']:
+    for route in old_routes:
         try:
             route.fulfill(status=200, content_type='application/json',
-                          headers={'access-control-allow-origin': '*'}, body=json.dumps(fixture['response']))
+                          headers={'access-control-allow-origin': '*'}, body=json.dumps(old_response))
         except Exception:
-            # An actual AbortController cancellation may already have closed it.
             pass
     page.wait_for_timeout(200)
     require(current_question(page)['id'] == first_id and current_question(page)['courseId'] == 'microbit',
-            'Late Arduino AI reply replaced the newer micro:bit session')
+            'Late Arduino plan replaced the newer micro:bit session')
     questions = complete(page, 6)
     require(all(q['courseId'] == 'microbit' for q in questions), 'Late reply mixed course questions')
-    require(len(fixture['calls']) == 1, 'Unchecked replacement session made an AI request')
-    return {'old_request_cancelled': True, 'new_course': 'microbit', 'new_questions': 6}
+    require(len(fixture['calls']) == 2, 'Cancelling one scope blocked or duplicated the new scope planner')
+    return {'old_request_cancelled': True, 'new_course': 'microbit', 'planner_calls': 2}
 
 
 def explicit_cancel(page, fixture):
@@ -372,17 +437,18 @@ def explicit_cancel(page, fixture):
     fixture['mode'] = 'hold'
     page.locator('#btnInitQuiz').click()
     expect(page.locator('#quizGenerationStatus')).to_have_attribute('data-state', 'loading')
+    wait_for_planner_calls(page, fixture, 1)
     page.locator('#quizCancelGeneration').click()
     expect(page.locator('#quizGenerationStatus')).to_have_attribute('data-state', 'idle')
     expect(page.locator('#quizActiveGame')).to_be_hidden()
     expect(page.locator('#quizCancelGeneration')).to_be_hidden()
     expect(page.locator('#btnInitQuiz')).to_be_enabled()
-    require(not evidence(page)['attempts'], 'Cancelling an unfinished plan created practice evidence')
-    page.locator('#quizAiPlan').uncheck()
+    require(not evidence(page)['attempts'], 'Cancelling an unfinished plan created evidence')
+    fixture['mode'] = 'unavailable'
     start(page)
-    complete(page, 3)
-    require(len(fixture['calls']) == 1, 'Local practice after cancelling AI issued another planner request')
-    return {'cancel_restores_setup': True, 'unfinished_plan_not_saved': True, 'local_retry_questions': 3}
+    complete(page, 6)
+    require(len(fixture['calls']) == 2, 'Cancelled request incorrectly populated a cache or failure cooldown')
+    return {'cancel_restores_setup': True, 'unfinished_plan_not_saved': True, 'retry_planner_calls': 2}
 
 
 def export_delete_isolation(page, fixture):
@@ -391,70 +457,79 @@ def export_delete_isolation(page, fixture):
     sentinels = {ASSESSMENT_KEY: json.dumps({'version': 1, 'participants': [{'code': 'UNCHANGED'}]}),
                  'strobot.original.course.v3': 'keep-learning-journal', 'unrelated-practice-test': 'keep-me'}
     page.evaluate('entries => entries.forEach(([k,v]) => localStorage.setItem(k,v))', list(sentinels.items()))
-    setup(page, lesson='led', count=3)
+    setup(page, lesson='led', count=6)
     start(page)
-    arduino = complete(page, 3)
+    arduino = complete(page, 6)
     page.locator('#btnBackIntro').click()
-    setup(page, course='microbit', lesson='matrix', count=3)
+    setup(page, course='microbit', lesson='matrix', count=6)
     start(page)
-    complete(page, 3)
+    complete(page, 6)
     page.reload(wait_until='domcontentloaded')
     modules(page)
     page.locator('#quizCourseSelect').select_option('arduino')
     require(len(evidence(page)['attempts']) == 1 and len(evidence(page, 'microbit')['attempts']) == 1,
-            'Generated evidence did not survive reload independently by course')
+            'Mixed evidence did not survive reload independently by course')
+    page.locator('#quizLessonSelect').select_option('led')
+    open_progress(page)
+    expect(page.locator('#quizHistory')).to_contain_text('6/6 đúng')
     with page.expect_download() as info:
         page.locator('#btnExportReview').click()
     exported = json.loads(Path(info.value.path()).read_text(encoding='utf-8-sig'))
     require(exported['type'] == 'strobot-practice-backup' and exported['courseId'] == 'arduino',
             'Export lost its format or course scope')
     require(len(exported['attempts']) == 1 and exported['attempts'][0]['mode'] == 'generated',
-            'Export omitted generated evidence')
+            'Export omitted automatic practice evidence')
     require({a['questionId'] for a in exported['attempts'][0]['answers']} == {q['id'] for q in arduino},
-            'Export did not contain the actual generated answers')
+            'Export did not contain actual mixed-practice answers')
     page.locator('#btnDeleteReview').click()
     page.locator('#btnCancelDeleteReview').click()
-    require(evidence(page)['attempts'], 'Cancel deletion erased generated evidence')
+    require(evidence(page)['attempts'], 'Cancel deletion erased evidence')
     page.locator('#btnDeleteReview').click()
     page.locator('#btnConfirmDeleteReview').click()
-    require(not evidence(page)['attempts'], 'Confirmed deletion retained selected generated evidence')
+    require(not evidence(page)['attempts'], 'Confirmed deletion retained selected course evidence')
     require(len(evidence(page, 'microbit')['attempts']) == 1, 'Course deletion erased micro:bit evidence')
     actual = page.evaluate('keys => Object.fromEntries(keys.map(k => [k,localStorage.getItem(k)]))', list(sentinels))
-    require(actual == sentinels, 'Generated evidence deletion changed assessment or unrelated learning data')
-    return {'exported_generated_answers': 3, 'course_only_delete': True, 'assessment_and_journal_preserved': True}
+    require(actual == sentinels, 'Practice deletion changed assessment or unrelated learning data')
+    return {'exported_answers': 6, 'exported_sources': source_counts(arduino),
+            'practice_history_survives_reload': True, 'course_only_delete': True,
+            'assessment_and_journal_preserved': True}
 
 
 def mobile(page, fixture):
     page.set_viewport_size({'width': 375, 'height': 812})
     goto(page)
     modules(page)
-    setup(page, count=18)
+    setup(page, count=18, difficulty='hard')
     layouts = {'setup': no_overflow(page)}
+    page.screenshot(path='/tmp/strobot-automatic-practice-mobile-setup.png', full_page=True)
     start(page)
     layouts['question'] = no_overflow(page)
     require(page.locator('#answerOptionsArea label input').count() >= 3, 'Mobile answers lost labeled controls')
     complete(page, 18, wrong_first=True)
     layouts['summary'] = no_overflow(page)
-    page.screenshot(path='/tmp/strobot-generated-practice-mobile.png', full_page=True)
-    return {'width': 375, 'layouts': layouts, 'screenshot': '/tmp/strobot-generated-practice-mobile.png'}
+    page.screenshot(path='/tmp/strobot-automatic-practice-mobile-results.png', full_page=True)
+    return {'width': 375, 'layouts': layouts, 'setup_screenshot': '/tmp/strobot-automatic-practice-mobile-setup.png',
+            'summary_screenshot': '/tmp/strobot-automatic-practice-mobile-results.png'}
 
 
 CHECKS = [
-    ('bank_default', bank_default),
-    ('all_five_courses_and_6_12_18_counts', course_coverage),
-    ('all_30_lesson_scopes_and_level_controls', lesson_scope_and_levels),
-    ('restart_excludes_recent_completed_ids', restart_excludes_completed),
-    ('generated_mistake_review_correct_reload', generated_review_reload),
-    ('personalized_focus_and_balanced_switch', personalized_scope),
-    ('ai_opt_in_valid_template_plan', ai_success),
-    ('invalid_ai_plan_falls_back_truthfully', lambda p, f: fallback(p, f, 'invalid')),
-    ('unavailable_ai_falls_back_truthfully', lambda p, f: fallback(p, f, 'unavailable')),
-    ('network_timeout_falls_back_truthfully', lambda p, f: fallback(p, f, 'network_timeout')),
-    ('planner_20_second_abort_falls_back_truthfully', lambda p, f: fallback(p, f, 'timeout')),
+    ('simple_setup_has_only_scope_count_and_difficulty', simple_setup),
+    ('automatic_all_five_courses_and_6_12_18_counts', course_coverage),
+    ('automatic_all_30_lesson_scopes', lesson_scopes),
+    ('difficulty_changes_real_question_composition', difficulty_changes_questions),
+    ('restart_excludes_recent_completed_variants', restart_excludes_completed),
+    ('mixed_mistake_review_correct_reload', mixed_review_reload),
+    ('automatic_ai_valid_plan_and_success_cache', ai_success_cache),
+    ('invalid_ai_ids_fall_back', lambda p, f: fallback(p, f, 'invalid')),
+    ('malformed_ai_json_falls_back', lambda p, f: fallback(p, f, 'malformed_json')),
+    ('unavailable_ai_falls_back', lambda p, f: fallback(p, f, 'unavailable')),
+    ('network_timeout_falls_back', lambda p, f: fallback(p, f, 'network_timeout')),
+    ('planner_four_second_timeout_falls_back', lambda p, f: fallback(p, f, 'timeout')),
+    ('planner_failure_cooldown_preserves_practice', failure_cooldown),
     ('explicit_cancel_returns_to_working_setup', explicit_cancel),
     ('cancelled_late_plan_preserves_new_course', cancelled_late_reply),
-    ('generated_export_reload_delete_isolation', export_delete_isolation),
-    ('generated_mobile_375px', mobile),
+    ('mixed_export_reload_delete_isolation', export_delete_isolation),
+    ('automatic_mobile_375px', mobile),
 ]
 
 
@@ -464,7 +539,7 @@ def main():
     def save():
         output = {status: sum(row['status'] == status for row in results)
                   for status in ('passed', 'failed', 'skipped', 'unrun')}
-        output.update({'base': BASE, 'external_calls': 'blocked; optional planner responses are test fixtures',
+        output.update({'base': BASE, 'external_calls': 'blocked; automatic planner responses are test fixtures',
                        'results': results})
         Path(args.output).write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding='utf-8')
         return output
@@ -481,7 +556,7 @@ def main():
                     continue
                 started = time.monotonic()
                 context = browser.new_context(viewport={'width': 1440, 'height': 1000}, accept_downloads=True)
-                fixture = {'mode': 'unexpected', 'calls': [], 'held': [], 'response': {}}
+                fixture = {'mode': 'unavailable', 'calls': [], 'headers': [], 'held': [], 'response': {}}
                 errors, blocked = [], set()
 
                 def route_request(route):
@@ -498,14 +573,17 @@ def main():
                             fixture['calls'].append(request.post_data_json)
                         except Exception:
                             fixture['calls'].append({'invalid_body': request.post_data})
+                        fixture['headers'].append(request.headers)
                         mode = fixture['mode']
                         if mode in ('hold', 'timeout'):
                             fixture['held'].append(route)
                         elif mode == 'network_timeout':
                             route.abort('timedout')
-                        elif mode == 'unavailable' or mode == 'unexpected':
+                        elif mode == 'unavailable':
                             route.fulfill(status=503, headers=headers, content_type='application/json',
                                           body=json.dumps({'error': 'test planner unavailable'}))
+                        elif mode == 'malformed_json':
+                            route.fulfill(status=200, headers=headers, content_type='application/json', body='{broken-json')
                         else:
                             route.fulfill(status=200, headers=headers, content_type='application/json',
                                           body=json.dumps(fixture['response']))
@@ -522,8 +600,6 @@ def main():
                 try:
                     details = check(page, fixture)
                     require(not errors, 'Uncaught browser errors: ' + repr(errors))
-                    require(fixture['mode'] != 'unexpected' or not fixture['calls'],
-                            'A local-only flow contacted the AI planner without opt-in')
                     row.update(status='passed', details=details)
                     print('PASS', name, flush=True)
                 except Exception as error:

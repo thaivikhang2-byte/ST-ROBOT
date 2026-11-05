@@ -27,25 +27,17 @@ export class QuizRenderer {
     }
     showIntro() { this.view('setup'); }
     showGame(scope) { this.view('questions'); el('quizSessionScope').textContent = scope; }
-    setupSummary(course, lesson, count, available, generation = null) {
+    setupSummary(course, lesson, count, difficulty) {
         const host = el('quizScopeSummary');
-        host.replaceChildren();
-        if (!course) { host.textContent = 'Chọn khóa học và phạm vi để tạo lượt kiểm tra.'; return; }
-        host.append(node('strong', `${course.name} · ${lesson ? lesson.title : 'Tất cả 6 bài'}`));
-        if (generation) {
-            const focus = generation.focusTitles.length ? `Ưu tiên bài cần ôn: ${generation.focusTitles.join('; ')}.` : generation.requestedFocus ? 'Hoàn thành thêm lượt luyện để cập nhật ưu tiên cá nhân. Lượt này chia đều cho 6 bài.' : lesson ? 'Tập trung vào bài đã chọn.' : 'Chia đều cho 6 bài trong khóa.';
-            host.append(node('p', `${count} câu mới · ${generation.level}. ${focus}`));
-            host.append(node('p', `${new Intl.NumberFormat('vi-VN').format(available)} biến thể từ ${generation.templateCount} dạng bài trong phạm vi này. Số liệu, phương án và lời giải được kiểm tra theo quy tắc.`));
-            if (generation.aiPlan) host.append(node('p', 'AI gợi ý dạng bài khi kết nối sẵn sàng. Bộ sinh tại chỗ luôn có thể tạo lượt luyện.'));
-            return;
-        }
-        host.append(node('p', lesson ? `${count} câu hỏi bám sát bài này.` : `${count} câu, chia đều cho 6 bài trong khóa. Ngân hàng có ${available} câu để thay đổi đề giữa các lượt.`));
+        host.textContent = course
+            ? `${count} câu · ${difficulty}${lesson ? '' : ` · ${count / course.lessons.length} câu mỗi bài`}`
+            : 'Chọn khóa học để bắt đầu.';
     }
     history(records) {
         const host = el('quizHistory');
         host.replaceChildren();
         if (!records) { host.append(node('p', 'Chọn khóa học để xem kết quả của bạn.')); return; }
-        if (!records.length) { host.append(node('p', 'Hoàn thành lượt kiểm tra đầu tiên để xem kết quả tại đây.')); return; }
+        if (!records.length) { host.append(node('p', 'Hoàn thành một lượt để lưu kết quả tại đây.')); return; }
         const list = node('ul', undefined, 'quiz-history-list');
         const format = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Bangkok' });
         records.slice(0, 3).forEach(record => {
@@ -59,13 +51,13 @@ export class QuizRenderer {
     }
     reviewStatus(plan) {
         if (plan.status === 'blocked') return 'Trình duyệt đang chặn lưu hoặc đọc dữ liệu. Hãy bật quyền lưu trữ để dùng hồ sơ ôn theo lỗi. Bạn vẫn có thể làm bài.';
-        if (!plan.hasEvidence) return 'Hoàn thành một lượt kiểm tra để nhận gợi ý ôn theo từng câu.';
-        if (plan.items.length) return `Có ${plan.availableCount} câu được gợi ý; lượt tiếp theo gồm ${plan.items.length} câu. Mỗi câu sẽ ghi rõ lý do được chọn.`;
+        if (!plan.hasEvidence) return 'Hoàn thành một lượt để nhận gợi ý ôn.';
+        if (plan.items.length) return `Lượt ôn tiếp theo: ${plan.items.length} câu.`;
         if (plan.nextDueAt) {
             const date = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(plan.nextDueAt));
-            return `Lịch ôn tiếp theo: ${date}. Trong lúc chờ, bạn có thể chọn bài để luyện thêm.`;
+            return `Lịch ôn tiếp theo: ${date}.`;
         }
-        return 'Chọn bài học để tiếp tục luyện tập và cập nhật gợi ý ôn.';
+        return 'Chọn bài để tiếp tục luyện tập.';
     }
     reviewDashboard(plan, course) {
         const host = el('reviewEvidence');
@@ -91,25 +83,13 @@ export class QuizRenderer {
         el('reviewNextStatus').textContent = this.reviewStatus(plan);
         el('btnReviewNext').disabled = !plan.items.length;
         el('reviewSaveNotice').textContent = result.saved
-            ? (result.replacedCorruptData ? 'Đã lưu lượt này; dữ liệu lỗi trước đó đã được bỏ qua.' : 'Đã ghi nhận lượt hoàn thành vào hồ sơ ôn trên trình duyệt này.')
+            ? (result.replacedCorruptData ? 'Đã lưu lượt này; dữ liệu lỗi trước đó đã được bỏ qua.' : 'Đã lưu kết quả.')
             : 'Chưa lưu được hồ sơ ôn. Gợi ý dưới đây chỉ dựa trên dữ liệu đã lưu trước đó; bạn vẫn xem được đáp án lượt này.';
     }
-    generatedSourceLabel(config) {
-        if (config?.mode === 'review') return 'Ôn theo lỗi · Câu sinh theo kỹ năng có đáp án được kiểm tra theo quy tắc';
-        const rotation = config?.recycled ? ' Đã xoay vòng các câu đã luyện; mỗi lượt vẫn gồm các câu khác nhau.' : '';
-        const title = config?.recycled ? 'Luyện theo kỹ năng' : 'Câu mới';
-        if (config?.planSource === 'ai') return `${title} · AI gợi ý dạng bài · Đáp án đã kiểm tra theo quy tắc.${rotation}`;
-        if (config?.planSource === 'fallback') return `Đang dùng bộ sinh câu đã kiểm tra · Số liệu và đáp án được dựng tại chỗ.${rotation}`;
-        return `${title} · Bộ sinh theo kỹ năng · Đáp án đã kiểm tra theo quy tắc.${rotation}`;
-    }
-    question(question, lessonTitle, index, total, response, answeredCount, reason = null, config = null) {
+    question(question, lessonTitle, index, total, response, answeredCount, reason = null) {
         const answered = response !== null;
-        const generated = question.source === 'generated';
-        el('quizQuestionSourceLabel').hidden = !generated;
-        el('quizQuestionSourceLabel').textContent = generated ? this.generatedSourceLabel(config) : '';
-        el('quizQuestionSourceLabel').dataset.source = generated ? config?.planSource || 'local' : 'bank';
         el('quizQuestionReason').hidden = !reason;
-        el('quizQuestionReason').textContent = reason ? `${config?.mode === 'generated' ? 'Vì sao luyện câu này' : 'Vì sao ôn câu này'}: ${reason}` : '';
+        el('quizQuestionReason').textContent = reason ? `Vì sao ôn câu này: ${reason}` : '';
         el('quizActiveGame').dataset.questionId = question.id;
         el('quizProgressText').textContent = `Câu ${index + 1} / ${total}`;
         el('quizAnsweredText').textContent = `Đã xác nhận ${answeredCount}/${total} câu`;
@@ -139,12 +119,10 @@ export class QuizRenderer {
         if (answered) feedback.append(node('strong', response === question.ans ? 'Đúng.' : 'Chưa đúng.'), node('p', `Đáp án đúng: ${question.opts[question.ans]}`), node('p', question.exp));
         el('targetQuestionPlaceholder').focus();
     }
-    summary(report, scope, questions, responses, courseId, saved, config = null) {
+    summary(report, scope, questions, responses, courseId, config = null) {
         this.view('results');
-        const hasGenerated = questions.some(question => question.source === 'generated');
-        el('quizResultSource').hidden = !hasGenerated;
-        el('quizResultSource').textContent = hasGenerated ? this.generatedSourceLabel(config) : '';
-        el('quizResultSource').dataset.source = hasGenerated ? config?.planSource || 'local' : 'bank';
+        el('quizSummaryArea').dataset.difficulty = config?.difficulty || 'review';
+        el('quizSummaryArea').dataset.planSource = config?.planSource || 'local';
         el('quizResultScope').textContent = scope;
         el('quizScorePercent').textContent = `${report.percentage}%`;
         el('totalScoreText').textContent = `Bạn trả lời đúng ${report.correct} / ${report.total} câu.`;
@@ -156,8 +134,9 @@ export class QuizRenderer {
             item.append(link, node('strong', `${row.correct}/${row.total} đúng`)); list.append(item);
         }
         const toReview = report.byLesson.filter(row => row.correct < row.total).map(row => row.title);
-        topics.replaceChildren(node('h3', 'Kết quả theo bài học'), list, node('p', toReview.length ? `Nên ôn lại: ${toReview.join('; ')}.` : 'Bạn đã trả lời đúng toàn bộ câu hỏi trong lượt này. Có thể làm một lượt khác để ôn thêm câu trong cùng phạm vi.'));
-        el('quizStorageNotice').textContent = saved ? 'Đã lưu kết quả trên trình duyệt này.' : 'Chưa lưu được kết quả. Bạn vẫn có thể xem toàn bộ đáp án của lượt này bên dưới.';
+        topics.replaceChildren(node('h3', 'Kết quả theo bài học'), list, node('p', toReview.length ? `Nên ôn lại: ${toReview.join('; ')}.` : 'Bạn đã trả lời đúng toàn bộ câu trong lượt này.'));
+        el('quizStorageNotice').textContent = '';
+        el('quizStorageNotice').hidden = true;
         let openedWrong = false;
         el('quizReviewList').replaceChildren(...questions.map((question, index) => {
             const right = responses[index] === question.ans;

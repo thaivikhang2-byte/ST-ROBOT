@@ -128,6 +128,18 @@ export class ReviewService {
         if (status === 'blocked') throw new Error('Không đọc được dữ liệu trên trình duyệt này.');
         return { version: 1, type: 'strobot-practice-backup', courseId, exportedAt: new Date(this.now()).toISOString(), attempts };
     }
+    getPracticeHistory(courseId, lessonId = 'all') {
+        const course = quizCourses.find(item => item.id === courseId);
+        if (!course || (lessonId !== 'all' && !course.lessons.some(lesson => lesson.id === lessonId))) return [];
+        return this.evidence(courseId).attempts.filter(attempt => ['quiz', 'generated'].includes(attempt.mode)).flatMap(attempt => {
+            const questions = attempt.answers.map(answer => resolveQuestion(answer.questionId));
+            const lessons = new Set(questions.map(question => question.lessonId));
+            const matches = lessonId === 'all' ? lessons.size === course.lessons.length : lessons.size === 1 && lessons.has(lessonId);
+            if (!matches) return [];
+            const correct = questions.filter((question, index) => question.ans === attempt.answers[index].choice).length;
+            return [{ id: attempt.id, createdAt: attempt.completedAt, correct, total: questions.length, percentage: Math.round(correct / questions.length * 100) }];
+        }).reverse();
+    }
     clearCourse(courseId) {
         if (!validCourse(courseId)) return false;
         const { attempts, status } = this.read();

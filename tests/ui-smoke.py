@@ -40,6 +40,24 @@ def readable_text(value):
     return re.sub(r'\s+', ' ', unicodedata.normalize('NFC', value)).strip().casefold()
 
 
+def resolve_question(page, question_id, bank):
+    if question_id not in bank:
+        question = page.evaluate('''async id => {
+            const {resolveGeneratedQuestion} = await import(new URL('../src/modules/quiz/generation/QuestionEngine.js', location.href));
+            return resolveGeneratedQuestion(id);
+        }''', question_id)
+        require(question is not None and question['id'] == question_id,
+                'Active question has no reproducible canonical answer: ' + str(question_id))
+        bank[question_id] = question
+    return bank[question_id]
+
+
+def open_quiz_progress(page):
+    details = page.locator('#quizProgressDetails')
+    if details.get_attribute('open') is None:
+        details.locator(':scope > summary').click()
+
+
 def checked(name, fn):
     previous_errors = len(page_errors)
     try:
@@ -250,7 +268,10 @@ with sync_playwright() as p:
 
     def quiz():
         goto('quiz.html')
-        page.evaluate('localStorage.removeItem("strobot.quiz.history.v1")')
+        page.evaluate('''() => {
+            localStorage.removeItem('strobot.quiz.history.v1');
+            localStorage.removeItem('strobot.review.evidence.v1');
+        }''')
         page.reload(wait_until='domcontentloaded')
         bank = page.evaluate("""async () => {
             const data = await import(new URL('../src/data/quiz.js?v=quiz-20261101-v2', location.href));
@@ -258,21 +279,32 @@ with sync_playwright() as p:
         }""")
         by_id = {question['id']: question for question in bank['questions']}
         require(len(bank['courses']) == 5 and len(by_id) == 90, 'Scoped quiz bank is incomplete')
+        legacy_history = [{'id': 'legacy-arduino-score', 'courseId': 'arduino', 'lessonId': 'all',
+                           'correct': 1, 'total': 6, 'percentage': 17, 'createdAt': '2026-11-01T00:00:00Z'}]
+        page.evaluate('(records) => localStorage.setItem("strobot.quiz.history.v1", JSON.stringify(records))', legacy_history)
         expect(page.locator('#quizIntroArea')).to_be_visible()
         expect(page.locator('#quizCourseSelect')).to_have_value('')
         expect(page.locator('#btnInitQuiz')).to_be_disabled()
         expect(page.locator('#quizCourseSelect option')).to_have_count(6)
+        expect(page.locator('#quizDifficulty')).to_have_value('medium')
+        require(page.locator('#quizDifficulty option').evaluate_all('(items) => items.map(item => item.value)') == ['easy', 'medium', 'hard'],
+                'Difficulty selector does not expose the three requested levels')
+        expect(page.locator('#quizQuestionSource, #quizGeneratedLevel, #quizPersonalized, #quizAiPlan, #btnGeneratedPractice')).to_have_count(0)
+        require(page.locator('#quizProgressDetails').get_attribute('open') is None,
+                'Progress and data should start collapsed so the primary setup remains simple')
         # Every course exposes its own six lessons, not a generic question category.
         for course in bank['courses']:
             page.locator('#quizCourseSelect').select_option(course['id'])
-            expect(page.locator('#quizScopeSummary')).to_contain_text(course['name'])
+            expect(page.locator('#quizCourseSelect option:checked')).to_contain_text(course['name'])
+            expect(page.locator('#quizScopeSummary')).to_contain_text('6 câu')
             expect(page.locator('#quizLessonSelect option')).to_have_count(7)
             for option, lesson in zip(page.locator('#quizLessonSelect option').all()[1:], course['lessons']):
                 require(option.get_attribute('value') == lesson['id'], 'Lesson selector crossed course boundaries')
                 require(lesson['title'] in option.inner_text(), 'Lesson option lacks a meaningful title')
             page.locator('#quizLessonSelect').select_option(course['lessons'][0]['id'])
             expect(page.locator('#quizQuestionCount')).to_have_value('3')
-            expect(page.locator('#quizScopeSummary')).to_contain_text(course['lessons'][0]['title'])
+            expect(page.locator('#quizLessonSelect option:checked')).to_contain_text(course['lessons'][0]['title'])
+            expect(page.locator('#quizScopeSummary')).to_contain_text('3 câu')
             page.locator('#quizLessonSelect').select_option('all')
             require(page.locator('#quizQuestionCount option').evaluate_all('(items)=>items.map(o=>o.value)') == ['6', '12', '18'], 'Whole-course assessment sizes are unclear')
 
@@ -287,8 +319,7 @@ with sync_playwright() as p:
             expect(page.locator('#quizActiveGame')).to_be_visible()
             for index in range(count):
                 question_id = page.locator('#quizActiveGame').get_attribute('data-question-id')
-                require(question_id in by_id, 'Active question has no stable bank ID')
-                question = by_id[question_id]
+                question = resolve_question(page, question_id, by_id)
                 require(question['courseId'] == course_id, 'Quiz asks about a different course')
                 require(lesson_id == 'all' or question['lessonId'] == lesson_id, 'Quiz asks about an unselected lesson')
                 expect(page.locator('#targetQuestionPlaceholder')).to_contain_text(question['q'])
@@ -348,12 +379,18 @@ with sync_playwright() as p:
 
         first = complete_round(6, 'arduino', first_wrong=True, revisit=True)
         require(len({q['lessonId'] for q, _ in first}) == 6, 'Whole-course quiz did not cover all six lessons')
-        saved = page.evaluate('JSON.parse(localStorage.getItem("strobot.quiz.history.v1"))')
-        require(len(saved) == 1 and saved[0]['correct'] == 5 and saved[0]['total'] == 6, 'Completed score was not saved once')
+        saved = page.evaluate('JSON.parse(localStorage.getItem("strobot.review.evidence.v1")).attempts')
+        require(len(saved) == 1 and saved[0]['mode'] == 'generated' and len(saved[0]['answers']) == 6,
+                'Completed mixed practice was not saved once with all individual choices')
+        require(sum(answer['choice'] == resolve_question(page, answer['questionId'], by_id)['ans']
+                    for answer in saved[0]['answers']) == 5, 'Saved answers disagree with the displayed score')
+        require(page.evaluate('JSON.parse(localStorage.getItem("strobot.quiz.history.v1"))') == legacy_history,
+                'New mixed practice changed the existing legacy score history')
         page.locator('#btnRestartQuiz').click()
         complete_round(6, 'arduino')
         page.locator('#btnBackIntro').click()
         expect(page.locator('#quizIntroArea')).to_be_visible()
+        open_quiz_progress(page)
         expect(page.locator('#quizHistory')).to_contain_text(re.compile(r'6\s*/\s*6'))
         page.set_viewport_size({'width': 390, 'height': 844})
         page.locator('#quizLessonSelect').select_option('led')
@@ -367,19 +404,22 @@ with sync_playwright() as p:
         page.reload(wait_until='domcontentloaded')
         page.locator('#quizCourseSelect').select_option('arduino')
         page.locator('#quizLessonSelect').select_option('led')
+        open_quiz_progress(page)
         expect(page.locator('#quizHistory')).to_contain_text(re.compile(r'3\s*/\s*3'))
-        previous_count = page.evaluate('JSON.parse(localStorage.getItem("strobot.quiz.history.v1")).length')
+        previous_evidence = page.evaluate('localStorage.getItem("strobot.review.evidence.v1")')
         page.evaluate("() => { window.__quizOriginalSetItem=Storage.prototype.setItem; Storage.prototype.setItem=function(){throw new DOMException('Storage unavailable','QuotaExceededError')}; return true; }")
         try:
             page.locator('#btnInitQuiz').click()
             complete_round(3, 'arduino', 'led')
-            require(page.evaluate('JSON.parse(localStorage.getItem("strobot.quiz.history.v1")).length') == previous_count, 'Failed storage write was represented as a saved result')
-            if page.locator('#quizStorageNotice').count():
-                require(page.locator('#quizStorageNotice').inner_text().strip(), 'Failed save should display its actual limitation')
+            require(page.evaluate('localStorage.getItem("strobot.review.evidence.v1")') == previous_evidence,
+                    'Failed storage write changed the saved per-question evidence')
+            expect(page.locator('#reviewSaveNotice')).to_contain_text('Chưa lưu được')
+            require(page.evaluate('JSON.parse(localStorage.getItem("strobot.quiz.history.v1"))') == legacy_history,
+                    'Failed mixed-practice save changed legacy score history')
         finally:
             page.evaluate('Storage.prototype.setItem=window.__quizOriginalSetItem;delete window.__quizOriginalSetItem')
         page.set_viewport_size({'width': 1440, 'height': 1000})
-        return {'mapped_questions': len(by_id), 'courses_in_selector': 5, 'whole_course_questions': 6, 'lesson_questions': 3, 'completed_rounds': 4, 'explicit_confirmation': True, 'locked_answers': True, 'revisit_no_double_score': True, 'review_lesson_links': True, 'history_persists': True, 'storage_failure_handled': True, 'mobile_states_no_overflow': True}
+        return {'mapped_bank_questions': 90, 'canonical_questions_resolved': len(by_id), 'courses_in_selector': 5, 'difficulty_levels': 3, 'source_controls_removed': True, 'whole_course_questions': 6, 'lesson_questions': 3, 'completed_rounds': 4, 'explicit_confirmation': True, 'locked_answers': True, 'revisit_no_double_score': True, 'review_lesson_links': True, 'history_persists': True, 'legacy_history_preserved': True, 'storage_failure_handled': True, 'mobile_states_no_overflow': True}
 
     checked('scoped quiz selection, confirmation, results, lesson review and saved history', quiz)
 

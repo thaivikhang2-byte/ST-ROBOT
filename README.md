@@ -97,7 +97,7 @@ Bộ kiểm thử giả lập máy chủ trả danh sách lab cũ và xác nhậ
 
 ## Kiểm tra kiến thức theo khóa học
 
-Trang Kiểm tra có 90 câu hỏi: 18 câu/khóa và 3 câu/bài, phủ đủ 5 khóa và 30 bài. Người học chọn khóa, chọn một bài hoặc cả khóa rồi chọn số câu. Đề cả khóa có 6/12/18 câu, phân bổ đều cho 6 bài; đề một bài có 3 câu. Chọn đáp án rồi xác nhận để xem đúng/sai và giải thích; kết quả có điểm, thống kê theo bài và liên kết ôn lại đúng nội dung. Tối đa 20 lượt hoàn thành lưu trên trình duyệt; mỗi phạm vi hiển thị 3 lượt gần nhất.
+Trang Kiểm tra chỉ cần chọn khóa, bài, mức **Dễ / Vừa / Khó** và số câu. Hệ thống tự phối ngân hàng 90 câu với bộ sinh đã kiểm tra; người học không cần chọn nguồn hoặc bật AI. Đề cả khóa có 6/12/18 câu chia đều sáu bài; đề một bài có 3/6/9/12 câu. Xác nhận đáp án để xem giải thích; kết quả có điểm, thống kê theo bài và liên kết ôn đúng nội dung. Lịch sử và công cụ xuất/xóa nằm trong **Tiến độ và dữ liệu**; mỗi phạm vi hiện ba lượt gần nhất, gồm cả lịch sử cũ.
 
 30 câu gốc lấy từ giáo trình đã duyệt. 60 câu bổ sung nằm trong `frontend/src/data/quiz-extra.json`; không chỉnh trực tiếp file sinh `frontend/src/data/quiz.js`. Khi cập nhật ngân hàng câu hỏi:
 
@@ -111,9 +111,9 @@ Bộ kiểm thử xác nhận câu hỏi không lẫn khóa/bài, phân bổ đ�
 
 ## Ôn tập theo lỗi
 
-Trang Kiểm tra có nút **Luyện câu mới**: 60 dạng bài tạo 23.399 biến thể số liệu/tình huống cho đủ 30 bài, kèm tính đáp án và kiểm tra phương án trùng. Có chọn mức độ, tập trung vào bài cần ôn, tránh lặp câu gần đây và lưu kết quả để ôn lại. Tùy chọn AI gợi ý dạng bài sử dụng AI server; bộ sinh tại chỗ hoạt động độc lập khi AI gián đoạn. Xem [cách sinh, kiểm tra và triển khai](docs/generated-practice.md).
+60 dạng bài tạo 23.399 biến thể số liệu/tình huống cho đủ 30 bài, kèm tính đáp án và kiểm tra phương án trùng. Dễ chọn nhóm nhiệm vụ nền tảng của từng bài; Vừa phối các nhóm; Khó chọn nhóm yêu cầu cao hơn. AI tự gợi ý dạng bài theo phạm vi, mức độ và bài cần ôn; chương trình vẫn tính đáp án và giữ phân bổ đều khi làm cả khóa. Khi AI gián đoạn, bộ chọn tại chỗ tiếp tục chuẩn bị đề. Xem [cách sinh, kiểm tra và triển khai](docs/generated-practice.md).
 
-Trên trang **Kiểm tra**, hoàn thành một lượt rồi chọn **Ôn theo lỗi của tôi**. Mỗi lượt chọn tối đa 6 câu trong đúng khóa: ưu tiên câu có đáp án gần nhất chưa đúng, câu chưa làm trong bài đang có lỗi, rồi câu đã đến ngày ôn lại. Mỗi câu hiện lý do được chọn. Sau các lần đúng liên tiếp, lịch ôn lần lượt là 1, 3 và 7 ngày; trả lời sai thì ưu tiên ôn ngay.
+Trên trang **Kiểm tra**, hoàn thành một lượt rồi chọn **Ôn theo kết quả**. Mỗi lượt chọn tối đa 6 câu trong đúng khóa: ưu tiên câu có đáp án gần nhất chưa đúng, câu chưa làm trong bài đang có lỗi, rồi câu đã đến ngày ôn lại. Mỗi câu hiện lý do được chọn. Sau các lần đúng liên tiếp, lịch ôn lần lượt là 1, 3 và 7 ngày; trả lời sai thì ưu tiên ôn ngay.
 
 Hồ sơ lưu đáp án từng câu của tối đa 120 lượt hoàn thành gần nhất. Lượt bỏ dở không được ghi nhận; lịch sử điểm cũ không tự chuyển thành dữ liệu lỗi từng câu. Có nút tải JSON và xóa dữ liệu kiểm tra, ôn tập riêng của khóa đã chọn. Nhật ký học, các khóa khác và dữ liệu đánh giá trước–sau được giữ lại.
 
@@ -135,6 +135,7 @@ Kiểm thử các chức năng mới:
 
 ```sh
 node tests/adaptive-review.mjs
+node tests/automatic-practice.mjs
 node tests/assessment-service.mjs
 python3 tests/learning-evidence-smoke.py --base http://127.0.0.1:5500 --chromium /usr/bin/chromium
 ```
