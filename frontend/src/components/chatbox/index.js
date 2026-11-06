@@ -1,7 +1,34 @@
 import { getChatboxTemplate } from './template.js';
 import { $, $$ } from '../../utils/dom.js';
+import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../../services/AiService.js?v=ai-recovery-v11';
 
-const AI_URL = 'https://st-robot-1.onrender.com/api/home-chat';
+const DIAGNOSTIC_CODES = new Set(['AI_AUTH', 'AI_MODEL', 'AI_QUOTA', 'AI_BUSY', 'AI_UNAVAILABLE', 'AI_NETWORK',
+    'AI_TIMEOUT', 'AI_RESPONSE', 'AI_REQUEST', 'AI_STARTUP_TIMEOUT', 'AI_STARTUP_RESPONSE', 'AI_REPLY_TIMEOUT', 'AI_STARTUP_FAILED', 'AI_CANCELLED']);
+const PROVIDER_CODES = new Set(AI_PROVIDER_CODES);
+
+function appendDiagnostics(bubble, error) {
+    const report = { service: AI_SERVICE_ORIGIN };
+    if (DIAGNOSTIC_CODES.has(error.code)) report.code = error.code;
+    if (['startup', 'starting', 'reply', 'replying', 'provider', 'transport', 'server', 'network'].includes(error.stage)) report.stage = error.stage;
+    for (const field of ['httpStatus', 'upstreamStatus']) {
+        const minimum = field === 'httpStatus' ? 100 : 400;
+        if (Number.isInteger(error[field]) && error[field] >= minimum && error[field] <= 599) report[field] = error[field];
+    }
+    if (PROVIDER_CODES.has(error.providerCode)) report.providerCode = error.providerCode;
+    if (typeof error.requestId === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(error.requestId)) report.requestId = error.requestId;
+    const details = document.createElement('details'); details.className = 'chat-error-details';
+    const summary = document.createElement('summary'); summary.textContent = 'Chi tiết lỗi';
+    const output = document.createElement('pre'); output.className = 'chat-error-report';
+    output.textContent = JSON.stringify(report, null, 2); output.tabIndex = 0;
+    output.style.whiteSpace = 'pre-wrap'; output.style.overflowWrap = 'anywhere';
+    const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'btn btn--sm chat-copy-error';
+    copy.textContent = 'Sao chép thông tin lỗi';
+    copy.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(output.textContent); copy.textContent = 'Đã sao chép'; }
+        catch { copy.textContent = 'Chọn nội dung bên trên để sao chép'; output.focus(); }
+    });
+    details.append(summary, output, copy); bubble.append(details);
+}
 
 export class Chatbox {
     constructor(containerId) {
@@ -51,35 +78,17 @@ export class Chatbox {
             if (!retry) this.appendMessage(question, 'user');
             if (!retry || input.value.trim() === question) input.value = '';
             const pending = retry?.bubble || this.appendMessage('', 'assistant');
-            pending.textContent = 'AI đang trả lời…';
+            pending.textContent = 'Đang khởi động trợ lý…';
             pending.dataset.state = 'pending';
             const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 75000);
-            const waitingTimer = setTimeout(() => {
-                pending.textContent = 'Trợ lý đang kết nối, bạn chờ một chút nhé…';
-            }, 15000);
             try {
-                const response = await fetch(AI_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question, history: this.history.slice(-6) }),
-                    signal: controller.signal
+                const reply = await aiClient.requestReply('/api/home-chat', { question, history: this.history.slice(-6) }, {
+                    signal: controller.signal,
+                    onStatus: state => { pending.textContent = state === 'starting' ? 'Đang khởi động trợ lý…' : 'AI đang trả lời…'; }
                 });
-                let data;
-                try { data = await response.json(); }
-                catch { throw new Error('Máy chủ chưa trả lời đầy đủ. Bạn có thể thử lại.'); }
-                if (!response.ok) {
-                    const error = new Error(typeof data?.error === 'string' && data.error.trim()
-                        ? data.error.slice(0, 500) : response.status === 429
-                            ? 'Trợ lý đang bận. Bạn hãy thử lại sau một phút.'
-                            : 'Trợ lý đang gặp gián đoạn. Bạn có thể thử lại.');
-                    error.retryable = data?.retryable !== false;
-                    throw error;
-                }
-                if (typeof data?.reply !== 'string' || !data.reply.trim()) throw new Error('Trợ lý chưa gửi được câu trả lời. Bạn có thể thử lại.');
-                pending.textContent = data.reply;
+                pending.textContent = reply;
                 pending.dataset.state = 'complete';
-                this.history.push({ role: 'user', content: question }, { role: 'assistant', content: data.reply.slice(0, 4000) });
+                this.history.push({ role: 'user', content: question }, { role: 'assistant', content: reply.slice(0, 4000) });
                 this.history = this.history.slice(-6);
             } catch (error) {
                 pending.textContent = error.name === 'AbortError'
@@ -97,10 +106,9 @@ export class Chatbox {
                     actions.append(retryButton);
                     pending.append(actions);
                 }
+                appendDiagnostics(pending, error);
                 if (!input.value) input.value = question;
             } finally {
-                clearTimeout(timer);
-                clearTimeout(waitingTimer);
                 this.busy = false;
                 button.disabled = false;
                 chips.forEach(b => b.disabled = false);

@@ -12,6 +12,12 @@ Có thể mở `https://st-robot-1.onrender.com/health` ngay trên điện tho�
 
 Một hồi quy khác đã tái hiện: khi quiz chuyển sang gọi lập kế hoạch tự động, các lượt đó dùng chung toàn bộ hạn mức và hai chỗ xử lý với chat. Trình duyệt bỏ yêu cầu sau 4 giây nhưng máy chủ trước đây vẫn đợi tới 20 giây, dẫn đến chat nhận 429 bận hoặc hết lượt. Bản sửa giới hạn riêng phần lập kế hoạch, dành chỗ cho chat và hủy upstream khi client ngắt kết nối. Dễ/Khó chọn mẫu tại chỗ; Vừa vẫn có gợi ý AI. Điều này sửa hồi quy dùng chung tài nguyên; lỗi HTTP 502 từ nhà cung cấp vẫn cần đối chiếu mã lỗi riêng, không quy mọi lỗi mất kết nối cho cùng một nguyên nhân.
 
+Render Free có thể cần hơn 50 giây để khởi động sau khi ngừng hoạt động. Trước đây chat dùng một giới hạn tổng 75 giây, tutor 65 giây, trong khi riêng máy chủ có thể đợi AI tới 55 giây. Frontend hiện gọi `GET /health` trước, cho máy chủ tối đa 90 giây khởi động, rồi mới bắt đầu giới hạn 65 giây cho câu trả lời. Kết quả readiness được giữ 5 phút; không ping định kỳ và không gọi AI trong bước đánh thức. Chỉ GET readiness được thử lại khi gặp lỗi tạm thời; không tự gửi lại POST của người học. Hủy/reset vẫn hủy yêu cầu và bỏ kết quả cũ.
+
+Khi chat hoặc tutor báo lỗi, mở **Chi tiết lỗi → Sao chép thông tin lỗi** ngay trong website. Báo cáo chỉ chứa mã lỗi an toàn, giai đoạn, HTTP của website, HTTP của nhà cung cấp nếu có, mã giao thức đã được cho phép và request ID. `stage: provider` phân biệt lỗi HTTP từ dịch vụ AI; `transport` là lỗi kết nối/timeout của API máy chủ; `server` là lỗi xử lý nội bộ; `startup` là bước khởi động/readiness trong trình duyệt. Phản hồi không chứa khóa API, câu hỏi, hội thoại, tên model hay nguyên văn lỗi nhà cung cấp. Mã model không hợp lệ được nhận diện cả khi nhà cung cấp trả 5xx kèm mã `model_not_found`; lỗi 503 chung vẫn là gián đoạn dịch vụ, không tự đổi model theo phỏng đoán.
+
+Các thay đổi về thời gian chờ không khắc phục được một dịch vụ AI đang trả lỗi 5xx hoặc khóa/model không hợp lệ. Cần phản hồi thật hoặc báo cáo lỗi mới để xác nhận trường hợp đang triển khai.
+
 Trong Render, mở dịch vụ AI → Logs. Bản mới ghi JSON `ai_upstream_failure` với `status`, `code`, số lần thử và `requestId`. Đối chiếu `requestId` với phản hồi API nếu cần. Không đưa khóa API, câu hỏi, hội thoại hay toàn bộ phản hồi lỗi của nhà cung cấp vào log.
 
 | Mã lỗi | Việc cần kiểm tra |
@@ -32,6 +38,7 @@ Không đổi dịch vụ AI sang câu trả lời dựng sẵn khi kết nối 
 
 ```sh
 node tests/chat-upstream.mjs
+node tests/ai-readiness.mjs
 node tests/origin-policy.mjs
 node tests/practice-plan.mjs
 node start-web.cjs

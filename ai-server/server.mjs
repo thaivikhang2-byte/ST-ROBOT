@@ -46,7 +46,7 @@ export function createServer(upstream = fetch) {
     }
     if (req.method !== 'POST') return reply(405, {error:'Hãy gửi câu hỏi bằng biểu mẫu của trợ lý.'});
     const apiKey = process.env.WOKU_API_KEY?.trim();
-    if (!apiKey) return reply(503, {error:'Dịch vụ AI cần cập nhật quyền kết nối. Người quản trị hãy kiểm tra khóa API trên máy chủ.',code:'AI_AUTH',retryable:false});
+    if (!apiKey) return reply(503, {error:'Dịch vụ AI cần cập nhật quyền kết nối. Người quản trị hãy kiểm tra khóa API trên máy chủ.',code:'AI_AUTH',retryable:false,stage:'server'});
     if (practicePlan ? !/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] || '') : !req.headers['content-type']?.startsWith('application/json')) return reply(415, {error:practicePlan ? 'Hãy gửi lựa chọn luyện tập bằng biểu mẫu trên website.' : 'Hãy kiểm tra nội dung câu hỏi rồi gửi lại.'});
     let data;
     try {
@@ -131,10 +131,14 @@ export function createServer(upstream = fetch) {
     } catch (error) {
       if (error instanceof ChatUpstreamError) {
         if (error.retryAfter !== undefined) headers['Retry-After'] = String(error.retryAfter);
-        return reply(error.status, {error:error.message,code:error.code,retryable:error.retryable,requestId});
+        return reply(error.status, {
+          error:error.message,code:error.code,retryable:error.retryable,requestId,stage:error.stage,
+          ...(error.upstreamStatus === undefined ? {} : {upstreamStatus:error.upstreamStatus}),
+          ...(error.providerCode === undefined ? {} : {providerCode:error.providerCode})
+        });
       }
       console.error('Chat failure', requestId, error.name);
-      return reply(502, {error:'Dịch vụ AI đang tạm gián đoạn. Bạn có thể thử lại câu hỏi này.',code:'AI_UNAVAILABLE',retryable:true,requestId});
+      return reply(502, {error:'Dịch vụ AI đang tạm gián đoạn. Bạn có thể thử lại câu hỏi này.',code:'AI_UNAVAILABLE',retryable:true,requestId,stage:'server'});
     } finally { pending--; }
   });
 }

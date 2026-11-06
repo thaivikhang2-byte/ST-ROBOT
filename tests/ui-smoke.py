@@ -26,6 +26,7 @@ PUBLIC = BASE + '/frontend/public/'
 AI_ORIGIN = 'https://st-robot-1.onrender.com'
 results = []
 api_requests = []
+health_requests = []
 blocked = set()
 page_errors = []
 reply_mode = {'home': 'ok', 'tutor': 'ok'}
@@ -79,6 +80,13 @@ def checked(name, fn):
         fixtures['stale_registry'] = None
         fixtures['frame_urls'] = set()
         fixtures['popup_urls'] = set()
+        held = fixtures.get('held_tutor')
+        if held is not None:
+            try:
+                held.fulfill(status=503, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body='{"error":"Fixture released"}')
+            except Exception:
+                pass
+            fixtures['held_tutor'] = None
 
 
 with sync_playwright() as p:
@@ -106,6 +114,12 @@ with sync_playwright() as p:
         if request.resource_type == 'document' and request_url in fixtures['frame_urls']:
             route.fulfill(status=200, content_type='text/html', body='<html><title>Lab integration fixture</title><body><canvas id="labFixture"></canvas></body></html>')
             return
+        if parsed.path == '/health' and f'{parsed.scheme}://{parsed.netloc}' == AI_ORIGIN:
+            require(request.method == 'GET', 'AI readiness must use GET without consuming an AI completion')
+            health_requests.append(request.url)
+            route.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'},
+                          body=json.dumps({'ok': True, 'ai': {'keyConfigured': True, 'modelConfigured': True}}))
+            return
         if parsed.path in ['/api/home-chat', '/api/tutor']:
             require(f'{parsed.scheme}://{parsed.netloc}' == AI_ORIGIN,
                     'Chat/tutor contacted the wrong AI service: ' + request.url)
@@ -116,8 +130,15 @@ with sync_playwright() as p:
             require(request.method == 'POST', 'AI must POST')
             data = request.post_data_json
             api_requests.append({'kind': kind, 'data': data, 'url': request.url})
+            if kind == 'tutor' and reply_mode[kind] == 'hold':
+                fixtures['held_tutor'] = route
+                return
             status = 200 if reply_mode[kind] == 'ok' else 503
-            body = {'reply': 'Phản hồi AI kiểm thử: mạch điện và thuật toán.'} if status == 200 else {'error': 'Dịch vụ AI kiểm thử đang bận.'}
+            body = {'reply': 'Phản hồi AI kiểm thử: mạch điện và thuật toán.'} if status == 200 else {
+                'error': 'Dịch vụ AI kiểm thử đang bận.', 'code': 'AI_UNAVAILABLE', 'upstreamStatus': 503,
+                'providerCode': 'private-invalid-provider-detail', 'requestId': '11111111-2222-4333-8444-555555555555',
+                'stage': 'provider', 'privateProviderBody': 'private-provider-body-never-show'
+            }
             route.fulfill(status=status, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps(body))
         elif parsed.netloc == urlparse(BASE).netloc or parsed.scheme in ['data', 'blob']:
             route.continue_()
@@ -842,8 +863,50 @@ with sync_playwright() as p:
         expect(page.locator('#tutorStatus')).to_contain_text('Dịch vụ AI kiểm thử đang bận.')
         expect(page.locator('#tutorSend')).to_be_enabled()
         expect(page.locator('#tutorQuestion')).to_have_value('Dịch vụ bận')
+        details = page.locator('#tutorErrorDetails details')
+        expect(details).to_be_visible()
+        require(details.get_attribute('open') is None, 'Technical tutor details should remain collapsed by default')
+        details.locator('summary').click()
+        diagnostic = json.loads(details.locator('pre').inner_text())
+        require(diagnostic['code'] == 'AI_UNAVAILABLE' and diagnostic['httpStatus'] == 503
+                and diagnostic['upstreamStatus'] == 503 and diagnostic['stage'] == 'provider', 'Tutor lost safe error metadata')
+        require(diagnostic['requestId'] == '11111111-2222-4333-8444-555555555555'
+                and diagnostic['api'] == AI_ORIGIN + '/api/tutor', 'Tutor diagnostics cannot identify the failed request')
+        require('private-' not in details.inner_text(), 'Tutor leaked unknown provider fields')
+        context.grant_permissions(['clipboard-read', 'clipboard-write'])
+        details.locator('button').click()
+        expect(details.locator('button')).to_have_text('Đã sao chép')
+        copied = json.loads(page.evaluate('navigator.clipboard.readText()'))
+        require(copied == diagnostic, 'Tutor copied more than the visible safe report')
         reply_mode['tutor'] = 'ok'
-        return {'mocked_requests': len(reqs) + 1, 'lesson_context': True, 'history': True, 'reset': True, 'error_recovery': True}
+        page.locator('#tutorSend').click()
+        expect(page.locator('#tutorMessages')).to_contain_text('Phản hồi AI kiểm thử')
+        expect(page.locator('#tutorErrorDetails')).to_be_hidden()
+        reqs = [x['data'] for x in api_requests if x['kind'] == 'tutor']
+        require(reqs[-1]['history'] == [], 'A failed tutor exchange leaked into AI history')
+        reply_mode['tutor'] = 'hold'
+        page.locator('#tutorQuestion').fill('Câu hỏi sẽ hủy')
+        with page.expect_request(lambda request: urlparse(request.url).path == '/api/tutor'):
+            page.locator('#tutorSend').click()
+        page.locator('#tutorReset').click()
+        expect(page.locator('#tutorMessages')).to_be_empty()
+        expect(page.locator('#tutorSend')).to_be_enabled()
+        held = fixtures.get('held_tutor')
+        require(held is not None, 'Tutor cancellation did not reach the held API request')
+        try:
+            held.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body='{"reply":"STALE_TUTOR_REPLY"}')
+        except Exception:
+            pass
+        fixtures['held_tutor'] = None
+        reply_mode['tutor'] = 'ok'
+        page.locator('#tutorQuestion').fill('Câu hỏi sau khi hủy')
+        page.locator('#tutorSend').click()
+        expect(page.locator('#tutorMessages')).to_contain_text('Phản hồi AI kiểm thử')
+        expect(page.locator('#tutorMessages')).not_to_contain_text('STALE_TUTOR_REPLY')
+        reqs = [x['data'] for x in api_requests if x['kind'] == 'tutor']
+        require(reqs[-1]['history'] == [], 'Canceled tutor exchange leaked into the new session')
+        return {'mocked_requests': len(reqs), 'lesson_context': True, 'history': True, 'reset': True, 'error_recovery': True,
+                'collapsed_private_diagnostics_and_copy': True, 'cancellation_ignores_late_reply': True}
 
     checked('learning AI tutor context, history, lesson reset and error recovery', tutor_ai)
 
@@ -876,7 +939,7 @@ with sync_playwright() as p:
     checked('mobile menu, persistent theme and page overflow', mobile)
     browser.close()
 
-summary = {'checks': results, 'passed': sum(r['status'] == 'passed' for r in results), 'failed': sum(r['status'] == 'failed' for r in results), 'external_hosts_blocked': sorted(blocked), 'uncaught_page_errors': page_errors, 'ai_requests_mocked': len(api_requests), 'ai_urls_verified': sorted({request['url'] for request in api_requests}), 'live_ai_requests': 0}
+summary = {'checks': results, 'passed': sum(r['status'] == 'passed' for r in results), 'failed': sum(r['status'] == 'failed' for r in results), 'external_hosts_blocked': sorted(blocked), 'uncaught_page_errors': page_errors, 'ai_requests_mocked': len(api_requests), 'health_requests_without_ai_calls': len(health_requests), 'ai_urls_verified': sorted({request['url'] for request in api_requests}), 'live_ai_requests': 0}
 pathlib.Path(args.output).write_text(json.dumps(summary, ensure_ascii=False, indent=2))
 print(json.dumps({'passed': summary['passed'], 'failed': summary['failed'], 'results': args.output}, ensure_ascii=False))
 sys.exit(1 if summary['failed'] else 0)

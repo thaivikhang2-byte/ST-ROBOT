@@ -25,11 +25,14 @@ async function failure(upstream, expected, overrides = {}) {
     assert.equal(error.status, expected.status);
     assert.equal(error.code, expected.code);
     assert.equal(error.retryable, expected.retryable);
+    for (const field of ['stage', 'upstreamStatus', 'providerCode']) {
+      if (Object.hasOwn(expected, field)) assert.equal(error[field], expected[field]);
+    }
     assert.ok(typeof error.message === 'string' && error.message.length > 0);
     return true;
   });
   if (expected.calls !== undefined) assert.equal(calls, expected.calls);
-  const publicOutput = JSON.stringify({ error: { status: captured.status, code: captured.code, message: captured.message, retryAfter: captured.retryAfter }, logs });
+  const publicOutput = JSON.stringify({ error: { ...captured, message: captured.message }, logs });
   for (const secret of [KEY, QUESTION, PROVIDER_DETAIL]) assert.ok(!publicOutput.includes(secret), `Error/log output must not expose ${secret}`);
   return { calls, logs, error: captured };
 }
@@ -86,12 +89,37 @@ try {
   groups++;
 
   for (const [status, code] of [[401, 'invalid_api_key'], [403, 'access_denied']]) {
-    await failure(async () => rejection(status, code), { status: 503, code: 'AI_AUTH', retryable: false, calls: 1 });
+    await failure(async () => rejection(status, code), { status: 503, code: 'AI_AUTH', retryable: false, calls: 1,
+      stage: 'provider', upstreamStatus: status, providerCode: code });
   }
-  for (const [status, code] of [[400, 'model_not_found'], [404, 'model_not_found'], [422, 'model_not_supported']]) {
-    await failure(async () => rejection(status, code), { status: 503, code: 'AI_MODEL', retryable: false, calls: 1 });
+  for (const [status, code] of [[400, 'model_not_found'], [404, 'model_not_found'], [422, 'model_not_supported'],
+    [503, 'model_not_found'], [503, 'model_not_supported'], [503, 'invalid_model'], [500, 'unsupported_model']]) {
+    await failure(async () => rejection(status, code), { status: 503, code: 'AI_MODEL', retryable: false, calls: 1,
+      stage: 'provider', upstreamStatus: status, providerCode: code });
   }
   await failure(async () => rejection(400, 'unsupported_parameter'), { status: 502, code: 'AI_REQUEST', retryable: false, calls: 1 });
+  groups++;
+
+  // Provider diagnostics use an exact allowlist. Unknown/secret-looking codes,
+  // messages and details must never be echoed by either errors or logs.
+  for (const code of [KEY, QUESTION, PROVIDER_DETAIL, 'unrecognized_internal_error', 'model_not_found-' + KEY, { secret: KEY }]) {
+    const hidden = await failure(async () => rejection(503, code), {
+      status: 503, code: 'AI_UNAVAILABLE', retryable: true, calls: 2,
+      stage: 'provider', upstreamStatus: 503, providerCode: undefined
+    });
+    if (typeof code === 'string') assert.ok(!JSON.stringify(hidden.logs).includes(code));
+  }
+  const noChannel = await failure(async () => rejection(503, 'no_available_channel'), {
+    status: 503, code: 'AI_UNAVAILABLE', retryable: true, calls: 2,
+    stage: 'provider', upstreamStatus: 503, providerCode: 'no_available_channel'
+  });
+  const event = JSON.parse(noChannel.logs.at(-1)[0]);
+  assert.equal(event.stage, 'provider'); assert.equal(event.upstreamStatus, 503);
+  assert.equal(event.providerCode, 'no_available_channel');
+  const forged = new ChatUpstreamError(503, 'AI_UNAVAILABLE', true, undefined,
+    { stage: KEY, upstreamStatus: KEY, providerCode: KEY });
+  assert.equal(forged.stage, 'transport');
+  assert.equal(forged.upstreamStatus, undefined); assert.equal(forged.providerCode, undefined);
   groups++;
 
   for (const [status, code] of [[402, 'insufficient_quota'], [429, 'insufficient_quota']]) {
@@ -133,11 +161,14 @@ try {
     return answer();
   } }), content);
   assert.equal(networkCalls, 2);
-  await failure(async () => { throw new TypeError(PROVIDER_DETAIL); }, { status: 502, code: 'AI_NETWORK', retryable: true, calls: 2 });
+  await failure(async () => { throw new TypeError(PROVIDER_DETAIL); }, {
+    status: 502, code: 'AI_NETWORK', retryable: true, calls: 2, stage: 'transport', upstreamStatus: undefined, providerCode: undefined
+  });
   groups++;
 
   for (const value of [null, '', '   ', 12, [], {}]) {
-    await failure(async () => answer(value), { status: 502, code: 'AI_RESPONSE', retryable: true, calls: 1 });
+    await failure(async () => answer(value), { status: 502, code: 'AI_RESPONSE', retryable: true, calls: 1,
+      stage: 'provider', upstreamStatus: undefined, providerCode: undefined });
   }
   await failure(async () => new Response('<html>upstream unavailable</html>', { status: 200 }), { status: 502, code: 'AI_RESPONSE', retryable: true, calls: 1 });
   groups++;
@@ -185,6 +216,9 @@ try {
       const response = await request(server, path, { question: QUESTION, course: 'arduino', lesson: 'led' });
       assert.equal(response.status, 503); assert.equal(response.data.code, 'AI_AUTH');
       assert.equal(response.data.retryable, false);
+      assert.equal(response.data.stage, 'provider');
+      assert.equal(response.data.upstreamStatus, 401);
+      assert.equal(response.data.providerCode, 'invalid_api_key');
       assert.ok(typeof response.data.error === 'string' && response.data.error.length > 0);
       for (const secret of [KEY, QUESTION, PROVIDER_DETAIL]) assert.ok(!JSON.stringify(response.data).includes(secret));
     }
@@ -200,15 +234,38 @@ try {
       assert.equal(response.status, status);
       assert.equal(response.data.code, code);
       assert.equal(response.data.retryable, true);
+      assert.equal(response.data.stage, 'provider');
+      assert.equal(response.data.upstreamStatus, status);
+      assert.equal(response.data.providerCode, 'server_error');
       assert.equal(response.headers['retry-after'], String(wait), 'The public API must preserve the provider cooldown');
       assert.equal(cooldownCalls, 1);
     });
   }
   groups++;
 
+  for (const providerCode of ['model_not_found', KEY]) {
+    let diagnosticCalls = 0;
+    await withServer(async () => { diagnosticCalls++; return rejection(503, providerCode); }, async server => {
+      const response = await request(server, '/api/home-chat', { question: QUESTION });
+      assert.equal(response.status, 503);
+      assert.equal(response.data.stage, 'provider');
+      assert.equal(response.data.upstreamStatus, 503);
+      assert.equal(response.data.code, providerCode === KEY ? 'AI_UNAVAILABLE' : 'AI_MODEL');
+      assert.equal(response.data.retryable, providerCode === KEY);
+      assert.equal(response.data.providerCode, providerCode === KEY ? undefined : providerCode);
+      assert.ok(/^[0-9a-f-]{36}$/i.test(response.data.requestId));
+      assert.equal(diagnosticCalls, providerCode === KEY ? 2 : 1);
+      for (const secret of [KEY, QUESTION, PROVIDER_DETAIL]) assert.ok(!JSON.stringify(response.data).includes(secret));
+    });
+  }
+  groups++;
+
   let blankCalls = 0;
   await withServer(async () => { blankCalls++; return answer(); }, async server => {
-    assert.equal((await request(server, '/api/home-chat', { question: QUESTION })).status, 503);
+    const missing = await request(server, '/api/home-chat', { question: QUESTION });
+    assert.equal(missing.status, 503);
+    assert.equal(missing.data.stage, 'server');
+    assert.equal(missing.data.upstreamStatus, undefined);
     assert.equal(blankCalls, 0, 'A whitespace-only key must be rejected before any provider call');
   }, { key: '   ' });
   groups++;
@@ -222,7 +279,7 @@ try {
   }, { limit: 1 });
   groups++;
 
-  console.log(`PASS ${groups} chat upstream groups: canonical response, private classified failures, bounded recovery/deadlines, actual home-chat/tutor HTTP, key/origin/quota gates and no paid requests`);
+  console.log(`PASS ${groups} chat upstream groups: canonical response, safe provider diagnostics/model classification, private failures, bounded recovery/deadlines, actual home-chat/tutor HTTP, key/origin/quota gates and no paid requests`);
 } finally {
   for (const [name, value] of Object.entries(prior)) {
     if (value === undefined) delete process.env[name]; else process.env[name] = value;

@@ -41,6 +41,8 @@ Chat tự thử lại tối đa một lần khi nhà cung cấp gặp lỗi tạ
 
 Máy chủ chuẩn hóa `ALLOWED_ORIGIN` khi người triển khai dán URL GitHub Pages có đường dẫn, dấu `/` cuối hoặc khoảng trắng; vẫn chỉ cấp quyền cho đúng origin. Mở `https://st-robot-1.onrender.com/health` để xem commit và các cờ có/thiếu cấu hình mà không phải vào bảng điều khiển Render. Các cờ này không thay thế kiểm tra phản hồi AI thật. Chạy `node tests/origin-policy.mjs` để kiểm tra CORS bằng HTTP tại chỗ.
 
+Chat và tutor dùng `frontend/src/services/AiService.js` để tách thời gian khởi động Render Free (tối đa 90 giây, chỉ gọi `/health`) khỏi thời gian chờ câu trả lời (65 giây). Khi lỗi, mục **Chi tiết lỗi** có thể sao chép mã lỗi và trạng thái HTTP an toàn ngay trên web. Kiểm tra bằng `node tests/ai-readiness.mjs`; giai đoạn readiness không gọi AI, không tiêu hạn mức hỏi và không chạy ping giữ máy chủ thức định kỳ.
+
 ## Kiểm tra giao diện
 
 Bộ smoke test dùng Python, Playwright, pypdf và Chromium. Sau khi phục vụ thư mục dự án qua Python như trên:

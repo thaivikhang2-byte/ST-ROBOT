@@ -1,4 +1,14 @@
 const endpoint = 'https://llm.wokushop.com/v1/chat/completions';
+// Only these non-secret protocol codes may leave the provider adapter. Never
+// reflect arbitrary error strings, messages, model names or provider bodies.
+const providerCodes = new Set([
+  'invalid_api_key', 'invalid_authentication', 'authentication_error', 'access_denied', 'permission_denied',
+  'model_not_found', 'model_not_supported', 'invalid_model', 'model_not_available', 'unsupported_model',
+  'insufficient_quota', 'quota_exceeded', 'insufficient_balance', 'billing_error', 'rate_limit_exceeded',
+  'server_error', 'service_unavailable', 'overloaded_error', 'no_available_channel', 'channel_not_found',
+  'unsupported_parameter', 'invalid_request_error', 'invalid_request'
+]);
+const invalidModelCodes = new Set(['model_not_found', 'model_not_supported', 'invalid_model', 'unsupported_model']);
 const messages = {
   AI_AUTH: 'Dịch vụ AI cần cập nhật quyền kết nối. Người quản trị hãy kiểm tra khóa API trên máy chủ.',
   AI_MODEL: 'Mô hình AI đang cấu hình chưa được dịch vụ hỗ trợ. Người quản trị hãy kiểm tra AI_MODEL trên máy chủ.',
@@ -12,11 +22,15 @@ const messages = {
 };
 
 export class ChatUpstreamError extends Error {
-  constructor(status, code, retryable, retryAfter) {
+  constructor(status, code, retryable, retryAfter, diagnostics = {}) {
     super(messages[code]);
     this.name = 'ChatUpstreamError';
     this.status = status; this.code = code; this.retryable = retryable;
     if (retryAfter !== undefined) this.retryAfter = retryAfter;
+    this.stage = ['provider', 'transport', 'server'].includes(diagnostics.stage) ? diagnostics.stage : 'transport';
+    if (this.stage === 'provider' && Number.isInteger(diagnostics.upstreamStatus)
+      && diagnostics.upstreamStatus >= 400 && diagnostics.upstreamStatus <= 599) this.upstreamStatus = diagnostics.upstreamStatus;
+    if (this.stage === 'provider' && providerCodes.has(diagnostics.providerCode)) this.providerCode = diagnostics.providerCode;
   }
 }
 
@@ -25,13 +39,17 @@ function classifyResponse(status, payload) {
   const code = typeof error?.code === 'string' ? error.code.toLowerCase() : '';
   const type = typeof error?.type === 'string' ? error.type.toLowerCase() : '';
   const text = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
-  if (status === 401 || status === 403) return new ChatUpstreamError(503, 'AI_AUTH', false);
+  const diagnostics = { stage: 'provider', upstreamStatus: status,
+    providerCode: providerCodes.has(code) ? code : providerCodes.has(type) ? type : undefined };
+  const failure = (publicStatus, publicCode, retryable, retryAfter) => new ChatUpstreamError(publicStatus, publicCode, retryable, retryAfter, diagnostics);
+  if (status === 401 || status === 403) return failure(503, 'AI_AUTH', false);
   if (status === 402 || /insufficient_quota|quota_exceeded|billing|insufficient_balance|credit/.test(`${code} ${type}`)
-    || (status === 429 && /insufficient.{0,20}(quota|credit|balance)|billing|quota.{0,15}exhaust/.test(text))) return new ChatUpstreamError(503, 'AI_QUOTA', false);
-  if ([400, 404, 422].includes(status) && (/model/.test(code) || /model|mô hình/.test(text))) return new ChatUpstreamError(503, 'AI_MODEL', false);
-  if (status === 429) return new ChatUpstreamError(429, 'AI_BUSY', true, 60);
-  if (status === 408 || status >= 500) return new ChatUpstreamError(503, 'AI_UNAVAILABLE', true);
-  return new ChatUpstreamError(502, 'AI_REQUEST', false);
+    || (status === 429 && /insufficient.{0,20}(quota|credit|balance)|billing|quota.{0,15}exhaust/.test(text))) return failure(503, 'AI_QUOTA', false);
+  if (invalidModelCodes.has(code) || invalidModelCodes.has(type)
+    || ([400, 404, 422].includes(status) && (/model/.test(code) || /model|mô hình/.test(text)))) return failure(503, 'AI_MODEL', false);
+  if (status === 429) return failure(429, 'AI_BUSY', true, 60);
+  if (status === 408 || status >= 500) return failure(503, 'AI_UNAVAILABLE', true);
+  return failure(502, 'AI_REQUEST', false);
 }
 
 function retryAfterSeconds(response) {
@@ -56,12 +74,14 @@ function waitForRetry(delay, signal) {
 export async function requestChatCompletion({ upstream = fetch, apiKey, model, messages: conversation,
   maxTokens = 1200, timeoutMs = 55000, retryDelayMs = 400, requestId, logger = console.error }) {
   const key = typeof apiKey === 'string' ? apiKey.trim() : '';
-  if (!key) throw new ChatUpstreamError(503, 'AI_AUTH', false);
+  if (!key) throw new ChatUpstreamError(503, 'AI_AUTH', false, undefined, { stage: 'server' });
   const controller = new AbortController();
   let timer;
   const timeoutError = () => new ChatUpstreamError(504, 'AI_TIMEOUT', true);
   const log = (error, attempt, status) => logger(JSON.stringify({
-    event: 'ai_upstream_failure', code: error.code, status: status || null, attempt, requestId
+    event: 'ai_upstream_failure', code: error.code,
+    status: Number.isInteger(status) && status >= 100 && status <= 599 ? status : null,
+    stage: error.stage, upstreamStatus: error.upstreamStatus, providerCode: error.providerCode, attempt, requestId
   }));
   const work = async () => {
     for (let attempt = 1; attempt <= 2; attempt++) {
@@ -76,11 +96,11 @@ export async function requestChatCompletion({ upstream = fetch, apiKey, model, m
         providerRetryAfter = retryAfterSeconds(response);
         let payload;
         try { payload = await response.json(); }
-        catch { if (response.ok) throw new ChatUpstreamError(502, 'AI_RESPONSE', true); }
+        catch { if (response.ok) throw new ChatUpstreamError(502, 'AI_RESPONSE', true, undefined, { stage: 'provider' }); }
         if (controller.signal.aborted) throw timeoutError();
         if (!response.ok) throw classifyResponse(status, payload);
         const content = payload?.choices?.[0]?.message?.content;
-        if (typeof content !== 'string' || !content.trim()) throw new ChatUpstreamError(502, 'AI_RESPONSE', true);
+        if (typeof content !== 'string' || !content.trim()) throw new ChatUpstreamError(502, 'AI_RESPONSE', true, undefined, { stage: 'provider' });
         return content.slice(0, 12000);
       } catch (error) {
         if (controller.signal.aborted) throw timeoutError();

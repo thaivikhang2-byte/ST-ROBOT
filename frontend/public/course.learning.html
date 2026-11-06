@@ -104,7 +104,7 @@
     <div class="pdf-panel"><div class="pdf-head"><span id="modalPdfTitle">Tài liệu giáo trình ST-Robot</span><div class="pdf-actions"><button type="button" id="downloadPdf" class="btn--primary">Tải giáo trình PDF · 6 bài</button><button type="button" onclick="closePdfModal()">Đóng</button></div></div><div class="pdf-body"><div id="printablePdfArea"><h2 id="pdfDocHeading">Tiêu đề bài học</h2><p class="small">Tài liệu tự học có bài tập và đáp án đối chiếu</p><div id="pdfDocBody"></div></div></div></div>
   </div>
   <dialog id="microbitResetDialog" class="dialog" aria-labelledby="microbitResetTitle"><div class="dialog-body"><h2 id="microbitResetTitle">Nạp lại mã mẫu của bài này?</h2><p>Mã đã chỉnh sửa của bài đang mở sẽ được thay bằng mã mẫu. Hãy tải bản cần giữ trước khi tiếp tục. Dự án của các bài khác được giữ nguyên.</p></div><div class="dialog-foot"><button id="microbitCancelReset" type="button" class="btn" onclick="document.getElementById('microbitResetDialog').close()">Giữ mã hiện tại</button><button id="microbitConfirmReset" type="button" class="btn btn--primary" onclick="resetMicrobitSource()">Nạp mã mẫu</button></div></dialog>
-  <script type="module" src="../src/app.js?v=quiz-priority-v10"></script>
+  <script type="module" src="../src/app.js?v=ai-recovery-v11"></script>
   <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=lesson-code-v5'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
 <script src="../src/data/curriculum.js?v=lesson-code-v5"></script>
 <script src="../src/data/lesson-pdfs.js?v=lesson-code-v5"></script>
@@ -412,9 +412,8 @@ window.addEventListener('DOMContentLoaded',initPage);
 
 </script>
 
-<script>
-// Paste only the public backend URL here, never an API key.
-const TUTOR_API_URL = 'https://st-robot-1.onrender.com/api/tutor';
+<script type="module">
+import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../src/services/AiService.js?v=ai-recovery-v11';
 window.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('tutorForm');
   const input = document.getElementById('tutorQuestion');
@@ -422,6 +421,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const status = document.getElementById('tutorStatus');
   const send = document.getElementById('tutorSend');
   const reset = document.getElementById('tutorReset');
+  const diagnosticHost = document.createElement('div');
+  diagnosticHost.id = 'tutorErrorDetails'; diagnosticHost.hidden = true;
+  status.after(diagnosticHost);
   let history = [], active = null, generation = 0;
   function add(text, user) {
     const item = document.createElement('div');
@@ -429,9 +431,32 @@ window.addEventListener('DOMContentLoaded', () => {
     item.textContent = (user ? 'Bạn: ' : 'Trợ lý: ') + text;
     messages.append(item); messages.scrollTop = messages.scrollHeight;
   }
+  function clearDiagnostics() { diagnosticHost.replaceChildren(); diagnosticHost.hidden = true; }
+  function showDiagnostics(error) {
+    const report = { client: 'tutor' };
+    if (typeof error.code === 'string' && /^AI_[A-Z0-9_]{1,60}$/.test(error.code)) report.code = error.code;
+    for (const field of ['httpStatus', 'upstreamStatus']) {
+      if (Number.isInteger(error[field]) && error[field] >= 100 && error[field] <= 599) report[field] = error[field];
+    }
+    if (AI_PROVIDER_CODES.includes(error.providerCode)) report.providerCode = error.providerCode;
+    if (typeof error.requestId === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(error.requestId)) report.requestId = error.requestId;
+    if (['startup', 'health', 'reply', 'provider', 'transport', 'server'].includes(error.stage)) report.stage = error.stage;
+    if (Object.keys(report).length === 1) return;
+    report.api = AI_SERVICE_ORIGIN + '/api/tutor';
+    const detail = document.createElement('details');
+    const heading = document.createElement('summary'); heading.textContent = 'Chi tiết lỗi';
+    const text = document.createElement('pre'); text.textContent = JSON.stringify(report, null, 2);
+    text.style.whiteSpace = 'pre-wrap'; text.style.overflowWrap = 'anywhere'; text.tabIndex = 0;
+    const copy = document.createElement('button'); copy.type = 'button'; copy.textContent = 'Sao chép thông tin lỗi';
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(text.textContent); copy.textContent = 'Đã sao chép'; }
+      catch { copy.textContent = 'Chọn và sao chép nội dung bên dưới'; text.focus(); }
+    });
+    detail.append(heading, copy, text); diagnosticHost.append(detail); diagnosticHost.hidden = false;
+  }
   function clear() {
     generation++; active?.abort(); active = null; history = [];
-    messages.replaceChildren(); status.textContent = ''; input.value = '';
+    messages.replaceChildren(); status.textContent = ''; input.value = ''; clearDiagnostics();
     send.disabled = false;
   }
   const originalLoadLesson = loadLesson;
@@ -441,31 +466,26 @@ window.addEventListener('DOMContentLoaded', () => {
     event.preventDefault();
     const question = input.value.trim();
     if (!question || active) return;
-    if (!TUTOR_API_URL.startsWith('https://')) { status.textContent = 'Trợ lý đang được thiết lập.'; return; }
     const ticket = generation;
     const controller = new AbortController(); active = controller;
-    const timer = setTimeout(() => controller.abort(), 65000);
-    send.disabled = true; add(question, true); input.value = '';
-    status.textContent = 'Đang trả lời…';
+    send.disabled = true; add(question, true); input.value = ''; clearDiagnostics();
+    status.textContent = 'Đang kết nối trợ lý…';
     try {
-      const response = await fetch(TUTOR_API_URL, {
-        method:'POST', headers:{'Content-Type':'application/json'}, credentials:'omit',
-        body:JSON.stringify({course:course.id,lesson:lesson().id,question,history}), signal:controller.signal
+      const reply = await aiClient.requestReply('/api/tutor', { course:course.id, lesson:lesson().id, question, history }, {
+        signal: controller.signal,
+        onStatus: phase => { if (ticket === generation) status.textContent = phase === 'starting' ? 'Đang khởi động trợ lý…' : 'AI đang trả lời…'; }
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Kết nối trả lời bị gián đoạn. Bạn hãy gửi lại câu hỏi.');
-      if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('Hãy gửi lại câu hỏi để nhận phản hồi đầy đủ.');
       if (ticket !== generation) return;
-      add(data.reply, false);
-      history.push({role:'user',content:question},{role:'assistant',content:data.reply.slice(0,4000)});
+      add(reply, false);
+      history.push({role:'user',content:question},{role:'assistant',content:reply.slice(0,4000)});
       history = history.slice(-6); status.textContent = '';
     } catch (error) {
       if (ticket === generation) {
-        status.textContent = error.name === 'AbortError' ? 'Hết thời gian chờ. Bạn có thể gửi lại câu hỏi.' : (error instanceof TypeError ? 'Kết nối với trợ lý bị gián đoạn. Kiểm tra mạng rồi gửi lại câu hỏi.' : error.message);
+        status.textContent = error.name === 'AbortError' ? 'Đã dừng câu hỏi này.' : error.message;
+        showDiagnostics(error);
         if (!input.value) input.value = question;
       }
     } finally {
-      clearTimeout(timer);
       if (ticket === generation) { active = null; send.disabled = false; }
     }
   });

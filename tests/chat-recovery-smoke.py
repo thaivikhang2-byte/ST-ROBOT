@@ -30,12 +30,23 @@ def prepare(browser, mobile=False):
     context = browser.new_context(viewport={'width': 375 if mobile else 1440, 'height': 812 if mobile else 900})
     page = context.new_page()
     errors, requests = [], []
-    fixture = {'status': 502, 'body': {'error': 'Kết nối trả lời bị gián đoạn. Vui lòng gửi lại câu hỏi sau.'}}
+    fixture = {'status': 502, 'body': {'error': 'Kết nối trả lời bị gián đoạn. Vui lòng gửi lại câu hỏi sau.'},
+               'health_calls': [], 'health_body': {'ok': True, 'ai': {'keyConfigured': True}}}
     page.on('pageerror', lambda error: errors.append(str(error)))
 
     def route_request(route):
         url = urlparse(route.request.url)
-        if url.path == '/api/home-chat':
+        if url.path == '/health':
+            require(f'{url.scheme}://{url.netloc}' == AI_ORIGIN,
+                    'Chat readiness contacted the wrong AI service: ' + route.request.url)
+            require(route.request.method == 'GET', 'Readiness must be a free GET, not an AI POST')
+            fixture['health_calls'].append(route.request.url)
+            if fixture.get('health_hold'):
+                fixture['health_held'] = route
+                return
+            route.fulfill(status=fixture.get('health_status', 200), content_type='application/json',
+                          body=fixture.get('health_raw', json.dumps(fixture['health_body'])))
+        elif url.path == '/api/home-chat':
             require(f'{url.scheme}://{url.netloc}' == AI_ORIGIN,
                     'Home chat contacted the wrong AI service: ' + route.request.url)
             requests.append(route.request.post_data_json)
@@ -178,7 +189,8 @@ def network_failure(browser):
         fixture['abort'] = True
         send(page)
         finished(page)
-        expect(page.locator('#chatMessageContainer')).to_contain_text('Kiểm tra mạng rồi thử lại.')
+        page.locator('.chat-error-details summary').click()
+        expect(page.locator('.chat-error-report')).to_contain_text('AI_NETWORK')
         expect(page.locator('.chat-retry')).to_be_visible()
         require(not errors, str(errors))
         return {'network_error_preserves_question': True}
@@ -214,17 +226,110 @@ def timeout_and_waiting(browser):
         page.clock.install()
         fixture['hold'] = True
         send(page)
-        expect(page.locator('#chatForm')).to_have_attribute('aria-busy', 'true')
-        page.clock.fast_forward(15001)
-        expect(page.locator('#chatMessageContainer')).to_contain_text('Trợ lý đang kết nối')
-        page.clock.fast_forward(60001)
+        expect(page.locator('#chatMessageContainer')).to_contain_text('AI đang trả lời…')
+        page.wait_for_timeout(50)
+        require('held' in fixture, 'Completion request never started after readiness')
+        page.clock.fast_forward(65001)
         finished(page)
-        expect(page.locator('#chatMessageContainer')).to_contain_text('Chờ phản hồi quá lâu.')
+        page.locator('.chat-error-details summary').click()
+        expect(page.locator('.chat-error-report')).to_contain_text('AI_REPLY_TIMEOUT')
         expect(page.locator('.chat-retry')).to_be_visible()
         expect(page.locator('#chatInputField')).to_have_value(QUESTION)
         require(len(requests) == 1 and not errors, 'Client timeout retried automatically or raised browser error')
         fixture['held'].abort('failed')
-        return {'waiting_status_seconds': 15, 'client_timeout_seconds': 75, 'automatic_post_retries': 0}
+        return {'reply_timeout_seconds': 65, 'automatic_post_retries': 0}
+    finally:
+        context.close()
+
+
+def cold_start_and_reply_have_separate_deadlines(browser):
+    context, page, fixture, requests, errors = prepare(browser)
+    try:
+        page.clock.install()
+        fixture.update(health_hold=True, hold=True)
+        send(page)
+        expect(page.locator('#chatMessageContainer')).to_contain_text('Đang khởi động trợ lý…')
+        page.wait_for_timeout(50)
+        require('health_held' in fixture and not requests, 'AI was called before startup completed')
+        page.clock.fast_forward(50000)
+        expect(page.locator('#chatForm')).to_have_attribute('aria-busy', 'true')
+        require(not requests, 'A slow startup spent an AI request')
+        fixture['health_held'].fulfill(status=200, content_type='application/json', body=json.dumps(fixture['health_body']))
+        expect(page.locator('#chatMessageContainer')).to_contain_text('AI đang trả lời…')
+        page.wait_for_timeout(50)
+        require(len(requests) == 1 and 'held' in fixture, 'Exactly one completion must follow readiness')
+        page.clock.fast_forward(40000)
+        expect(page.locator('#chatForm')).to_have_attribute('aria-busy', 'true')
+        fixture['held'].fulfill(status=200, content_type='application/json', body=json.dumps({'reply': '36.'}))
+        finished(page, 'complete')
+        expect(page.locator('#chatMessageContainer .msg--user')).to_have_count(1)
+        expect(page.locator('.chat-error-details')).to_have_count(0)
+        require(len(fixture['health_calls']) == 1 and len(requests) == 1 and not errors,
+                'Cold start/reply separation introduced repeated calls or browser errors')
+        return {'startup_seconds': 50, 'completion_seconds': 40, 'total_seconds': 90, 'completion_calls': 1}
+    finally:
+        context.close()
+
+
+def startup_failure_does_not_call_ai(browser):
+    checked = []
+    for mode in ['missing_key', 'invalid_response', 'deadline']:
+        context, page, fixture, requests, errors = prepare(browser)
+        try:
+            if mode == 'missing_key':
+                fixture['health_body'] = {'ok': True, 'ai': {'keyConfigured': False}}
+            elif mode == 'invalid_response':
+                fixture['health_raw'] = '<html>Unexpected server page</html>'
+            else:
+                page.clock.install()
+                fixture['health_hold'] = True
+            send(page)
+            if mode == 'deadline':
+                expect(page.locator('#chatMessageContainer')).to_contain_text('Đang khởi động trợ lý…')
+                page.wait_for_timeout(50)
+                require('health_held' in fixture, 'Readiness request never started')
+                page.clock.fast_forward(90001)
+            finished(page)
+            require(not requests, 'Startup failure must not call the paid completion endpoint')
+            page.locator('.chat-error-details summary').click()
+            expect(page.locator('.chat-error-report')).to_contain_text('startup')
+            expected_code = {'missing_key': 'AI_AUTH', 'invalid_response': 'AI_STARTUP_RESPONSE', 'deadline': 'AI_STARTUP_TIMEOUT'}[mode]
+            expect(page.locator('.chat-error-report')).to_contain_text(expected_code)
+            expect(page.locator('#chatInputField')).to_have_value(QUESTION)
+            require(not errors, str(errors))
+            if mode == 'deadline':
+                fixture['health_held'].abort('failed')
+            checked.append(mode)
+        finally:
+            context.close()
+    return {'startup_failures': checked, 'paid_completion_calls': 0}
+
+
+def failure_diagnostics_are_safe_and_copyable(browser):
+    context, page, fixture, requests, errors = prepare(browser)
+    try:
+        page.evaluate("navigator.clipboard.writeText = async value => { window.copiedErrorReport = value; }")
+        identifier = 'd9db7ce2-6bc1-4d04-9a62-2d35e71939f2'
+        fixture.update(status=503, body={'error': 'Dịch vụ AI đang tạm gián đoạn. Bạn có thể thử lại câu hỏi này.',
+            'code': 'AI_UNAVAILABLE', 'httpStatus': 401, 'upstreamStatus': 503, 'providerCode': 'service_unavailable',
+            'requestId': identifier, 'stage': 'provider', 'retryable': True,
+            'raw': 'private-key-never-copy', 'question': QUESTION, 'history': [{'content': 'private-history'}]})
+        send(page)
+        finished(page)
+        details = page.locator('.chat-error-details')
+        expect(details).not_to_have_attribute('open', '')
+        details.locator('summary').click()
+        report = json.loads(details.locator('.chat-error-report').inner_text())
+        require(report == {'service': AI_ORIGIN, 'code': 'AI_UNAVAILABLE', 'stage': 'provider', 'httpStatus': 503,
+                           'upstreamStatus': 503, 'providerCode': 'service_unavailable', 'requestId': identifier},
+                'Diagnostics copied untrusted fields or confused local HTTP status with provider status: ' + str(report))
+        details.locator('.chat-copy-error').click()
+        expect(details.locator('.chat-copy-error')).to_have_text('Đã sao chép')
+        copied = page.evaluate('window.copiedErrorReport')
+        require(json.loads(copied) == report and QUESTION not in copied and 'private-' not in copied,
+                'Copied diagnostics exposed conversation or unrelated private fields')
+        require(len(requests) == 1 and not errors, str(errors))
+        return {'collapsed_by_default': True, 'safe_metadata_copied': report, 'private_fields_copied': 0}
     finally:
         context.close()
 
@@ -247,7 +352,8 @@ def mobile_layout(browser):
 
 
 checks = [retry_without_duplicate, retry_keeps_new_draft, resubmit_failed_question, permanent_error_codes, transient_and_malformed,
-          network_failure, busy_and_close, timeout_and_waiting, mobile_layout]
+          network_failure, busy_and_close, timeout_and_waiting, cold_start_and_reply_have_separate_deadlines,
+          startup_failure_does_not_call_ai, failure_diagnostics_are_safe_and_copyable, mobile_layout]
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(executable_path=args.chromium, headless=True, args=['--no-sandbox'])
     try:
