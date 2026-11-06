@@ -43,6 +43,8 @@ Máy chủ chuẩn hóa `ALLOWED_ORIGIN` khi người triển khai dán URL GitH
 
 Chat và tutor dùng `frontend/src/services/AiService.js` để tách thời gian khởi động Render Free (tối đa 90 giây, chỉ gọi `/health`) khỏi thời gian chờ câu trả lời (65 giây). Khi lỗi, mục **Chi tiết lỗi** có thể sao chép mã lỗi và trạng thái HTTP an toàn ngay trên web. Kiểm tra bằng `node tests/ai-readiness.mjs`; giai đoạn readiness không gọi AI, không tiêu hạn mức hỏi và không chạy ping giữ máy chủ thức định kỳ.
 
+Khi model Gemini trả 5xx hoặc bị báo không hợp lệ, máy chủ có thể dùng lần thử thứ hai để gọi Gemini Flash có ID khớp chính xác trong catalog của cùng nhà cung cấp. Tổng số POST vẫn tối đa hai lần và deadline tổng 55 giây; không đổi model khi lỗi khóa, quota hoặc provider yêu cầu chờ. Xem giới hạn tại [hướng dẫn kết nối AI](docs/ai-troubleshooting.md); kiểm tra bằng `node tests/model-fallback.mjs` và `node tests/chat-model-recovery.mjs`.
+
 ## Kiểm tra giao diện
 
 Bộ smoke test dùng Python, Playwright, pypdf và Chromium. Sau khi phục vụ thư mục dự án qua Python như trên:

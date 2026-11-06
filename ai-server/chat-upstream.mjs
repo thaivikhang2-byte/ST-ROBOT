@@ -1,3 +1,5 @@
+import { GEMINI_FALLBACK_MODELS, isGeminiModel } from './model-fallback.mjs';
+
 const endpoint = 'https://llm.wokushop.com/v1/chat/completions';
 // Only these non-secret protocol codes may leave the provider adapter. Never
 // reflect arbitrary error strings, messages, model names or provider bodies.
@@ -9,6 +11,7 @@ const providerCodes = new Set([
   'unsupported_parameter', 'invalid_request_error', 'invalid_request'
 ]);
 const invalidModelCodes = new Set(['model_not_found', 'model_not_supported', 'invalid_model', 'unsupported_model']);
+const authenticationCodes = new Set(['invalid_api_key', 'invalid_authentication', 'authentication_error', 'access_denied', 'permission_denied']);
 const messages = {
   AI_AUTH: 'Dịch vụ AI cần cập nhật quyền kết nối. Người quản trị hãy kiểm tra khóa API trên máy chủ.',
   AI_MODEL: 'Mô hình AI đang cấu hình chưa được dịch vụ hỗ trợ. Người quản trị hãy kiểm tra AI_MODEL trên máy chủ.',
@@ -42,7 +45,7 @@ function classifyResponse(status, payload) {
   const diagnostics = { stage: 'provider', upstreamStatus: status,
     providerCode: providerCodes.has(code) ? code : providerCodes.has(type) ? type : undefined };
   const failure = (publicStatus, publicCode, retryable, retryAfter) => new ChatUpstreamError(publicStatus, publicCode, retryable, retryAfter, diagnostics);
-  if (status === 401 || status === 403) return failure(503, 'AI_AUTH', false);
+  if (status === 401 || status === 403 || authenticationCodes.has(code) || authenticationCodes.has(type)) return failure(503, 'AI_AUTH', false);
   if (status === 402 || /insufficient_quota|quota_exceeded|billing|insufficient_balance|credit/.test(`${code} ${type}`)
     || (status === 429 && /insufficient.{0,20}(quota|credit|balance)|billing|quota.{0,15}exhaust/.test(text))) return failure(503, 'AI_QUOTA', false);
   if (invalidModelCodes.has(code) || invalidModelCodes.has(type)
@@ -72,10 +75,11 @@ function waitForRetry(delay, signal) {
 // One deadline includes connection, response body and the single transient retry.
 // Failed provider bodies and credentials never leave this adapter or enter logs.
 export async function requestChatCompletion({ upstream = fetch, apiKey, model, messages: conversation,
-  maxTokens = 1200, timeoutMs = 55000, retryDelayMs = 400, requestId, logger = console.error }) {
+  maxTokens = 1200, timeoutMs = 55000, retryDelayMs = 400, requestId, logger = console.error, resolveFallbackModel }) {
   const key = typeof apiKey === 'string' ? apiKey.trim() : '';
   if (!key) throw new ChatUpstreamError(503, 'AI_AUTH', false, undefined, { stage: 'server' });
   const controller = new AbortController();
+  let activeModel = model;
   let timer;
   const timeoutError = () => new ChatUpstreamError(504, 'AI_TIMEOUT', true);
   const log = (error, attempt, status) => logger(JSON.stringify({
@@ -89,7 +93,7 @@ export async function requestChatCompletion({ upstream = fetch, apiKey, model, m
       try {
         const response = await upstream(endpoint, {
           method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-          body: JSON.stringify({ model, messages: conversation, max_tokens: maxTokens }), signal: controller.signal
+          body: JSON.stringify({ model:activeModel, messages: conversation, max_tokens: maxTokens }), signal: controller.signal
         });
         if (controller.signal.aborted) throw timeoutError();
         status = response.status;
@@ -110,10 +114,23 @@ export async function requestChatCompletion({ upstream = fetch, apiKey, model, m
       }
       // A malformed/empty completion may have already consumed a full generation;
       // let the learner retry it explicitly rather than automatically paying twice.
-      if (!failure.retryable || failure.code === 'AI_RESPONSE' || attempt === 2) throw failure;
+      if (failure.code === 'AI_RESPONSE' || attempt === 2) throw failure;
       // Long provider cooldowns are returned to the caller, not ignored or held
       // open past the request budget. At most one short retry is automatic.
       if (providerRetryAfter > 1) throw failure;
+      let switchedModel = false;
+      if (typeof resolveFallbackModel === 'function' && isGeminiModel(activeModel) && failure.stage === 'provider'
+        && (failure.code === 'AI_MODEL' || (failure.code === 'AI_UNAVAILABLE' && failure.upstreamStatus >= 500))) {
+        let candidate;
+        try { candidate = await resolveFallbackModel({ apiKey:key, currentModel:activeModel, signal:controller.signal }); }
+        catch { /* A catalog failure cannot replace the original provider error. */ }
+        if (controller.signal.aborted) throw timeoutError();
+        if (GEMINI_FALLBACK_MODELS.includes(candidate) && candidate !== activeModel) {
+          activeModel = candidate; switchedModel = true;
+          logger(JSON.stringify({event:'ai_model_fallback',requestId,reason:failure.code}));
+        }
+      }
+      if (!failure.retryable && !switchedModel) throw failure;
       const delay = Math.max(retryDelayMs, (providerRetryAfter || 0) * 1000);
       if (delay > 0) await waitForRetry(delay, controller.signal);
       if (controller.signal.aborted) throw timeoutError();

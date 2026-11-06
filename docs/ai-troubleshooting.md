@@ -18,6 +18,16 @@ Khi chat hoặc tutor báo lỗi, mở **Chi tiết lỗi → Sao chép thông t
 
 Các thay đổi về thời gian chờ không khắc phục được một dịch vụ AI đang trả lỗi 5xx hoặc khóa/model không hợp lệ. Cần phản hồi thật hoặc báo cáo lỗi mới để xác nhận trường hợp đang triển khai.
 
+## Dự phòng khi model Gemini bị lỗi
+
+`stage: provider` cùng `upstreamStatus: 503` xác nhận lời gọi tới nhà cung cấp đã nhận HTTP 503; không chỉ ra riêng thiếu model, kênh quá tải hay toàn dịch vụ ngừng hoạt động. Model chính giữ nguyên giá trị `AI_MODEL` đã cấu hình. ID cần đúng như danh sách của nhà cung cấp; tên gõ lại có khoảng trắng hoặc sai ký tự chưa chứng minh là ID hợp lệ.
+
+Sau lỗi 5xx từ provider hoặc mã model không hợp lệ, chat/tutor dùng lần thử thứ hai sẵn có để chuyển sang một model Gemini Flash được catalog xác nhận. Máy chủ đọc `GET https://llm.wokushop.com/v1/models` bằng cùng khóa đã cấu hình, rồi chọn theo thứ tự `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-flash-latest`. Chỉ ID khớp hoàn toàn trong catalog mới được chọn; ID hiện tại được bỏ qua. Chỉ áp dụng khi model chính thuộc nhóm Gemini. Không tự sửa tên model theo phỏng đoán hoặc chuyển sang nhà cung cấp khác.
+
+Đọc catalog và JSON có deadline phụ 5 giây, nằm trong giới hạn tổng 55 giây. Chỉ phần giao với danh sách dự phòng cố định được giữ tối đa 10 phút theo fingerprint khóa; giới hạn 8 mục cache. Catalog lỗi, không đúng cấu trúc hoặc không có ứng viên thì giữ hành vi thử lại/lỗi cũ. Không đổi model khi lỗi xác thực, quota, HTTP 429, phản hồi đã sinh nhưng thiếu nội dung hoặc provider yêu cầu chờ hơn một giây. Mã xác thực đã biết vẫn được nhận diện ngay cả khi provider trả HTTP 503.
+
+Mỗi câu hỏi vẫn tối đa hai POST sinh câu trả lời; việc tra catalog không sinh câu trả lời. Tổng giới hạn ngày/phút/concurrency của website giữ nguyên. Log `ai_model_fallback` chỉ ghi request ID và nhóm lỗi, không ghi khóa, tên model, câu hỏi hay catalog. Catalog xác nhận có ID, không chứng minh model đang có năng lực xử lý, rẻ hơn hoặc có chất lượng tương đương model chính. Nếu cả model dự phòng cũng thất bại, máy chủ trả lỗi thật của lần cuối, không gọi lần ba hoặc dựng đáp án giả. Cơ chế này không khôi phục được một nhà cung cấp đang lỗi trên mọi model.
+
 Trong Render, mở dịch vụ AI → Logs. Bản mới ghi JSON `ai_upstream_failure` với `status`, `code`, số lần thử và `requestId`. Đối chiếu `requestId` với phản hồi API nếu cần. Không đưa khóa API, câu hỏi, hội thoại hay toàn bộ phản hồi lỗi của nhà cung cấp vào log.
 
 | Mã lỗi | Việc cần kiểm tra |
@@ -38,6 +48,8 @@ Không đổi dịch vụ AI sang câu trả lời dựng sẵn khi kết nối 
 
 ```sh
 node tests/chat-upstream.mjs
+node tests/model-fallback.mjs
+node tests/chat-model-recovery.mjs
 node tests/ai-readiness.mjs
 node tests/origin-policy.mjs
 node tests/practice-plan.mjs

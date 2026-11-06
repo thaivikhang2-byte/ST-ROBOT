@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { preparePracticePlan, parsePracticePlan, PracticePlanError } from './practice-plan.mjs';
 import { requestChatCompletion, ChatUpstreamError } from './chat-upstream.mjs';
 import { normalizeAllowedOrigin } from './origin-policy.mjs';
+import { createModelFallbackResolver } from './model-fallback.mjs';
 const curriculum = JSON.parse(readFileSync(new URL('./curriculum.json', import.meta.url), 'utf8'));
 const allowedOrigin = normalizeAllowedOrigin(process.env.ALLOWED_ORIGIN);
 const model = process.env.AI_MODEL?.trim() || 'gemini-4-argon';
@@ -23,6 +24,7 @@ function untilAborted(operation, signal) {
   });
 }
 export function createServer(upstream = fetch) {
+  const resolveFallbackModel = createModelFallbackResolver({upstream});
   return http.createServer(async (req, res) => {
     const origin = req.headers.origin;
     const headers = {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin'};
@@ -126,7 +128,7 @@ export function createServer(upstream = fetch) {
     const requestId = randomUUID();
     try {
       const content = await requestChatCompletion({ upstream, apiKey, model,
-        messages:[{role:'system',content:system},...(data.history || []),{role:'user',content:question}], requestId });
+        messages:[{role:'system',content:system},...(data.history || []),{role:'user',content:question}], requestId, resolveFallbackModel });
       return reply(200, {reply:content});
     } catch (error) {
       if (error instanceof ChatUpstreamError) {
