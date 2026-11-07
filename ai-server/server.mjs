@@ -136,7 +136,11 @@ export function createServer(upstream = fetch) {
         return reply(error.status, {
           error:error.message,code:error.code,retryable:error.retryable,requestId,stage:error.stage,
           ...(error.upstreamStatus === undefined ? {} : {upstreamStatus:error.upstreamStatus}),
-          ...(error.providerCode === undefined ? {} : {providerCode:error.providerCode})
+          ...(error.providerCode === undefined ? {} : {providerCode:error.providerCode}),
+          ...(error.catalogStatus === undefined ? {} : {catalogStatus:error.catalogStatus}),
+          ...(error.catalogResult === undefined ? {} : {catalogResult:error.catalogResult}),
+          ...(error.candidateCount === undefined ? {} : {candidateCount:error.candidateCount}),
+          ...(error.fallbackAttempted === undefined ? {} : {fallbackAttempted:error.fallbackAttempted})
         });
       }
       console.error('Chat failure', requestId, error.name);

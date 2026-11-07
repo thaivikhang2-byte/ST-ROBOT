@@ -95,6 +95,9 @@ async function directFailure(upstream, expected, overrides = {}) {
     assert.ok(error instanceof ChatUpstreamError);
     assert.equal(error.code, expected.code);
     if (expected.upstreamStatus !== undefined) assert.equal(error.upstreamStatus, expected.upstreamStatus);
+    for (const field of ['catalogStatus', 'catalogResult', 'candidateCount', 'fallbackAttempted']) {
+      if (Object.hasOwn(expected, field)) assert.equal(error[field], expected[field]);
+    }
     privateOutput({ error: { ...error, message: error.message }, logs });
     return true;
   });
@@ -149,13 +152,21 @@ try {
   }
   groups++;
 
-  for (const listing of [() => catalog(['unapproved-premium-model', PRIMARY]), () => json({ data: null }),
-    () => new Response('<html>not a catalog</html>', { status: 200 }), () => reject(401, 'invalid_api_key'), () => reject(503)]) {
+  for (const [listing, catalogStatus, catalogResult, candidateCount] of [
+    [() => catalog(['unapproved-premium-model', PRIMARY]), 200, 'ok', 0],
+    [() => json({ data: null }), 200, 'invalid_response'],
+    [() => new Response('<html>not a catalog</html>', { status: 200 }), 200, 'invalid_response'],
+    [() => reject(401, 'invalid_api_key'), 401, 'http_error'], [() => reject(503), 503, 'http_error']
+  ]) {
     await withServer(async (_url, options) => options.method === 'GET' ? listing() : reject(), async (server, calls) => {
       const response = await request(server);
       assert.equal(response.status, 503); assert.equal(response.data.code, 'AI_UNAVAILABLE');
       assert.equal(completionCalls(calls).length, 2, 'An unusable catalog must not add a third completion attempt');
       assert.equal(modelCalls(calls).length, 1);
+      assert.equal(response.data.catalogStatus, catalogStatus);
+      assert.equal(response.data.catalogResult, catalogResult);
+      assert.equal(response.data.candidateCount, candidateCount);
+      assert.equal(response.data.fallbackAttempted, false);
       assert.ok(completionCalls(calls).every(call => JSON.parse(call.options.body).model === PRIMARY));
       privateOutput(response.data);
     });
@@ -195,6 +206,10 @@ try {
     assert.equal(response.status, 503); assert.equal(response.data.code, 'AI_UNAVAILABLE');
     assert.equal(response.data.stage, 'provider'); assert.equal(response.data.upstreamStatus, 502);
     assert.equal(response.data.providerCode, 'server_error');
+    assert.equal(response.data.catalogStatus, 200);
+    assert.equal(response.data.catalogResult, 'ok');
+    assert.equal(response.data.candidateCount, 1);
+    assert.equal(response.data.fallbackAttempted, true);
     assert.equal(completionCalls(calls).length, 2); assert.equal(modelCalls(calls).length, 1);
     privateOutput(response.data);
   });
@@ -219,6 +234,15 @@ try {
   }
   await directFailure(async () => reject(), { code: 'AI_UNAVAILABLE', posts: 2, resolutions: 1 }, {
     resolveFallbackModel: async () => { throw new Error(KEY); }
+  });
+  await directFailure(async () => reject(), {
+    code:'AI_UNAVAILABLE',posts:2,resolutions:1,catalogStatus:undefined,catalogResult:undefined,
+    candidateCount:undefined,fallbackAttempted:false
+  }, {
+    resolveFallbackModel: async ({ onDiagnostic }) => {
+      onDiagnostic({ catalogStatus:KEY,catalogResult:DETAIL,candidateCount:4,fallbackAttempted:true,raw:QUESTION });
+      return null;
+    }
   });
   groups++;
 

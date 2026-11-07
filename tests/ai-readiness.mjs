@@ -250,6 +250,7 @@ groups++;
     posts++;
     return json({ error: 'Dịch vụ AI đang tạm gián đoạn.', code: 'AI_UNAVAILABLE', retryable: true,
       stage: 'provider', upstreamStatus: 503, providerCode: 'service_unavailable', requestId: uuid,
+      catalogStatus:200,catalogResult:'ok',candidateCount:1,fallbackAttempted:true,
       rawProviderBody: privateValue }, 503);
   });
   await assert.rejects(client.requestReply('/api/home-chat', question), error => {
@@ -258,6 +259,10 @@ groups++;
     assert.equal(error.upstreamStatus, 503);
     assert.equal(error.providerCode, 'service_unavailable');
     assert.equal(error.requestId, uuid);
+    assert.equal(error.catalogStatus, 200);
+    assert.equal(error.catalogResult, 'ok');
+    assert.equal(error.candidateCount, 1);
+    assert.equal(error.fallbackAttempted, true);
     assert.equal(error.retryable, true);
     assert.ok(!JSON.stringify(error).includes(privateValue));
     return true;
@@ -268,7 +273,8 @@ groups++;
 {
   const client = make(async url => url.endsWith('/health') ? ready() : json({
     error: 'Phản hồi lỗi của máy chủ.', code: privateValue, stage: privateValue,
-    upstreamStatus: privateValue, providerCode: privateValue, requestId: privateValue
+    upstreamStatus: privateValue, providerCode: privateValue, requestId: privateValue,
+    catalogStatus:privateValue,catalogResult:privateValue,candidateCount:4,fallbackAttempted:privateValue
   }, 502));
   await assert.rejects(client.requestReply('/api/home-chat', question), error => {
     assert.ok(error instanceof AiRequestError);
@@ -277,6 +283,10 @@ groups++;
     assert.equal(error.upstreamStatus, undefined);
     assert.equal(error.providerCode, undefined);
     assert.equal(error.requestId, undefined);
+    assert.equal(error.catalogStatus, undefined);
+    assert.equal(error.catalogResult, undefined);
+    assert.equal(error.candidateCount, undefined);
+    assert.equal(error.fallbackAttempted, undefined);
     return true;
   });
   groups++;

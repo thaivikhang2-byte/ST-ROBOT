@@ -137,7 +137,10 @@ with sync_playwright() as p:
             body = {'reply': 'Phản hồi AI kiểm thử: mạch điện và thuật toán.'} if status == 200 else {
                 'error': 'Dịch vụ AI kiểm thử đang bận.', 'code': 'AI_UNAVAILABLE', 'upstreamStatus': 503,
                 'providerCode': 'private-invalid-provider-detail', 'requestId': '11111111-2222-4333-8444-555555555555',
-                'stage': 'provider', 'privateProviderBody': 'private-provider-body-never-show'
+                'stage': 'provider', 'privateProviderBody': 'private-provider-body-never-show',
+                'model': 'private-model-name', 'candidateIds': ['private-candidate-id'],
+                **fixtures.get('tutor_error_metadata', {'catalogStatus': 503, 'catalogResult': 'http_error',
+                                                      'candidateCount': 0, 'fallbackAttempted': False})
             }
             route.fulfill(status=status, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps(body))
         elif parsed.netloc == urlparse(BASE).netloc or parsed.scheme in ['data', 'blob']:
@@ -863,21 +866,38 @@ with sync_playwright() as p:
         expect(page.locator('#tutorStatus')).to_contain_text('Dịch vụ AI kiểm thử đang bận.')
         expect(page.locator('#tutorSend')).to_be_enabled()
         expect(page.locator('#tutorQuestion')).to_have_value('Dịch vụ bận')
-        details = page.locator('#tutorErrorDetails details')
-        expect(details).to_be_visible()
-        require(details.get_attribute('open') is None, 'Technical tutor details should remain collapsed by default')
-        details.locator('summary').click()
-        diagnostic = json.loads(details.locator('pre').inner_text())
-        require(diagnostic['code'] == 'AI_UNAVAILABLE' and diagnostic['httpStatus'] == 503
-                and diagnostic['upstreamStatus'] == 503 and diagnostic['stage'] == 'provider', 'Tutor lost safe error metadata')
-        require(diagnostic['requestId'] == '11111111-2222-4333-8444-555555555555'
-                and diagnostic['api'] == AI_ORIGIN + '/api/tutor', 'Tutor diagnostics cannot identify the failed request')
-        require('private-' not in details.inner_text(), 'Tutor leaked unknown provider fields')
         context.grant_permissions(['clipboard-read', 'clipboard-write'])
-        details.locator('button').click()
-        expect(details.locator('button')).to_have_text('Đã sao chép')
-        copied = json.loads(page.evaluate('navigator.clipboard.readText()'))
-        require(copied == diagnostic, 'Tutor copied more than the visible safe report')
+        valid_catalog_error = {'catalogStatus': 503, 'catalogResult': 'http_error', 'candidateCount': 0, 'fallbackAttempted': False}
+        valid_catalog_fallback = {'catalogStatus': 200, 'catalogResult': 'ok', 'candidateCount': 3, 'fallbackAttempted': True}
+        diagnostic_cases = [
+            (valid_catalog_error, valid_catalog_error),
+            (valid_catalog_fallback, valid_catalog_fallback),
+            ({'catalogStatus': 'private-status', 'catalogResult': 'private-model-name',
+              'candidateCount': 'private-candidate-id', 'fallbackAttempted': 'private-key'}, {}),
+            ({'catalogStatus': 600, 'catalogResult': 'OK', 'candidateCount': 4, 'fallbackAttempted': 1}, {}),
+            ({'catalogStatus': 99, 'catalogResult': {}, 'candidateCount': -1, 'fallbackAttempted': 0}, {}),
+        ]
+        for index, (metadata, expected_metadata) in enumerate(diagnostic_cases):
+            if index:
+                fixtures['tutor_error_metadata'] = metadata
+                page.locator('#tutorSend').click()
+                expect(page.locator('#tutorSend')).to_be_enabled()
+            details = page.locator('#tutorErrorDetails details')
+            expect(details).to_be_visible()
+            require(details.get_attribute('open') is None, 'Technical tutor details should remain collapsed by default')
+            details.locator('summary').click()
+            diagnostic = json.loads(details.locator('pre').inner_text())
+            require(diagnostic == {'client': 'tutor', 'code': 'AI_UNAVAILABLE', 'httpStatus': 503,
+                                  'upstreamStatus': 503, 'stage': 'provider',
+                                  'requestId': '11111111-2222-4333-8444-555555555555',
+                                  'api': AI_ORIGIN + '/api/tutor', **expected_metadata},
+                    'Tutor lost safe metadata or copied invalid catalog metadata: ' + str(diagnostic))
+            require('private-' not in details.inner_text(), 'Tutor leaked provider fields, model names or candidate IDs')
+            details.locator('button').click()
+            expect(details.locator('button')).to_have_text('Đã sao chép')
+            copied = json.loads(page.evaluate('navigator.clipboard.readText()'))
+            require(copied == diagnostic, 'Tutor copied more than the visible safe report')
+        fixtures.pop('tutor_error_metadata', None)
         reply_mode['tutor'] = 'ok'
         page.locator('#tutorSend').click()
         expect(page.locator('#tutorMessages')).to_contain_text('Phản hồi AI kiểm thử')
@@ -906,7 +926,8 @@ with sync_playwright() as p:
         reqs = [x['data'] for x in api_requests if x['kind'] == 'tutor']
         require(reqs[-1]['history'] == [], 'Canceled tutor exchange leaked into the new session')
         return {'mocked_requests': len(reqs), 'lesson_context': True, 'history': True, 'reset': True, 'error_recovery': True,
-                'collapsed_private_diagnostics_and_copy': True, 'cancellation_ignores_late_reply': True}
+                'collapsed_private_diagnostics_and_copy': True, 'invalid_catalog_metadata_rejected': len(diagnostic_cases) - 2,
+                'cancellation_ignores_late_reply': True}
 
     checked('learning AI tutor context, history, lesson reset and error recovery', tutor_ai)
 

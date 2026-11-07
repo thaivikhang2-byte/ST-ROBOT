@@ -310,26 +310,46 @@ def failure_diagnostics_are_safe_and_copyable(browser):
     try:
         page.evaluate("navigator.clipboard.writeText = async value => { window.copiedErrorReport = value; }")
         identifier = 'd9db7ce2-6bc1-4d04-9a62-2d35e71939f2'
-        fixture.update(status=503, body={'error': 'Dịch vụ AI đang tạm gián đoạn. Bạn có thể thử lại câu hỏi này.',
+        body = {'error': 'Dịch vụ AI đang tạm gián đoạn. Bạn có thể thử lại câu hỏi này.',
             'code': 'AI_UNAVAILABLE', 'httpStatus': 401, 'upstreamStatus': 503, 'providerCode': 'service_unavailable',
             'requestId': identifier, 'stage': 'provider', 'retryable': True,
-            'raw': 'private-key-never-copy', 'question': QUESTION, 'history': [{'content': 'private-history'}]})
-        send(page)
-        finished(page)
-        details = page.locator('.chat-error-details')
-        expect(details).not_to_have_attribute('open', '')
-        details.locator('summary').click()
-        report = json.loads(details.locator('.chat-error-report').inner_text())
-        require(report == {'service': AI_ORIGIN, 'code': 'AI_UNAVAILABLE', 'stage': 'provider', 'httpStatus': 503,
-                           'upstreamStatus': 503, 'providerCode': 'service_unavailable', 'requestId': identifier},
-                'Diagnostics copied untrusted fields or confused local HTTP status with provider status: ' + str(report))
-        details.locator('.chat-copy-error').click()
-        expect(details.locator('.chat-copy-error')).to_have_text('Đã sao chép')
-        copied = page.evaluate('window.copiedErrorReport')
-        require(json.loads(copied) == report and QUESTION not in copied and 'private-' not in copied,
-                'Copied diagnostics exposed conversation or unrelated private fields')
-        require(len(requests) == 1 and not errors, str(errors))
-        return {'collapsed_by_default': True, 'safe_metadata_copied': report, 'private_fields_copied': 0}
+            'raw': 'private-key-never-copy', 'question': QUESTION, 'history': [{'content': 'private-history'}],
+            'model': 'private-model-name', 'candidateIds': ['private-candidate-id']}
+        valid_catalog_error = {'catalogStatus': 503, 'catalogResult': 'http_error', 'candidateCount': 0, 'fallbackAttempted': False}
+        valid_catalog_fallback = {'catalogStatus': 200, 'catalogResult': 'ok', 'candidateCount': 3, 'fallbackAttempted': True}
+        cases = [
+            (valid_catalog_error, valid_catalog_error),
+            (valid_catalog_fallback, valid_catalog_fallback),
+            ({'catalogStatus': 'private-status', 'catalogResult': 'private-model-name',
+              'candidateCount': 'private-candidate-id', 'fallbackAttempted': 'private-key'}, {}),
+            ({'catalogStatus': 600, 'catalogResult': 'OK', 'candidateCount': 4, 'fallbackAttempted': 1}, {}),
+            ({'catalogStatus': 99, 'catalogResult': {}, 'candidateCount': -1, 'fallbackAttempted': 0}, {}),
+        ]
+        reports = []
+        for index, (metadata, expected_metadata) in enumerate(cases):
+            fixture.update(status=503, body={**body, **metadata})
+            if index:
+                page.locator('.chat-retry').click()
+            else:
+                send(page)
+            finished(page)
+            details = page.locator('.chat-error-details')
+            expect(details).not_to_have_attribute('open', '')
+            details.locator('summary').click()
+            report = json.loads(details.locator('.chat-error-report').inner_text())
+            require(report == {'service': AI_ORIGIN, 'code': 'AI_UNAVAILABLE', 'stage': 'provider', 'httpStatus': 503,
+                               'upstreamStatus': 503, 'providerCode': 'service_unavailable', 'requestId': identifier,
+                               **expected_metadata},
+                    'Diagnostics copied untrusted fields or lost bounded catalog metadata: ' + str(report))
+            details.locator('.chat-copy-error').click()
+            expect(details.locator('.chat-copy-error')).to_have_text('Đã sao chép')
+            copied = page.evaluate('window.copiedErrorReport')
+            require(json.loads(copied) == report and QUESTION not in copied and 'private-' not in copied,
+                    'Copied diagnostics exposed conversation, model names, candidate IDs or unrelated private fields')
+            reports.append(report)
+        require(len(requests) == len(cases) and not errors, str(errors))
+        return {'collapsed_by_default': True, 'safe_metadata_copied': reports[:2],
+                'invalid_metadata_rejected': len(cases) - 2, 'private_fields_copied': 0}
     finally:
         context.close()
 

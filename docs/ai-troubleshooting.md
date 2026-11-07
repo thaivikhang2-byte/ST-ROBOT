@@ -28,6 +28,10 @@ Sau lỗi 5xx từ provider hoặc mã model không hợp lệ, chat/tutor dùng
 
 Mỗi câu hỏi vẫn tối đa hai POST sinh câu trả lời; việc tra catalog không sinh câu trả lời. Tổng giới hạn ngày/phút/concurrency của website giữ nguyên. Log `ai_model_fallback` chỉ ghi request ID và nhóm lỗi, không ghi khóa, tên model, câu hỏi hay catalog. Catalog xác nhận có ID, không chứng minh model đang có năng lực xử lý, rẻ hơn hoặc có chất lượng tương đương model chính. Nếu cả model dự phòng cũng thất bại, máy chủ trả lỗi thật của lần cuối, không gọi lần ba hoặc dựng đáp án giả. Cơ chế này không khôi phục được một nhà cung cấp đang lỗi trên mọi model.
 
+Báo cáo **Chi tiết lỗi** bổ sung `catalogStatus`, `catalogResult`, `candidateCount` và `fallbackAttempted` nếu đã kiểm tra dự phòng. Ví dụ `catalogStatus: 503` cùng `catalogResult: http_error` cho biết API danh sách model cũng lỗi; `catalogResult: ok` với `candidateCount: 0` cho biết catalog hợp lệ nhưng không có ID dự phòng trong danh sách cho phép; `fallbackAttempted: true` cho biết đã bắt đầu lần gọi model dự phòng. Các trường chỉ là mã HTTP, enum, số 0–3 và boolean, không chứa tên model, catalog, khóa hay nội dung hội thoại. Việc báo cáo tận dụng lần tra catalog hiện có, không tạo thêm yêu cầu đến Woku. Kết quả cache thành công vẫn được báo là HTTP 200 của catalog đã lưu, không phải một kiểm tra sức khỏe mới.
+
+Hướng kiểm tra này dùng cấu hình đang có trên Render; người học không cần chuyển khóa API sang môi trường phát triển hoặc gửi qua chat. Nếu khóa đã xuất hiện trong chat, thu hồi/thay khóa tại nơi cấp rồi cập nhật `WOKU_API_KEY` trên Render. Chỉ sao chép báo cáo lỗi an toàn, không sao chép giá trị biến môi trường vào báo cáo.
+
 Trong Render, mở dịch vụ AI → Logs. Bản mới ghi JSON `ai_upstream_failure` với `status`, `code`, số lần thử và `requestId`. Đối chiếu `requestId` với phản hồi API nếu cần. Không đưa khóa API, câu hỏi, hội thoại hay toàn bộ phản hồi lỗi của nhà cung cấp vào log.
 
 | Mã lỗi | Việc cần kiểm tra |

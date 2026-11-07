@@ -22,6 +22,10 @@ export class AiRequestError extends Error {
         if (Number.isInteger(details.upstreamStatus) && details.upstreamStatus >= 400 && details.upstreamStatus <= 599) this.upstreamStatus = details.upstreamStatus;
         if (providerCodes.has(details.providerCode)) this.providerCode = details.providerCode;
         if (typeof details.requestId === 'string' && uuid.test(details.requestId)) this.requestId = details.requestId;
+        if (Number.isInteger(details.catalogStatus) && details.catalogStatus >= 100 && details.catalogStatus <= 599) this.catalogStatus = details.catalogStatus;
+        if (['ok', 'http_error', 'invalid_response', 'timeout', 'network_error'].includes(details.catalogResult)) this.catalogResult = details.catalogResult;
+        if (Number.isInteger(details.candidateCount) && details.candidateCount >= 0 && details.candidateCount <= 3) this.candidateCount = details.candidateCount;
+        if (typeof details.fallbackAttempted === 'boolean') this.fallbackAttempted = details.fallbackAttempted;
     }
 }
 
@@ -60,7 +64,9 @@ function failure(response, data, stage) {
         ? data.error.slice(0, 500) : 'Dịch vụ AI chưa trả lời được. Bạn có thể thử lại.', {
         code: data?.code, stage: stages.has(data?.stage) ? data.stage : stage,
         httpStatus: response.status, upstreamStatus: data?.upstreamStatus,
-        providerCode: data?.providerCode, requestId: data?.requestId, retryable: data?.retryable
+        providerCode: data?.providerCode, requestId: data?.requestId, retryable: data?.retryable,
+        catalogStatus:data?.catalogStatus,catalogResult:data?.catalogResult,candidateCount:data?.candidateCount,
+        fallbackAttempted:data?.fallbackAttempted
     });
 }
 

@@ -12,6 +12,16 @@ const providerCodes = new Set([
 ]);
 const invalidModelCodes = new Set(['model_not_found', 'model_not_supported', 'invalid_model', 'unsupported_model']);
 const authenticationCodes = new Set(['invalid_api_key', 'invalid_authentication', 'authentication_error', 'access_denied', 'permission_denied']);
+const catalogResults = new Set(['ok', 'http_error', 'invalid_response', 'timeout', 'network_error']);
+function catalogDetails(value = {}) {
+  const safe = {};
+  if (!value || typeof value !== 'object') return safe;
+  if (Number.isInteger(value.catalogStatus) && value.catalogStatus >= 100 && value.catalogStatus <= 599) safe.catalogStatus = value.catalogStatus;
+  if (catalogResults.has(value.catalogResult)) safe.catalogResult = value.catalogResult;
+  if (Number.isInteger(value.candidateCount) && value.candidateCount >= 0 && value.candidateCount <= GEMINI_FALLBACK_MODELS.length) safe.candidateCount = value.candidateCount;
+  if (typeof value.fallbackAttempted === 'boolean') safe.fallbackAttempted = value.fallbackAttempted;
+  return safe;
+}
 const messages = {
   AI_AUTH: 'Dịch vụ AI cần cập nhật quyền kết nối. Người quản trị hãy kiểm tra khóa API trên máy chủ.',
   AI_MODEL: 'Mô hình AI đang cấu hình chưa được dịch vụ hỗ trợ. Người quản trị hãy kiểm tra AI_MODEL trên máy chủ.',
@@ -34,6 +44,7 @@ export class ChatUpstreamError extends Error {
     if (this.stage === 'provider' && Number.isInteger(diagnostics.upstreamStatus)
       && diagnostics.upstreamStatus >= 400 && diagnostics.upstreamStatus <= 599) this.upstreamStatus = diagnostics.upstreamStatus;
     if (this.stage === 'provider' && providerCodes.has(diagnostics.providerCode)) this.providerCode = diagnostics.providerCode;
+    Object.assign(this, catalogDetails(diagnostics));
   }
 }
 
@@ -80,17 +91,19 @@ export async function requestChatCompletion({ upstream = fetch, apiKey, model, m
   if (!key) throw new ChatUpstreamError(503, 'AI_AUTH', false, undefined, { stage: 'server' });
   const controller = new AbortController();
   let activeModel = model;
+  let recoveryDetails = {};
   let timer;
-  const timeoutError = () => new ChatUpstreamError(504, 'AI_TIMEOUT', true);
+  const timeoutError = () => new ChatUpstreamError(504, 'AI_TIMEOUT', true, undefined, recoveryDetails);
   const log = (error, attempt, status) => logger(JSON.stringify({
     event: 'ai_upstream_failure', code: error.code,
     status: Number.isInteger(status) && status >= 100 && status <= 599 ? status : null,
-    stage: error.stage, upstreamStatus: error.upstreamStatus, providerCode: error.providerCode, attempt, requestId
+    stage: error.stage, upstreamStatus: error.upstreamStatus, providerCode: error.providerCode, ...catalogDetails(error), attempt, requestId
   }));
   const work = async () => {
     for (let attempt = 1; attempt <= 2; attempt++) {
       let failure, status, providerRetryAfter;
       try {
+        if (attempt === 2 && activeModel !== model) recoveryDetails.fallbackAttempted = true;
         const response = await upstream(endpoint, {
           method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
           body: JSON.stringify({ model:activeModel, messages: conversation, max_tokens: maxTokens }), signal: controller.signal
@@ -109,6 +122,7 @@ export async function requestChatCompletion({ upstream = fetch, apiKey, model, m
       } catch (error) {
         if (controller.signal.aborted) throw timeoutError();
         failure = error instanceof ChatUpstreamError ? error : new ChatUpstreamError(502, 'AI_NETWORK', true);
+        Object.assign(failure, catalogDetails(recoveryDetails));
         if (providerRetryAfter !== null && providerRetryAfter !== undefined && failure.retryable) failure.retryAfter = providerRetryAfter;
         log(failure, attempt, status);
       }
@@ -122,13 +136,23 @@ export async function requestChatCompletion({ upstream = fetch, apiKey, model, m
       if (typeof resolveFallbackModel === 'function' && isGeminiModel(activeModel) && failure.stage === 'provider'
         && (failure.code === 'AI_MODEL' || (failure.code === 'AI_UNAVAILABLE' && failure.upstreamStatus >= 500))) {
         let candidate;
-        try { candidate = await resolveFallbackModel({ apiKey:key, currentModel:activeModel, signal:controller.signal }); }
+        recoveryDetails.fallbackAttempted = false;
+        try {
+          candidate = await resolveFallbackModel({ apiKey:key, currentModel:activeModel, signal:controller.signal,
+            onDiagnostic: detail => {
+              const safe = catalogDetails(detail);
+              delete safe.fallbackAttempted;
+              recoveryDetails = {...recoveryDetails,...safe};
+            }
+          });
+        }
         catch { /* A catalog failure cannot replace the original provider error. */ }
         if (controller.signal.aborted) throw timeoutError();
         if (GEMINI_FALLBACK_MODELS.includes(candidate) && candidate !== activeModel) {
           activeModel = candidate; switchedModel = true;
           logger(JSON.stringify({event:'ai_model_fallback',requestId,reason:failure.code}));
         }
+        Object.assign(failure, catalogDetails(recoveryDetails));
       }
       if (!failure.retryable && !switchedModel) throw failure;
       const delay = Math.max(retryDelayMs, (providerRetryAfter || 0) * 1000);

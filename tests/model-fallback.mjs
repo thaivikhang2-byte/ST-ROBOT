@@ -176,4 +176,144 @@ for (const privateValue of [API_KEY, CURRENT, FIRST]) {
 }
 groups++;
 
+const diagnostics = [];
+const observed = createModelFallbackResolver({ upstream: async () => catalog([FIRST, SECOND, THIRD, API_KEY, CURRENT]) });
+assert.equal(await resolveWith(observed, { onDiagnostic: event => diagnostics.push(event) }), FIRST);
+assert.deepEqual(diagnostics, [{ catalogStatus: 200, catalogResult: 'ok', candidateCount: 3 }]);
+for (const privateValue of [API_KEY, CURRENT, FIRST, SECOND, THIRD]) {
+  assert.ok(!JSON.stringify(diagnostics).includes(privateValue), 'Observers receive no credentials, model names or raw catalog data');
+}
+groups++;
+
+for (const status of [401, 403, 503]) {
+  const events = [];
+  let readBody = false;
+  const resolver = createModelFallbackResolver({ upstream: async () => ({
+    ok: false, status,
+    body: { cancel: never },
+    json: async () => { readBody = true; throw new Error(API_KEY); }
+  }) });
+  assert.equal(await resolveWith(resolver, { onDiagnostic: event => events.push(event) }), null);
+  assert.deepEqual(events, [{ catalogStatus: status, catalogResult: 'http_error' }]);
+  assert.equal(readBody, false, 'Error diagnostics must not read provider error bodies');
+}
+groups++;
+
+for (const response of [
+  () => new Response(API_KEY, { status: 200 }),
+  () => new Response(JSON.stringify({ data: [{ id: FIRST }, null], message: API_KEY })),
+  () => new Response(JSON.stringify({ error: { message: API_KEY } }))
+]) {
+  const events = [];
+  const resolver = createModelFallbackResolver({ upstream: async () => response() });
+  assert.equal(await resolveWith(resolver, { onDiagnostic: event => events.push(event) }), null);
+  assert.deepEqual(events, [{ catalogStatus: 200, catalogResult: 'invalid_response' }]);
+}
+groups++;
+
+for (const mode of ['fetch', 'json']) {
+  const events = [];
+  const resolver = createModelFallbackResolver({ catalogTimeoutMs: 20, upstream: async () =>
+    mode === 'fetch' ? never() : { ok: true, status: 200, json: never }
+  });
+  assert.equal(await resolveWith(resolver, { onDiagnostic: event => events.push(event) }), null);
+  assert.deepEqual(events, [{ ...(mode === 'json' ? { catalogStatus: 200 } : {}), catalogResult: 'timeout' }]);
+}
+const networkEvents = [];
+assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => {
+  throw new TypeError(API_KEY + ' ' + CURRENT);
+} }), { onDiagnostic: event => networkEvents.push(event) }), null);
+assert.deepEqual(networkEvents, [{ catalogResult: 'network_error' }]);
+groups++;
+
+for (const candidates of [[], [FIRST, SECOND]]) {
+  let calls = 0;
+  const firstEvents = [], cachedEvents = [];
+  const resolver = createModelFallbackResolver({ upstream: async () => { calls++; return catalog(candidates); } });
+  assert.equal(await resolveWith(resolver, { onDiagnostic: event => firstEvents.push(event) }), candidates[0] || null);
+  assert.equal(await resolveWith(resolver, { onDiagnostic: event => cachedEvents.push(event) }), candidates[0] || null);
+  const expected = [{ catalogStatus: 200, catalogResult: 'ok', candidateCount: candidates.length }];
+  assert.deepEqual(firstEvents, expected);
+  assert.deepEqual(cachedEvents, expected);
+  assert.equal(calls, 1, 'Even a valid catalog with no candidates is cached with safe metadata');
+}
+groups++;
+
+for (const status of [-1, 0, 99, 100, 599, 600, NaN, Infinity, '503', API_KEY, { toString: () => API_KEY }]) {
+  const events = [];
+  const resolver = createModelFallbackResolver({ upstream: async () => ({ ok: false, status }) });
+  assert.equal(await resolveWith(resolver, { onDiagnostic: event => events.push(event) }), null);
+  assert.deepEqual(events, [{
+    ...(Number.isInteger(status) && status >= 100 && status <= 599 ? { catalogStatus: status } : {}),
+    catalogResult: 'http_error'
+  }]);
+}
+let statusReads = 0;
+const changingStatusEvents = [];
+assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => ({
+  ok: false, get status() { return ++statusReads === 1 ? 503 : API_KEY; }
+}) }), { onDiagnostic: event => changingStatusEvents.push(event) }), null);
+assert.deepEqual(changingStatusEvents, [{ catalogStatus: 503, catalogResult: 'http_error' }]);
+assert.equal(statusReads, 1, 'Provider status is read once and validated before observation');
+groups++;
+
+let observerCalls = 0, observerFetches = 0;
+const faultyObserver = createModelFallbackResolver({ upstream: async () => { observerFetches++; return catalog([FIRST]); } });
+for (const onDiagnostic of [
+  () => { observerCalls++; throw new Error(API_KEY); },
+  async () => { observerCalls++; throw new Error(API_KEY); },
+  () => ({ get then() { observerCalls++; throw new Error(API_KEY); } })
+]) {
+  assert.equal(await resolveWith(faultyObserver, { onDiagnostic }), FIRST);
+}
+await wait(0);
+assert.equal(observerCalls, 3);
+assert.equal(observerFetches, 1, 'Observer failures must not affect successful catalog caching');
+assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([], 503) }), {
+  onDiagnostic: () => { throw new Error(API_KEY); }
+}), null);
+groups++;
+
+const abortedEvents = [];
+await assert.rejects(resolveWith(createModelFallbackResolver({ upstream: async () => catalog([FIRST]) }), {
+  signal: preabort.signal, onDiagnostic: event => abortedEvents.push(event)
+}), error => error === preabortReason);
+for (const mode of ['fetch', 'json']) {
+  const controller = new AbortController();
+  const reason = new DOMException('Diagnostic caller stopped', 'AbortError');
+  let markStarted, release;
+  const started = new Promise(resolve => { markStarted = resolve; });
+  const pending = new Promise(resolve => { release = resolve; });
+  const resolver = createModelFallbackResolver({ catalogTimeoutMs: 500, upstream: async () => {
+    if (mode === 'fetch') { markStarted(); return pending; }
+    return { ok: true, status: 200, json: () => { markStarted(); return pending; } };
+  } });
+  const operation = resolveWith(resolver, { signal: controller.signal, onDiagnostic: event => abortedEvents.push(event) });
+  await started;
+  controller.abort(reason);
+  await assert.rejects(operation, error => error === reason);
+  release(mode === 'fetch' ? catalog([FIRST]) : { data: [{ id: FIRST }] });
+}
+await wait(0);
+assert.deepEqual(abortedEvents, [], 'Parent cancellation and late provider completion must not become provider failures');
+groups++;
+
+let diagnosticRecoveryCalls = 0;
+const recoveryEvents = [];
+const diagnosticRecovery = createModelFallbackResolver({ upstream: async () =>
+  ++diagnosticRecoveryCalls === 1 ? catalog([], 503) : catalog([FIRST])
+});
+assert.equal(await resolveWith(diagnosticRecovery, { onDiagnostic: event => recoveryEvents.push(event) }), null);
+assert.equal(await resolveWith(diagnosticRecovery, { onDiagnostic: event => recoveryEvents.push(event) }), FIRST);
+assert.deepEqual(recoveryEvents, [
+  { catalogStatus: 503, catalogResult: 'http_error' },
+  { catalogStatus: 200, catalogResult: 'ok', candidateCount: 1 }
+]);
+assert.equal(diagnosticRecoveryCalls, 2);
+const ineligibleEvents = [];
+await resolveWith(diagnosticRecovery, { currentModel: 'gpt-test', onDiagnostic: event => ineligibleEvents.push(event) });
+await resolveWith(diagnosticRecovery, { apiKey: '', onDiagnostic: event => ineligibleEvents.push(event) });
+assert.deepEqual(ineligibleEvents, [], 'An ineligible fallback request must not report catalog work');
+groups++;
+
 console.log(`PASS ${groups} model catalog groups: exact advertised candidates, bounded per-key cache, private GET-only lookups, deadlines/cancellation and no external requests`);
