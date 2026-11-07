@@ -26,6 +26,8 @@ export class AiRequestError extends Error {
         if (['ok', 'http_error', 'invalid_response', 'timeout', 'network_error'].includes(details.catalogResult)) this.catalogResult = details.catalogResult;
         if (Number.isInteger(details.candidateCount) && details.candidateCount >= 0 && details.candidateCount <= 3) this.candidateCount = details.candidateCount;
         if (typeof details.fallbackAttempted === 'boolean') this.fallbackAttempted = details.fallbackAttempted;
+        if (Number.isInteger(details.catalogModelCount) && details.catalogModelCount >= 0 && details.catalogModelCount <= 5000) this.catalogModelCount = details.catalogModelCount;
+        if (typeof details.configuredModelListed === 'boolean') this.configuredModelListed = details.configuredModelListed;
     }
 }
 
@@ -66,7 +68,7 @@ function failure(response, data, stage) {
         httpStatus: response.status, upstreamStatus: data?.upstreamStatus,
         providerCode: data?.providerCode, requestId: data?.requestId, retryable: data?.retryable,
         catalogStatus:data?.catalogStatus,catalogResult:data?.catalogResult,candidateCount:data?.candidateCount,
-        fallbackAttempted:data?.fallbackAttempted
+        fallbackAttempted:data?.fallbackAttempted,catalogModelCount:data?.catalogModelCount,configuredModelListed:data?.configuredModelListed
     });
 }
 

@@ -1,4 +1,4 @@
-import { GEMINI_FALLBACK_MODELS, isGeminiModel } from './model-fallback.mjs';
+import { MAX_FALLBACK_CANDIDATES, isGeminiModel, isAllowedFallbackModel } from './model-selection.mjs';
 
 const endpoint = 'https://llm.wokushop.com/v1/chat/completions';
 // Only these non-secret protocol codes may leave the provider adapter. Never
@@ -18,7 +18,9 @@ function catalogDetails(value = {}) {
   if (!value || typeof value !== 'object') return safe;
   if (Number.isInteger(value.catalogStatus) && value.catalogStatus >= 100 && value.catalogStatus <= 599) safe.catalogStatus = value.catalogStatus;
   if (catalogResults.has(value.catalogResult)) safe.catalogResult = value.catalogResult;
-  if (Number.isInteger(value.candidateCount) && value.candidateCount >= 0 && value.candidateCount <= GEMINI_FALLBACK_MODELS.length) safe.candidateCount = value.candidateCount;
+  if (Number.isInteger(value.candidateCount) && value.candidateCount >= 0 && value.candidateCount <= MAX_FALLBACK_CANDIDATES) safe.candidateCount = value.candidateCount;
+  if (Number.isInteger(value.catalogModelCount) && value.catalogModelCount >= 0 && value.catalogModelCount <= 5000) safe.catalogModelCount = value.catalogModelCount;
+  if (typeof value.configuredModelListed === 'boolean') safe.configuredModelListed = value.configuredModelListed;
   if (typeof value.fallbackAttempted === 'boolean') safe.fallbackAttempted = value.fallbackAttempted;
   return safe;
 }
@@ -148,7 +150,7 @@ export async function requestChatCompletion({ upstream = fetch, apiKey, model, m
         }
         catch { /* A catalog failure cannot replace the original provider error. */ }
         if (controller.signal.aborted) throw timeoutError();
-        if (GEMINI_FALLBACK_MODELS.includes(candidate) && candidate !== activeModel) {
+        if (isAllowedFallbackModel(candidate, activeModel)) {
           activeModel = candidate; switchedModel = true;
           logger(JSON.stringify({event:'ai_model_fallback',requestId,reason:failure.code}));
         }

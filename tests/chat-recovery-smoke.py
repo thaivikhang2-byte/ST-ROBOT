@@ -314,16 +314,27 @@ def failure_diagnostics_are_safe_and_copyable(browser):
             'code': 'AI_UNAVAILABLE', 'httpStatus': 401, 'upstreamStatus': 503, 'providerCode': 'service_unavailable',
             'requestId': identifier, 'stage': 'provider', 'retryable': True,
             'raw': 'private-key-never-copy', 'question': QUESTION, 'history': [{'content': 'private-history'}],
-            'model': 'private-model-name', 'candidateIds': ['private-candidate-id']}
+            'model': 'private-model-name', 'candidateIds': ['private-candidate-id'],
+            'catalog': [{'id': 'private-catalog-model-id'}]}
         valid_catalog_error = {'catalogStatus': 503, 'catalogResult': 'http_error', 'candidateCount': 0, 'fallbackAttempted': False}
-        valid_catalog_fallback = {'catalogStatus': 200, 'catalogResult': 'ok', 'candidateCount': 3, 'fallbackAttempted': True}
+        valid_catalog_fallback = {'catalogStatus': 200, 'catalogResult': 'ok', 'candidateCount': 3, 'fallbackAttempted': True,
+                                  'configuredModelListed': False, 'catalogModelCount': 3}
+        valid_listed_primary = {'catalogStatus': 200, 'catalogResult': 'ok', 'candidateCount': 0, 'fallbackAttempted': False,
+                                'configuredModelListed': True, 'catalogModelCount': 5000}
+        valid_empty_catalog = {'catalogStatus': 200, 'catalogResult': 'ok', 'candidateCount': 0, 'fallbackAttempted': False,
+                               'configuredModelListed': False, 'catalogModelCount': 0}
         cases = [
             (valid_catalog_error, valid_catalog_error),
             (valid_catalog_fallback, valid_catalog_fallback),
+            (valid_listed_primary, valid_listed_primary),
+            (valid_empty_catalog, valid_empty_catalog),
             ({'catalogStatus': 'private-status', 'catalogResult': 'private-model-name',
-              'candidateCount': 'private-candidate-id', 'fallbackAttempted': 'private-key'}, {}),
-            ({'catalogStatus': 600, 'catalogResult': 'OK', 'candidateCount': 4, 'fallbackAttempted': 1}, {}),
-            ({'catalogStatus': 99, 'catalogResult': {}, 'candidateCount': -1, 'fallbackAttempted': 0}, {}),
+              'candidateCount': 'private-candidate-id', 'fallbackAttempted': 'private-key',
+              'configuredModelListed': 'private-model-name', 'catalogModelCount': 'private-catalog'}, {}),
+            ({'catalogStatus': 600, 'catalogResult': 'OK', 'candidateCount': 4, 'fallbackAttempted': 1,
+              'configuredModelListed': 1, 'catalogModelCount': 5001}, {}),
+            ({'catalogStatus': 99, 'catalogResult': {}, 'candidateCount': -1, 'fallbackAttempted': 0,
+              'configuredModelListed': 0, 'catalogModelCount': -1}, {}),
         ]
         reports = []
         for index, (metadata, expected_metadata) in enumerate(cases):
@@ -348,8 +359,8 @@ def failure_diagnostics_are_safe_and_copyable(browser):
                     'Copied diagnostics exposed conversation, model names, candidate IDs or unrelated private fields')
             reports.append(report)
         require(len(requests) == len(cases) and not errors, str(errors))
-        return {'collapsed_by_default': True, 'safe_metadata_copied': reports[:2],
-                'invalid_metadata_rejected': len(cases) - 2, 'private_fields_copied': 0}
+        return {'collapsed_by_default': True, 'safe_metadata_copied': reports[:4],
+                'invalid_metadata_rejected': len(cases) - 4, 'private_fields_copied': 0}
     finally:
         context.close()
 

@@ -104,7 +104,7 @@
     <div class="pdf-panel"><div class="pdf-head"><span id="modalPdfTitle">Tài liệu giáo trình ST-Robot</span><div class="pdf-actions"><button type="button" id="downloadPdf" class="btn--primary">Tải giáo trình PDF · 6 bài</button><button type="button" onclick="closePdfModal()">Đóng</button></div></div><div class="pdf-body"><div id="printablePdfArea"><h2 id="pdfDocHeading">Tiêu đề bài học</h2><p class="small">Tài liệu tự học có bài tập và đáp án đối chiếu</p><div id="pdfDocBody"></div></div></div></div>
   </div>
   <dialog id="microbitResetDialog" class="dialog" aria-labelledby="microbitResetTitle"><div class="dialog-body"><h2 id="microbitResetTitle">Nạp lại mã mẫu của bài này?</h2><p>Mã đã chỉnh sửa của bài đang mở sẽ được thay bằng mã mẫu. Hãy tải bản cần giữ trước khi tiếp tục. Dự án của các bài khác được giữ nguyên.</p></div><div class="dialog-foot"><button id="microbitCancelReset" type="button" class="btn" onclick="document.getElementById('microbitResetDialog').close()">Giữ mã hiện tại</button><button id="microbitConfirmReset" type="button" class="btn btn--primary" onclick="resetMicrobitSource()">Nạp mã mẫu</button></div></dialog>
-  <script type="module" src="../src/app.js?v=catalog-report-v12"></script>
+  <script type="module" src="../src/app.js?v=catalog-selection-v13"></script>
   <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=lesson-code-v5'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
 <script src="../src/data/curriculum.js?v=lesson-code-v5"></script>
 <script src="../src/data/lesson-pdfs.js?v=lesson-code-v5"></script>
@@ -413,7 +413,7 @@ window.addEventListener('DOMContentLoaded',initPage);
 </script>
 
 <script type="module">
-import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../src/services/AiService.js?v=catalog-report-v12';
+import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../src/services/AiService.js?v=catalog-selection-v13';
 window.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('tutorForm');
   const input = document.getElementById('tutorQuestion');
@@ -443,6 +443,8 @@ window.addEventListener('DOMContentLoaded', () => {
     if (['ok', 'http_error', 'invalid_response', 'timeout', 'network_error'].includes(error.catalogResult)) report.catalogResult = error.catalogResult;
     if (Number.isInteger(error.candidateCount) && error.candidateCount >= 0 && error.candidateCount <= 3) report.candidateCount = error.candidateCount;
     if (typeof error.fallbackAttempted === 'boolean') report.fallbackAttempted = error.fallbackAttempted;
+    if (typeof error.configuredModelListed === 'boolean') report.configuredModelListed = error.configuredModelListed;
+    if (Number.isInteger(error.catalogModelCount) && error.catalogModelCount >= 0 && error.catalogModelCount <= 5000) report.catalogModelCount = error.catalogModelCount;
     if (typeof error.requestId === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(error.requestId)) report.requestId = error.requestId;
     if (['startup', 'health', 'reply', 'provider', 'transport', 'server'].includes(error.stage)) report.stage = error.stage;
     if (Object.keys(report).length === 1) return;

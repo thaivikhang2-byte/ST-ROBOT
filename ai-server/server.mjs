@@ -140,6 +140,8 @@ export function createServer(upstream = fetch) {
           ...(error.catalogStatus === undefined ? {} : {catalogStatus:error.catalogStatus}),
           ...(error.catalogResult === undefined ? {} : {catalogResult:error.catalogResult}),
           ...(error.candidateCount === undefined ? {} : {candidateCount:error.candidateCount}),
+          ...(error.catalogModelCount === undefined ? {} : {catalogModelCount:error.catalogModelCount}),
+          ...(error.configuredModelListed === undefined ? {} : {configuredModelListed:error.configuredModelListed}),
           ...(error.fallbackAttempted === undefined ? {} : {fallbackAttempted:error.fallbackAttempted})
         });
       }

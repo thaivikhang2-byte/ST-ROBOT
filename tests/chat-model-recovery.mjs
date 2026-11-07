@@ -9,6 +9,8 @@ const QUESTION = 'private-recovery-question-never-return';
 const DETAIL = 'private-provider-detail-never-return';
 const PRIMARY = 'gemini-4-argon';
 const FALLBACK = 'gemini-2.5-flash';
+const ADVERTISED = 'google/gemini-3-flash-preview';
+const TYPO = 'gemini 4 -aron';
 const REPLY = 'Phản hồi fixture từ lần gọi khôi phục.';
 const messages = [{ role: 'system', content: 'Giải thích từng bước.' }, { role: 'user', content: QUESTION }];
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), {
@@ -22,7 +24,7 @@ let imported = 0, groups = 0;
 
 function privateOutput(value) {
   const output = JSON.stringify(value);
-  for (const secret of [KEY, QUESTION, DETAIL, PRIMARY, FALLBACK]) {
+  for (const secret of [KEY, QUESTION, DETAIL, PRIMARY, FALLBACK, ADVERTISED, TYPO, 'gemini-4-argom']) {
     assert.ok(!output.includes(secret), 'Public replies and diagnostic logs must omit private request/model/provider data');
   }
 }
@@ -72,7 +74,7 @@ function request(server, path = '/api/home-chat') {
 
 function completionCalls(calls) { return calls.filter(call => call.options.method === 'POST'); }
 function modelCalls(calls) { return calls.filter(call => call.options.method === 'GET'); }
-function assertSameRequest(first, second) {
+function assertSameRequest(first, second, fallback = FALLBACK) {
   const firstBody = JSON.parse(first.options.body), secondBody = JSON.parse(second.options.body);
   assert.equal(first.url, 'https://llm.wokushop.com/v1/chat/completions');
   assert.equal(second.url, first.url);
@@ -80,22 +82,26 @@ function assertSameRequest(first, second) {
   assert.equal(firstBody.max_tokens, secondBody.max_tokens);
   assert.equal(first.options.headers.Authorization, `Bearer ${KEY}`);
   assert.equal(second.options.headers.Authorization, first.options.headers.Authorization);
-  assert.equal(secondBody.model, FALLBACK);
+  assert.equal(secondBody.model, fallback);
 }
 
 async function directFailure(upstream, expected, overrides = {}) {
   let posts = 0, resolutions = 0;
-  const logs = [];
+  const logs = [], requestedModels = [];
   const { resolveFallbackModel = async () => FALLBACK, ...settings } = overrides;
   await assert.rejects(requestChatCompletion({ apiKey: KEY, model: PRIMARY, messages, retryDelayMs: 0,
     requestId: 'recovery-local-request', logger: (...items) => logs.push(items),
-    upstream: async (...args) => { posts++; return upstream(...args); },
+    upstream: async (...args) => {
+      posts++;
+      requestedModels.push(JSON.parse(args[1].body).model);
+      return upstream(...args);
+    },
     resolveFallbackModel: async (...args) => { resolutions++; return resolveFallbackModel(...args); }, ...settings
   }), error => {
     assert.ok(error instanceof ChatUpstreamError);
     assert.equal(error.code, expected.code);
     if (expected.upstreamStatus !== undefined) assert.equal(error.upstreamStatus, expected.upstreamStatus);
-    for (const field of ['catalogStatus', 'catalogResult', 'candidateCount', 'fallbackAttempted']) {
+    for (const field of ['catalogStatus', 'catalogResult', 'candidateCount', 'catalogModelCount', 'configuredModelListed', 'fallbackAttempted']) {
       if (Object.hasOwn(expected, field)) assert.equal(error[field], expected[field]);
     }
     privateOutput({ error: { ...error, message: error.message }, logs });
@@ -103,6 +109,7 @@ async function directFailure(upstream, expected, overrides = {}) {
   });
   assert.equal(posts, expected.posts);
   assert.equal(resolutions, expected.resolutions);
+  if (expected.models) assert.deepEqual(requestedModels, expected.models);
 }
 
 try {
@@ -116,7 +123,7 @@ try {
 
   // The resolver sees the caller's configured ID verbatim, including an ID
   // entered with spaces. It may only replace it with an exact catalog member.
-  for (const model of [PRIMARY, 'gemini 4 -aron']) {
+  for (const model of [PRIMARY, TYPO]) {
     await withServer(async (_url, options) => {
       if (options.method === 'GET') return catalog([FALLBACK]);
       return JSON.parse(options.body).model === FALLBACK ? answer() : reject();
@@ -133,6 +140,46 @@ try {
       privateOutput(response.data);
     }, { model });
   }
+  groups++;
+
+  // A catalog with none of the three historical preferences must still recover
+  // through an exact namespaced text Flash ID returned by this provider.
+  await withServer(async (_url, options) => {
+    if (options.method === 'GET') return catalog([ADVERTISED]);
+    return JSON.parse(options.body).model === ADVERTISED ? answer() : reject();
+  }, async (server, calls) => {
+    const response = await request(server);
+    assert.equal(response.status, 200); assert.equal(response.data.reply, REPLY);
+    assert.deepEqual(calls.map(call => call.options.method), ['POST', 'GET', 'POST']);
+    assert.equal(JSON.parse(calls[0].options.body).model, PRIMARY);
+    assertSameRequest(calls[0], calls[2], ADVERTISED);
+    privateOutput(response.data);
+  });
+  groups++;
+
+  await withServer(async (_url, options) => {
+    if (options.method === 'GET') return catalog([FALLBACK, PRIMARY]);
+    return JSON.parse(options.body).model === PRIMARY ? answer() : reject();
+  }, async (server, calls) => {
+    const response = await request(server);
+    assert.equal(response.status, 200); assert.equal(response.data.reply, REPLY);
+    assert.deepEqual(calls.map(call => call.options.method), ['POST', 'GET', 'POST']);
+    assert.equal(JSON.parse(calls[0].options.body).model, TYPO);
+    assertSameRequest(calls[0], calls[2], PRIMARY);
+    privateOutput(response.data);
+  }, { model: TYPO });
+  groups++;
+
+  await withServer(async (_url, options) => {
+    if (options.method === 'GET') return catalog([PRIMARY, 'gemini-4-argom', ADVERTISED]);
+    return JSON.parse(options.body).model === ADVERTISED ? answer() : reject();
+  }, async (server, calls) => {
+    const response = await request(server);
+    assert.equal(response.status, 200); assert.equal(response.data.reply, REPLY);
+    assertSameRequest(completionCalls(calls)[0], completionCalls(calls)[1], ADVERTISED);
+    assert.ok(completionCalls(calls).every(call => JSON.parse(call.options.body).model !== 'gemini-4-argom'),
+      'An exact advertised primary must not be replaced by a similar typo ID');
+  });
   groups++;
 
   await withServer(async () => answer(), async (server, calls) => {
@@ -152,8 +199,11 @@ try {
   }
   groups++;
 
-  for (const [listing, catalogStatus, catalogResult, candidateCount] of [
-    [() => catalog(['unapproved-premium-model', PRIMARY]), 200, 'ok', 0],
+  for (const [listing, catalogStatus, catalogResult, candidateCount, catalogModelCount, configuredModelListed] of [
+    [() => catalog(['unapproved-premium-model', PRIMARY]), 200, 'ok', 0, 2, true],
+    [() => catalog(['unapproved-premium-model', 'gpt-4o', 'gemini-4-pro']), 200, 'ok', 0, 3, false],
+    [() => catalog([]), 200, 'ok', 0, 0, false],
+    [() => catalog([PRIMARY, 'gemini-4-argom']), 200, 'ok', 0, 2, true],
     [() => json({ data: null }), 200, 'invalid_response'],
     [() => new Response('<html>not a catalog</html>', { status: 200 }), 200, 'invalid_response'],
     [() => reject(401, 'invalid_api_key'), 401, 'http_error'], [() => reject(503), 503, 'http_error']
@@ -166,6 +216,8 @@ try {
       assert.equal(response.data.catalogStatus, catalogStatus);
       assert.equal(response.data.catalogResult, catalogResult);
       assert.equal(response.data.candidateCount, candidateCount);
+      assert.equal(response.data.catalogModelCount, catalogModelCount);
+      assert.equal(response.data.configuredModelListed, configuredModelListed);
       assert.equal(response.data.fallbackAttempted, false);
       assert.ok(completionCalls(calls).every(call => JSON.parse(call.options.body).model === PRIMARY));
       privateOutput(response.data);
@@ -209,8 +261,23 @@ try {
     assert.equal(response.data.catalogStatus, 200);
     assert.equal(response.data.catalogResult, 'ok');
     assert.equal(response.data.candidateCount, 1);
+    assert.equal(response.data.catalogModelCount, 1);
+    assert.equal(response.data.configuredModelListed, false);
     assert.equal(response.data.fallbackAttempted, true);
     assert.equal(completionCalls(calls).length, 2); assert.equal(modelCalls(calls).length, 1);
+    privateOutput(response.data);
+  });
+  groups++;
+
+  await withServer(async (_url, options) => options.method === 'GET' ? catalog([ADVERTISED]) : reject(), async (server, calls) => {
+    const response = await request(server);
+    assert.equal(response.status, 503); assert.equal(response.data.code, 'AI_UNAVAILABLE');
+    assert.equal(response.data.upstreamStatus, 503);
+    assert.equal(response.data.catalogStatus, 200); assert.equal(response.data.catalogResult, 'ok');
+    assert.equal(response.data.candidateCount, 1); assert.equal(response.data.catalogModelCount, 1);
+    assert.equal(response.data.configuredModelListed, false); assert.equal(response.data.fallbackAttempted, true);
+    assert.equal(completionCalls(calls).length, 2); assert.equal(modelCalls(calls).length, 1);
+    assertSameRequest(completionCalls(calls)[0], completionCalls(calls)[1], ADVERTISED);
     privateOutput(response.data);
   });
   groups++;
@@ -227,8 +294,10 @@ try {
   });
   groups++;
 
-  for (const candidate of [KEY, 'unapproved-premium-model', '', null, PRIMARY, [FALLBACK], { id: FALLBACK }]) {
-    await directFailure(async () => reject(), { code: 'AI_UNAVAILABLE', posts: 2, resolutions: 1 }, {
+  for (const candidate of [KEY, 'unapproved-premium-model', 'gemini-4-pro', 'gemini-5-argon', 'gpt-4o',
+    'openai/gemini-3-flash-preview', 'https://example.test/' + FALLBACK,
+    '', null, PRIMARY, [FALLBACK], { id: FALLBACK }]) {
+    await directFailure(async () => reject(), { code: 'AI_UNAVAILABLE', posts: 2, resolutions: 1, models: [PRIMARY, PRIMARY] }, {
       resolveFallbackModel: async () => candidate
     });
   }
@@ -237,13 +306,27 @@ try {
   });
   await directFailure(async () => reject(), {
     code:'AI_UNAVAILABLE',posts:2,resolutions:1,catalogStatus:undefined,catalogResult:undefined,
-    candidateCount:undefined,fallbackAttempted:false
+    candidateCount:undefined,catalogModelCount:undefined,configuredModelListed:undefined,fallbackAttempted:false
   }, {
     resolveFallbackModel: async ({ onDiagnostic }) => {
-      onDiagnostic({ catalogStatus:KEY,catalogResult:DETAIL,candidateCount:4,fallbackAttempted:true,raw:QUESTION });
+      onDiagnostic({ catalogStatus:KEY,catalogResult:DETAIL,candidateCount:4,
+        catalogModelCount:5001,configuredModelListed:KEY,fallbackAttempted:true,raw:QUESTION });
       return null;
     }
   });
+  groups++;
+
+  for (const [catalogModelCount, configuredModelListed] of [[0, false], [5000, true]]) {
+    await directFailure(async () => reject(), {
+      code:'AI_UNAVAILABLE',posts:2,resolutions:1,catalogStatus:200,catalogResult:'ok',
+      candidateCount:0,catalogModelCount,configuredModelListed,fallbackAttempted:false
+    }, {
+      resolveFallbackModel: async ({ onDiagnostic }) => {
+        onDiagnostic({ catalogStatus:200,catalogResult:'ok',candidateCount:0,catalogModelCount,configuredModelListed });
+        return null;
+      }
+    });
+  }
   groups++;
 
   let callsDuringResolution = 0, resolutionSignal, release;
@@ -270,7 +353,7 @@ try {
   }, { limit: 1 });
   groups++;
 
-  console.log(`PASS ${groups} model recovery groups: verified same-provider fallback, exact catalog membership, bounded two-POST recovery/deadlines, real chat/tutor HTTP, protected auth/quota/cooldowns and private diagnostics`);
+  console.log(`PASS ${groups} model recovery groups: catalog-based Flash fallback and typo repair, exact advertised IDs, bounded two-POST recovery/deadlines, real chat/tutor HTTP, protected auth/quota/cooldowns and private diagnostics`);
 } finally {
   for (const [name, value] of Object.entries(prior)) {
     if (value === undefined) delete process.env[name]; else process.env[name] = value;

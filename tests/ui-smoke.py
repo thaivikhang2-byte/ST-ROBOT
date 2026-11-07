@@ -139,6 +139,8 @@ with sync_playwright() as p:
                 'providerCode': 'private-invalid-provider-detail', 'requestId': '11111111-2222-4333-8444-555555555555',
                 'stage': 'provider', 'privateProviderBody': 'private-provider-body-never-show',
                 'model': 'private-model-name', 'candidateIds': ['private-candidate-id'],
+                'catalog': [{'id': 'private-catalog-model-id'}], 'apiKey': 'private-key-never-copy',
+                'question': data.get('question'), 'history': [{'content': 'private-history-never-copy'}],
                 **fixtures.get('tutor_error_metadata', {'catalogStatus': 503, 'catalogResult': 'http_error',
                                                       'candidateCount': 0, 'fallbackAttempted': False})
             }
@@ -868,14 +870,24 @@ with sync_playwright() as p:
         expect(page.locator('#tutorQuestion')).to_have_value('Dịch vụ bận')
         context.grant_permissions(['clipboard-read', 'clipboard-write'])
         valid_catalog_error = {'catalogStatus': 503, 'catalogResult': 'http_error', 'candidateCount': 0, 'fallbackAttempted': False}
-        valid_catalog_fallback = {'catalogStatus': 200, 'catalogResult': 'ok', 'candidateCount': 3, 'fallbackAttempted': True}
+        valid_catalog_fallback = {'catalogStatus': 200, 'catalogResult': 'ok', 'candidateCount': 3, 'fallbackAttempted': True,
+                                  'configuredModelListed': False, 'catalogModelCount': 3}
+        valid_listed_primary = {'catalogStatus': 200, 'catalogResult': 'ok', 'candidateCount': 0, 'fallbackAttempted': False,
+                                'configuredModelListed': True, 'catalogModelCount': 5000}
+        valid_empty_catalog = {'catalogStatus': 200, 'catalogResult': 'ok', 'candidateCount': 0, 'fallbackAttempted': False,
+                               'configuredModelListed': False, 'catalogModelCount': 0}
         diagnostic_cases = [
             (valid_catalog_error, valid_catalog_error),
             (valid_catalog_fallback, valid_catalog_fallback),
+            (valid_listed_primary, valid_listed_primary),
+            (valid_empty_catalog, valid_empty_catalog),
             ({'catalogStatus': 'private-status', 'catalogResult': 'private-model-name',
-              'candidateCount': 'private-candidate-id', 'fallbackAttempted': 'private-key'}, {}),
-            ({'catalogStatus': 600, 'catalogResult': 'OK', 'candidateCount': 4, 'fallbackAttempted': 1}, {}),
-            ({'catalogStatus': 99, 'catalogResult': {}, 'candidateCount': -1, 'fallbackAttempted': 0}, {}),
+              'candidateCount': 'private-candidate-id', 'fallbackAttempted': 'private-key',
+              'configuredModelListed': 'private-model-name', 'catalogModelCount': 'private-catalog'}, {}),
+            ({'catalogStatus': 600, 'catalogResult': 'OK', 'candidateCount': 4, 'fallbackAttempted': 1,
+              'configuredModelListed': 1, 'catalogModelCount': 5001}, {}),
+            ({'catalogStatus': 99, 'catalogResult': {}, 'candidateCount': -1, 'fallbackAttempted': 0,
+              'configuredModelListed': 0, 'catalogModelCount': -1}, {}),
         ]
         for index, (metadata, expected_metadata) in enumerate(diagnostic_cases):
             if index:
@@ -926,7 +938,7 @@ with sync_playwright() as p:
         reqs = [x['data'] for x in api_requests if x['kind'] == 'tutor']
         require(reqs[-1]['history'] == [], 'Canceled tutor exchange leaked into the new session')
         return {'mocked_requests': len(reqs), 'lesson_context': True, 'history': True, 'reset': True, 'error_recovery': True,
-                'collapsed_private_diagnostics_and_copy': True, 'invalid_catalog_metadata_rejected': len(diagnostic_cases) - 2,
+                'collapsed_private_diagnostics_and_copy': True, 'invalid_catalog_metadata_rejected': len(diagnostic_cases) - 4,
                 'cancellation_ignores_late_reply': True}
 
     checked('learning AI tutor context, history, lesson reset and error recovery', tutor_ai)

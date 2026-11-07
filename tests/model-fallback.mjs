@@ -7,6 +7,8 @@ const CURRENT = 'gemini-4-argon';
 const FIRST = 'gemini-2.5-flash';
 const SECOND = 'gemini-2.0-flash';
 const THIRD = 'gemini-flash-latest';
+const ADVERTISED = 'google/gemini-3-flash-preview';
+const TYPO = 'gemini 4 -aron';
 const catalog = (ids, status = 200) => new Response(JSON.stringify({ data: ids.map(id => ({ id })) }), {
   status, headers: { 'Content-Type': 'application/json' }
 });
@@ -15,7 +17,7 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 const never = () => new Promise(() => {});
 let groups = 0;
 
-// Only an exact, allowlisted ID advertised by the same provider can be selected.
+// Every selection must preserve the exact advertised ID from this provider.
 let received;
 const basic = createModelFallbackResolver({ upstream: async (url, options) => {
   received = { url, options, initiallyAborted: options.signal.aborted };
@@ -30,8 +32,8 @@ assert.ok(received.options.signal instanceof AbortSignal);
 assert.equal(received.initiallyAborted, false);
 groups++;
 
-const lookalikes = [FIRST + '-extra', ' ' + FIRST, FIRST.toUpperCase(), 'https://example.test/' + FIRST,
-  API_KEY, 'gemini-premium-test'];
+const lookalikes = ['https://example.test/' + FIRST, 'openai/' + FIRST,
+  API_KEY, 'gemini-premium-test', 'gemini-4-pro', 'claude-3.7-sonnet', 'gpt-4o'];
 assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog(lookalikes) })), null);
 for (const malformed of [{ id: FIRST }, null, 12]) {
   assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([FIRST, malformed]) })), null,
@@ -41,6 +43,32 @@ assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () 
 assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([FIRST]) }), { currentModel: FIRST }), null);
 assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([FIRST, SECOND]) }), { currentModel: FIRST }), SECOND);
 assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([FIRST]) }), { currentModel: 'gemini 4 -aron' }), FIRST);
+groups++;
+
+// The historical three IDs are preferences, so a newer, namespaced text Flash
+// model can recover an account whose catalog contains none of those preferences.
+for (const advertised of [ADVERTISED, 'models/gemini-3.5-flash', 'gemini-3-flash-preview']) {
+  assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([advertised]) })), advertised);
+}
+for (const advertised of [' ' + FIRST, FIRST.toUpperCase()]) {
+  assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([advertised]) })), advertised,
+    'A recognized advertised ID must be sent verbatim, without manufacturing a normalized ID');
+}
+assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([FIRST, CURRENT]) }), {
+  currentModel: TYPO
+}), CURRENT, 'A unique same-version typo correction precedes a Flash fallback');
+assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([CURRENT, 'gemini-4-axron', FIRST]) }), {
+  currentModel: TYPO
+}), FIRST, 'An ambiguous spelling correction must use a recognized Flash candidate instead of guessing');
+assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([CURRENT]) }), {
+  currentModel: 'Gemini 4 _ argon'
+}), CURRENT, 'A cosmetic match preserves the exact provider ID');
+assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([CURRENT, 'gemini-4-argom', FIRST]) })), FIRST,
+  'An exact advertised primary disables spelling correction');
+assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([CURRENT, 'gemini-4-argom']) })), null);
+assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog(['gemini-5-argon']) }), {
+  currentModel: TYPO
+}), null, 'A correction must not silently change model version');
 groups++;
 
 let rejectedCalls = 0;
@@ -69,9 +97,35 @@ const cached = createModelFallbackResolver({ upstream: async () => { cachedCalls
 assert.equal(await resolveWith(cached), FIRST);
 assert.equal(await resolveWith(cached, { apiKey: ` ${API_KEY} ` }), FIRST);
 assert.equal(await resolveWith(cached, { currentModel: FIRST }), SECOND);
-assert.equal(cachedCalls, 1, 'A successful catalog is reused by trimmed key, without caching a single model choice');
+assert.equal(cachedCalls, 2, 'Selected candidates are cached by both trimmed key and configured model');
+assert.equal(await resolveWith(cached, { currentModel: FIRST }), SECOND);
+assert.equal(cachedCalls, 2, 'The same model/account pair reuses its verified selection');
 assert.equal(await resolveWith(cached, { apiKey: API_KEY + '-rotated' }), FIRST);
-assert.equal(cachedCalls, 2, 'Rotating keys must not reuse a different account catalog');
+assert.equal(cachedCalls, 3, 'Rotating keys must not reuse a different account catalog');
+groups++;
+
+let isolatedCalls = 0;
+const isolated = createModelFallbackResolver({ upstream: async () => {
+  isolatedCalls++;
+  return catalog([CURRENT, FIRST]);
+} });
+assert.equal(await resolveWith(isolated), FIRST);
+assert.equal(await resolveWith(isolated, { currentModel: TYPO }), CURRENT);
+assert.equal(await resolveWith(isolated), FIRST);
+assert.equal(await resolveWith(isolated, { currentModel: TYPO }), CURRENT);
+assert.equal(isolatedCalls, 2, 'A cached Flash choice must not hide a different configured model correction');
+groups++;
+
+let rawModelCacheCalls = 0;
+const rawModelCache = createModelFallbackResolver({ upstream: async () => {
+  rawModelCacheCalls++;
+  return catalog([FIRST, SECOND]);
+} });
+assert.equal(await resolveWith(rawModelCache, { currentModel: FIRST }), SECOND);
+assert.equal(await resolveWith(rawModelCache, { currentModel: ' ' + FIRST }), FIRST);
+assert.equal(await resolveWith(rawModelCache, { currentModel: FIRST }), SECOND);
+assert.equal(await resolveWith(rawModelCache, { currentModel: ' ' + FIRST }), FIRST);
+assert.equal(rawModelCacheCalls, 2, 'Model cache keys preserve raw IDs so an exact primary and its correction cannot share choices');
 groups++;
 
 let expiringCalls = 0;
@@ -179,7 +233,8 @@ groups++;
 const diagnostics = [];
 const observed = createModelFallbackResolver({ upstream: async () => catalog([FIRST, SECOND, THIRD, API_KEY, CURRENT]) });
 assert.equal(await resolveWith(observed, { onDiagnostic: event => diagnostics.push(event) }), FIRST);
-assert.deepEqual(diagnostics, [{ catalogStatus: 200, catalogResult: 'ok', candidateCount: 3 }]);
+assert.deepEqual(diagnostics, [{ catalogStatus: 200, catalogResult: 'ok', candidateCount: 3,
+  catalogModelCount: 5, configuredModelListed: true }]);
 for (const privateValue of [API_KEY, CURRENT, FIRST, SECOND, THIRD]) {
   assert.ok(!JSON.stringify(diagnostics).includes(privateValue), 'Observers receive no credentials, model names or raw catalog data');
 }
@@ -232,11 +287,44 @@ for (const candidates of [[], [FIRST, SECOND]]) {
   const resolver = createModelFallbackResolver({ upstream: async () => { calls++; return catalog(candidates); } });
   assert.equal(await resolveWith(resolver, { onDiagnostic: event => firstEvents.push(event) }), candidates[0] || null);
   assert.equal(await resolveWith(resolver, { onDiagnostic: event => cachedEvents.push(event) }), candidates[0] || null);
-  const expected = [{ catalogStatus: 200, catalogResult: 'ok', candidateCount: candidates.length }];
+  const expected = [{ catalogStatus: 200, catalogResult: 'ok', candidateCount: candidates.length,
+    catalogModelCount: candidates.length, configuredModelListed: false }];
   assert.deepEqual(firstEvents, expected);
   assert.deepEqual(cachedEvents, expected);
   assert.equal(calls, 1, 'Even a valid catalog with no candidates is cached with safe metadata');
 }
+groups++;
+
+for (const [ids, candidateCount, configuredModelListed] of [
+  [[], 0, false],
+  [['unapproved-premium-model', 'gpt-4o', 'gemini-4-pro'], 0, false],
+  [[CURRENT], 0, true],
+  [[ADVERTISED], 1, false],
+  [[FIRST, SECOND, THIRD, ADVERTISED, 'gemini-3.5-flash'], 3, false]
+]) {
+  const events = [];
+  const resolver = createModelFallbackResolver({ upstream: async () => catalog(ids) });
+  await resolveWith(resolver, { onDiagnostic: event => events.push(event) });
+  assert.deepEqual(events, [{ catalogStatus: 200, catalogResult: 'ok', candidateCount,
+    catalogModelCount: ids.length, configuredModelListed }]);
+  assert.ok(!JSON.stringify(events).includes(ADVERTISED), 'Counts and the configured-model flag must not expose catalog IDs');
+}
+groups++;
+
+const currentFlashEvents = [];
+assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([FIRST, SECOND]) }), {
+  currentModel: FIRST, onDiagnostic: event => currentFlashEvents.push(event)
+}), SECOND);
+assert.deepEqual(currentFlashEvents, [{ catalogStatus: 200, catalogResult: 'ok', candidateCount: 1,
+  catalogModelCount: 2, configuredModelListed: true }], 'Candidate count excludes the configured model');
+groups++;
+
+const verbatimPrimaryEvents = [];
+assert.equal(await resolveWith(createModelFallbackResolver({ upstream: async () => catalog([' ' + FIRST, SECOND]) }), {
+  currentModel: ' ' + FIRST, onDiagnostic: event => verbatimPrimaryEvents.push(event)
+}), SECOND, 'Exact membership compares the configured ID verbatim, including provider-advertised whitespace');
+assert.deepEqual(verbatimPrimaryEvents, [{ catalogStatus: 200, catalogResult: 'ok', candidateCount: 1,
+  catalogModelCount: 2, configuredModelListed: true }]);
 groups++;
 
 for (const status of [-1, 0, 99, 100, 599, 600, NaN, Infinity, '503', API_KEY, { toString: () => API_KEY }]) {
@@ -307,7 +395,7 @@ assert.equal(await resolveWith(diagnosticRecovery, { onDiagnostic: event => reco
 assert.equal(await resolveWith(diagnosticRecovery, { onDiagnostic: event => recoveryEvents.push(event) }), FIRST);
 assert.deepEqual(recoveryEvents, [
   { catalogStatus: 503, catalogResult: 'http_error' },
-  { catalogStatus: 200, catalogResult: 'ok', candidateCount: 1 }
+  { catalogStatus: 200, catalogResult: 'ok', candidateCount: 1, catalogModelCount: 1, configuredModelListed: false }
 ]);
 assert.equal(diagnosticRecoveryCalls, 2);
 const ineligibleEvents = [];
@@ -316,4 +404,4 @@ await resolveWith(diagnosticRecovery, { apiKey: '', onDiagnostic: event => ineli
 assert.deepEqual(ineligibleEvents, [], 'An ineligible fallback request must not report catalog work');
 groups++;
 
-console.log(`PASS ${groups} model catalog groups: exact advertised candidates, bounded per-key cache, private GET-only lookups, deadlines/cancellation and no external requests`);
+console.log(`PASS ${groups} model catalog groups: exact advertised candidates/corrections, bounded per-account/model cache, private GET-only lookups, deadlines/cancellation and no external requests`);

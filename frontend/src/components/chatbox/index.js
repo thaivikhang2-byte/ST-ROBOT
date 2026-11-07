@@ -1,6 +1,6 @@
 import { getChatboxTemplate } from './template.js';
 import { $, $$ } from '../../utils/dom.js';
-import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../../services/AiService.js?v=catalog-report-v12';
+import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../../services/AiService.js?v=catalog-selection-v13';
 
 const DIAGNOSTIC_CODES = new Set(['AI_AUTH', 'AI_MODEL', 'AI_QUOTA', 'AI_BUSY', 'AI_UNAVAILABLE', 'AI_NETWORK',
     'AI_TIMEOUT', 'AI_RESPONSE', 'AI_REQUEST', 'AI_STARTUP_TIMEOUT', 'AI_STARTUP_RESPONSE', 'AI_REPLY_TIMEOUT', 'AI_STARTUP_FAILED', 'AI_CANCELLED']);
@@ -19,6 +19,8 @@ function appendDiagnostics(bubble, error) {
     if (['ok', 'http_error', 'invalid_response', 'timeout', 'network_error'].includes(error.catalogResult)) report.catalogResult = error.catalogResult;
     if (Number.isInteger(error.candidateCount) && error.candidateCount >= 0 && error.candidateCount <= 3) report.candidateCount = error.candidateCount;
     if (typeof error.fallbackAttempted === 'boolean') report.fallbackAttempted = error.fallbackAttempted;
+    if (typeof error.configuredModelListed === 'boolean') report.configuredModelListed = error.configuredModelListed;
+    if (Number.isInteger(error.catalogModelCount) && error.catalogModelCount >= 0 && error.catalogModelCount <= 5000) report.catalogModelCount = error.catalogModelCount;
     if (typeof error.requestId === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(error.requestId)) report.requestId = error.requestId;
     const details = document.createElement('details'); details.className = 'chat-error-details';
     const summary = document.createElement('summary'); summary.textContent = 'Chi tiết lỗi';

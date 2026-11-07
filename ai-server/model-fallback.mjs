@@ -1,14 +1,8 @@
 import { createHash } from 'node:crypto';
+import { selectGeminiCandidates, isGeminiModel } from './model-selection.mjs';
+export { GEMINI_FALLBACK_MODELS, MAX_FALLBACK_CANDIDATES, isGeminiModel, isAllowedFallbackModel } from './model-selection.mjs';
 
 const catalogUrl = 'https://llm.wokushop.com/v1/models';
-export const GEMINI_FALLBACK_MODELS = Object.freeze([
-  'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'
-]);
-
-export function isGeminiModel(value) {
-  return typeof value === 'string' && value.trim().length <= 200
-    && /^gemini(?:[-\s]|$)/i.test(value.trim());
-}
 
 const cancelled = signal => signal?.reason || new DOMException('Request cancelled', 'AbortError');
 
@@ -24,14 +18,15 @@ function emitDiagnostic(observer, diagnostic) {
 export function createModelFallbackResolver({ upstream = fetch, catalogTimeoutMs = 5000, cacheTtlMs = 600000 } = {}) {
   const cache = new Map();
 
-  async function readCatalog(key, parent) {
+  async function readCatalog(key, parent, currentModel) {
     const controller = new AbortController();
-    let timer, onAbort, catalogStatus;
+    let timer, onAbort, catalogStatus, catalogInfo = {};
     const outcome = (catalogResult, available = null) => ({
       available,
       diagnostic: {
         ...(catalogStatus === undefined ? {} : { catalogStatus }),
         catalogResult,
+        ...catalogInfo,
         ...(available === null ? {} : { candidateCount: available.size })
       }
     });
@@ -72,9 +67,11 @@ export function createModelFallbackResolver({ upstream = fetch, catalogTimeoutMs
       if (!payload || !Array.isArray(payload.data) || payload.data.length > 5000
         || payload.data.some(row => !row || typeof row !== 'object' || Array.isArray(row)
           || typeof row.id !== 'string' || !row.id.length || row.id.length > 200)) return outcome('invalid_response');
-      // Retain only the fixed candidate intersection, not the provider catalog.
+      // Select exact advertised IDs, retaining only a bounded shortlist and
+      // safe counts/flags rather than the full provider catalog.
       const ids = new Set(payload.data.map(row => row.id));
-      return outcome('ok', new Set(GEMINI_FALLBACK_MODELS.filter(id => ids.has(id))));
+      catalogInfo = { catalogModelCount:payload.data.length, configuredModelListed:ids.has(currentModel) };
+      return outcome('ok', new Set(selectGeminiCandidates(ids, currentModel)));
     }).catch(() => {
       if (parent?.aborted) throw cancelled(parent);
       return outcome(failureResult);
@@ -92,23 +89,26 @@ export function createModelFallbackResolver({ upstream = fetch, catalogTimeoutMs
     if (signal?.aborted) throw cancelled(signal);
     const key = typeof apiKey === 'string' ? apiKey.trim() : '';
     if (!key || !isGeminiModel(currentModel)) return null;
-    const current = currentModel.trim();
+    const current = currentModel;
     const now = Date.now();
     for (const [fingerprint, entry] of cache) if (entry.expiresAt <= now) cache.delete(fingerprint);
-    const fingerprint = createHash('sha256').update(key).digest('hex');
+    const fingerprint = createHash('sha256').update(key).update('\0').update(current).digest('hex');
     const cached = cache.get(fingerprint);
     let available = cached?.available;
     if (!available) {
-      const result = await readCatalog(key, signal);
+      const result = await readCatalog(key, signal, current);
       if (signal?.aborted) throw cancelled(signal);
       available = result.available;
       emitDiagnostic(onDiagnostic, result.diagnostic);
       if (available === null) return null;
       if (cache.size >= 8 && !cache.has(fingerprint)) cache.delete(cache.keys().next().value);
-      cache.set(fingerprint, { available, expiresAt: Date.now() + cacheTtlMs });
+      cache.set(fingerprint, { available,
+        catalogModelCount:result.diagnostic.catalogModelCount,configuredModelListed:result.diagnostic.configuredModelListed,
+        expiresAt: Date.now() + cacheTtlMs });
     } else {
-      emitDiagnostic(onDiagnostic, { catalogStatus: 200, catalogResult: 'ok', candidateCount: available.size });
+      emitDiagnostic(onDiagnostic, { catalogStatus:200,catalogResult:'ok',candidateCount:available.size,
+        catalogModelCount:cached.catalogModelCount,configuredModelListed:cached.configuredModelListed });
     }
-    return GEMINI_FALLBACK_MODELS.find(id => id !== current && available.has(id)) || null;
+    return available.values().next().value || null;
   };
 }

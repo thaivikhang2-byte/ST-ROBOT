@@ -22,13 +22,17 @@ Các thay đổi về thời gian chờ không khắc phục được một dị
 
 `stage: provider` cùng `upstreamStatus: 503` xác nhận lời gọi tới nhà cung cấp đã nhận HTTP 503; không chỉ ra riêng thiếu model, kênh quá tải hay toàn dịch vụ ngừng hoạt động. Model chính giữ nguyên giá trị `AI_MODEL` đã cấu hình. ID cần đúng như danh sách của nhà cung cấp; tên gõ lại có khoảng trắng hoặc sai ký tự chưa chứng minh là ID hợp lệ.
 
-Sau lỗi 5xx từ provider hoặc mã model không hợp lệ, chat/tutor dùng lần thử thứ hai sẵn có để chuyển sang một model Gemini Flash được catalog xác nhận. Máy chủ đọc `GET https://llm.wokushop.com/v1/models` bằng cùng khóa đã cấu hình, rồi chọn theo thứ tự `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-flash-latest`. Chỉ ID khớp hoàn toàn trong catalog mới được chọn; ID hiện tại được bỏ qua. Chỉ áp dụng khi model chính thuộc nhóm Gemini. Không tự sửa tên model theo phỏng đoán hoặc chuyển sang nhà cung cấp khác.
+Sau lỗi 5xx từ provider hoặc mã model không hợp lệ, chat/tutor đọc `GET https://llm.wokushop.com/v1/models` bằng cùng khóa đã cấu hình và dùng lần thử thứ hai sẵn có để phục hồi. Model chính vẫn được gọi trước. Nếu ID cấu hình không có nguyên văn trong catalog, máy chủ ưu tiên ID được catalog liệt kê khớp sau khi bỏ khác biệt chữ hoa/thường, dấu cách, gạch nối/gạch dưới và tiền tố `google/` hoặc `models/`. Nếu chưa khớp, chỉ chấp nhận một tên gần nhất khác đúng một ký tự, có cùng dãy số phiên bản và không mơ hồ. Model chính đã được liệt kê thì không áp dụng sửa tên hoặc chuyển sang alias tương đương.
 
-Đọc catalog và JSON có deadline phụ 5 giây, nằm trong giới hạn tổng 55 giây. Chỉ phần giao với danh sách dự phòng cố định được giữ tối đa 10 phút theo fingerprint khóa; giới hạn 8 mục cache. Catalog lỗi, không đúng cấu trúc hoặc không có ứng viên thì giữ hành vi thử lại/lỗi cũ. Không đổi model khi lỗi xác thực, quota, HTTP 429, phản hồi đã sinh nhưng thiếu nội dung hoặc provider yêu cầu chờ hơn một giây. Mã xác thực đã biết vẫn được nhận diện ngay cả khi provider trả HTTP 503.
+Sau bước đối chiếu trên, máy chủ chọn các ID Gemini Flash dạng text có thật trong catalog, bao gồm tiền tố, phiên bản mới, bản lite, preview và mã ngày/revision có dạng được hỗ trợ. Ba tên `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-flash-latest` chỉ còn là thứ tự ưu tiên, không còn là danh sách duy nhất được chấp nhận. Model ảnh, âm thanh, TTS, live, embedding và thinking bị loại. Danh sách rút gọn tối đa ba ID; mỗi ID gửi lên API giữ nguyên chính xác chuỗi do catalog cung cấp. Không tự tạo ID hoặc đổi sang nhà cung cấp/model khác họ.
+
+Đọc catalog và JSON có deadline phụ 5 giây, nằm trong giới hạn tổng 55 giây. Chỉ danh sách rút gọn và các số đếm/cờ an toàn được giữ tối đa 10 phút theo fingerprint khóa và ID cấu hình; giới hạn 8 mục cache. Catalog lỗi, không đúng cấu trúc hoặc không có ứng viên thì giữ hành vi thử lại/lỗi cũ. Không đổi model khi lỗi xác thực, quota, HTTP 429, phản hồi đã sinh nhưng thiếu nội dung hoặc provider yêu cầu chờ hơn một giây. Mã xác thực đã biết vẫn được nhận diện ngay cả khi provider trả HTTP 503.
 
 Mỗi câu hỏi vẫn tối đa hai POST sinh câu trả lời; việc tra catalog không sinh câu trả lời. Tổng giới hạn ngày/phút/concurrency của website giữ nguyên. Log `ai_model_fallback` chỉ ghi request ID và nhóm lỗi, không ghi khóa, tên model, câu hỏi hay catalog. Catalog xác nhận có ID, không chứng minh model đang có năng lực xử lý, rẻ hơn hoặc có chất lượng tương đương model chính. Nếu cả model dự phòng cũng thất bại, máy chủ trả lỗi thật của lần cuối, không gọi lần ba hoặc dựng đáp án giả. Cơ chế này không khôi phục được một nhà cung cấp đang lỗi trên mọi model.
 
 Báo cáo **Chi tiết lỗi** bổ sung `catalogStatus`, `catalogResult`, `candidateCount` và `fallbackAttempted` nếu đã kiểm tra dự phòng. Ví dụ `catalogStatus: 503` cùng `catalogResult: http_error` cho biết API danh sách model cũng lỗi; `catalogResult: ok` với `candidateCount: 0` cho biết catalog hợp lệ nhưng không có ID dự phòng trong danh sách cho phép; `fallbackAttempted: true` cho biết đã bắt đầu lần gọi model dự phòng. Các trường chỉ là mã HTTP, enum, số 0–3 và boolean, không chứa tên model, catalog, khóa hay nội dung hội thoại. Việc báo cáo tận dụng lần tra catalog hiện có, không tạo thêm yêu cầu đến Woku. Kết quả cache thành công vẫn được báo là HTTP 200 của catalog đã lưu, không phải một kiểm tra sức khỏe mới.
+
+`catalogModelCount` cho biết số mục API catalog trả về (0–5000); `configuredModelListed` cho biết ID cấu hình có xuất hiện nguyên văn trong catalog đó hay không. Vì vậy catalog rỗng được phân biệt với catalog có model nhưng không có ứng viên dự phòng. Model có trong catalog vẫn có thể lỗi ở thời điểm gọi; các cờ này không chứng minh AI đang hoạt động.
 
 Hướng kiểm tra này dùng cấu hình đang có trên Render; người học không cần chuyển khóa API sang môi trường phát triển hoặc gửi qua chat. Nếu khóa đã xuất hiện trong chat, thu hồi/thay khóa tại nơi cấp rồi cập nhật `WOKU_API_KEY` trên Render. Chỉ sao chép báo cáo lỗi an toàn, không sao chép giá trị biến môi trường vào báo cáo.
 
@@ -53,6 +57,7 @@ Không đổi dịch vụ AI sang câu trả lời dựng sẵn khi kết nối 
 ```sh
 node tests/chat-upstream.mjs
 node tests/model-fallback.mjs
+node tests/model-selection.mjs
 node tests/chat-model-recovery.mjs
 node tests/ai-readiness.mjs
 node tests/origin-policy.mjs
