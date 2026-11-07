@@ -6,7 +6,7 @@ Thông báo cũ “Kết nối trả lời bị gián đoạn. Vui lòng gửi l
 
 Frontend gọi `https://st-robot-1.onrender.com/api/home-chat`; AI Tutor gọi `/api/tutor` và bộ gợi ý dạng câu gọi `/api/practice-plan` trên cùng dịch vụ. GitHub Pages chỉ phục vụ frontend. Khi sửa mã API, dịch vụ AI trên Render cần triển khai commit mới để áp dụng bản sửa máy chủ.
 
-Có thể mở `https://st-robot-1.onrender.com/health` ngay trên điện thoại. `ok` xác nhận tiến trình hoạt động; `revision` cho biết commit Render đang chạy nếu có biến `RENDER_GIT_COMMIT`. `ai.keyConfigured` và `ai.modelConfigured` chỉ xác nhận có nhập giá trị cấu hình; chúng không xác thực khóa/model với nhà cung cấp. `ai.allowedOrigin` là địa chỉ website được phép kết nối. Phản hồi không chứa khóa API hoặc giá trị model. Nếu chỉ có `{"ok":true}`, máy chủ đang chạy bản chưa có phần kiểm tra cấu hình này.
+Có thể mở `https://st-robot-1.onrender.com/health` ngay trên điện thoại. `ok` xác nhận tiến trình hoạt động; `revision` cho biết commit Render đang chạy nếu có biến `RENDER_GIT_COMMIT`. `ai.provider` cho biết nhà cung cấp đã chọn (`woku` hoặc `gemini`); `ai.keyConfigured` và `ai.modelConfigured` chỉ xác nhận có nhập giá trị cấu hình của nhà cung cấp đó, không xác thực khóa/model. `ai.allowedOrigin` là địa chỉ website được phép kết nối. Phản hồi không chứa khóa API hoặc giá trị model. Nếu chỉ có `{"ok":true}`, máy chủ đang chạy bản chưa có phần kiểm tra cấu hình này. Xem [cách chọn nhà cung cấp và tìm thông tin gói API](ai-providers.md).
 
 `ALLOWED_ORIGIN` được chuẩn hóa về origin (giao thức, tên miền, cổng) trước khi kiểm tra. Ví dụ `https://thaivikhang2-byte.github.io/ST-ROBOT/` và cùng URL có dấu `/` cuối hoặc khoảng trắng ngoài đều trở thành `https://thaivikhang2-byte.github.io`. Cấu hình sai định dạng trước đây gây 403 ở yêu cầu OPTIONS, khiến trình duyệt chỉ báo lỗi kết nối. Website khác, cổng khác và giao thức khác vẫn bị từ chối; không dùng wildcard để bỏ qua kiểm tra.
 
@@ -20,9 +20,9 @@ Các thay đổi về thời gian chờ không khắc phục được một dị
 
 ## Dự phòng khi model Gemini bị lỗi
 
-`stage: provider` cùng `upstreamStatus: 503` xác nhận lời gọi tới nhà cung cấp đã nhận HTTP 503; không chỉ ra riêng thiếu model, kênh quá tải hay toàn dịch vụ ngừng hoạt động. Model chính giữ nguyên giá trị `AI_MODEL` đã cấu hình. ID cần đúng như danh sách của nhà cung cấp; tên gõ lại có khoảng trắng hoặc sai ký tự chưa chứng minh là ID hợp lệ.
+`stage: provider` cùng `upstreamStatus: 503` xác nhận lời gọi tới nhà cung cấp đã nhận HTTP 503; không chỉ ra riêng thiếu model, kênh quá tải hay toàn dịch vụ ngừng hoạt động. Model chính giữ nguyên giá trị đã cấu hình: `AI_MODEL` cho Woku, `GEMINI_MODEL` cho Google trực tiếp. ID cần đúng như danh sách của nhà cung cấp; tên gõ lại có khoảng trắng hoặc sai ký tự chưa chứng minh là ID hợp lệ.
 
-Sau lỗi 5xx từ provider hoặc mã model không hợp lệ, chat/tutor đọc `GET https://llm.wokushop.com/v1/models` bằng cùng khóa đã cấu hình và dùng lần thử thứ hai sẵn có để phục hồi. Model chính vẫn được gọi trước. Nếu ID cấu hình không có nguyên văn trong catalog, máy chủ ưu tiên ID được catalog liệt kê khớp sau khi bỏ khác biệt chữ hoa/thường, dấu cách, gạch nối/gạch dưới và tiền tố `google/` hoặc `models/`. Nếu chưa khớp, chỉ chấp nhận một tên gần nhất khác đúng một ký tự, có cùng dãy số phiên bản và không mơ hồ. Model chính đã được liệt kê thì không áp dụng sửa tên hoặc chuyển sang alias tương đương.
+Sau lỗi 5xx từ provider hoặc mã model không hợp lệ, chat/tutor đọc catalog bằng cùng khóa của nhà cung cấp đã chọn và dùng lần thử thứ hai sẵn có để phục hồi. Với Woku, catalog là `GET https://llm.wokushop.com/v1/models`; với Google trực tiếp, catalog là `GET https://generativelanguage.googleapis.com/v1beta/openai/models`. Model chính vẫn được gọi trước. Nếu ID cấu hình không có nguyên văn trong catalog, máy chủ ưu tiên ID được catalog liệt kê khớp sau khi bỏ khác biệt chữ hoa/thường, dấu cách, gạch nối/gạch dưới và tiền tố `google/` hoặc `models/`. Nếu chưa khớp, chỉ chấp nhận một tên gần nhất khác đúng một ký tự, có cùng dãy số phiên bản và không mơ hồ. Model chính đã được liệt kê thì không áp dụng sửa tên hoặc chuyển sang alias tương đương.
 
 Sau bước đối chiếu trên, máy chủ chọn các ID Gemini Flash dạng text có thật trong catalog, bao gồm tiền tố, phiên bản mới, bản lite, preview và mã ngày/revision có dạng được hỗ trợ. Ba tên `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-flash-latest` chỉ còn là thứ tự ưu tiên, không còn là danh sách duy nhất được chấp nhận. Model ảnh, âm thanh, TTS, live, embedding và thinking bị loại. Danh sách rút gọn tối đa ba ID; mỗi ID gửi lên API giữ nguyên chính xác chuỗi do catalog cung cấp. Không tự tạo ID hoặc đổi sang nhà cung cấp/model khác họ.
 
@@ -34,14 +34,14 @@ Báo cáo **Chi tiết lỗi** bổ sung `catalogStatus`, `catalogResult`, `cand
 
 `catalogModelCount` cho biết số mục API catalog trả về (0–5000); `configuredModelListed` cho biết ID cấu hình có xuất hiện nguyên văn trong catalog đó hay không. Vì vậy catalog rỗng được phân biệt với catalog có model nhưng không có ứng viên dự phòng. Model có trong catalog vẫn có thể lỗi ở thời điểm gọi; các cờ này không chứng minh AI đang hoạt động.
 
-Hướng kiểm tra này dùng cấu hình đang có trên Render; người học không cần chuyển khóa API sang môi trường phát triển hoặc gửi qua chat. Nếu khóa đã xuất hiện trong chat, thu hồi/thay khóa tại nơi cấp rồi cập nhật `WOKU_API_KEY` trên Render. Chỉ sao chép báo cáo lỗi an toàn, không sao chép giá trị biến môi trường vào báo cáo.
+Hướng kiểm tra này dùng cấu hình đang có trên Render; người học không cần chuyển khóa API sang môi trường phát triển hoặc gửi qua chat. Nếu khóa đã xuất hiện trong chat, thu hồi/thay khóa tại nơi cấp rồi cập nhật biến khóa của đúng nhà cung cấp trên Render. Chỉ sao chép báo cáo lỗi an toàn, không sao chép giá trị biến môi trường vào báo cáo.
 
 Trong Render, mở dịch vụ AI → Logs. Bản mới ghi JSON `ai_upstream_failure` với `status`, `code`, số lần thử và `requestId`. Đối chiếu `requestId` với phản hồi API nếu cần. Không đưa khóa API, câu hỏi, hội thoại hay toàn bộ phản hồi lỗi của nhà cung cấp vào log.
 
 | Mã lỗi | Việc cần kiểm tra |
 | --- | --- |
-| `AI_AUTH` | Cập nhật `WOKU_API_KEY` trong cấu hình bảo mật của Render; kiểm tra khóa còn hiệu lực và được phép gọi API. Không gửi khóa qua chat hoặc đưa vào GitHub. |
-| `AI_MODEL` | Đặt `AI_MODEL` đúng ID trong danh sách model mà tài khoản tại nhà cung cấp được dùng. Không tự đoán tên hoặc đổi sang model ngẫu nhiên. |
+| `AI_AUTH` | Cập nhật khóa của nhà cung cấp đã chọn (`WOKU_API_KEY` hoặc `GEMINI_API_KEY`) trong cấu hình bảo mật của Render; kiểm tra khóa còn hiệu lực và được phép gọi API. Không gửi khóa qua chat hoặc đưa vào GitHub. |
+| `AI_MODEL` | Đặt biến model tương ứng (`AI_MODEL` cho Woku, `GEMINI_MODEL` cho Google) đúng ID tài khoản được dùng. Không tự đoán tên hoặc đổi sang model ngẫu nhiên. |
 | `AI_QUOTA` | Kiểm tra số dư/hạn mức tại nhà cung cấp. Khác với hạn mức ngày của website. |
 | `AI_BUSY` | Chờ thời gian `Retry-After` rồi thử lại. |
 | `AI_UNAVAILABLE`, `AI_NETWORK`, `AI_TIMEOUT` | Kiểm tra trạng thái nhà cung cấp và kết nối từ Render; có thể thử lại. |

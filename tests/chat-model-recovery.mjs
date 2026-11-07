@@ -19,7 +19,7 @@ const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(d
 const answer = () => json({ choices: [{ message: { content: REPLY } }] });
 const reject = (status = 503, code = 'server_error', headers = {}) => json({ error: { code, message: DETAIL } }, status, headers);
 const catalog = ids => json({ data: ids.map(id => ({ id })) });
-const prior = Object.fromEntries(['NODE_ENV', 'ALLOWED_ORIGIN', 'AI_MODEL', 'WOKU_API_KEY', 'DAILY_REQUEST_LIMIT'].map(name => [name, process.env[name]]));
+const prior = Object.fromEntries(['NODE_ENV', 'ALLOWED_ORIGIN', 'AI_MODEL', 'WOKU_API_KEY', 'DAILY_REQUEST_LIMIT', 'AI_PROVIDER'].map(name => [name, process.env[name]]));
 let imported = 0, groups = 0;
 
 function privateOutput(value) {
@@ -31,6 +31,7 @@ function privateOutput(value) {
 
 async function withServer(upstream, test, { model = PRIMARY, key = KEY, limit = 50 } = {}) {
   process.env.NODE_ENV = 'test';
+  process.env.AI_PROVIDER = 'woku';
   process.env.ALLOWED_ORIGIN = 'https://recovery.test';
   process.env.AI_MODEL = model;
   process.env.WOKU_API_KEY = key;

@@ -13,7 +13,7 @@ const templateId = templates[0].id;
 const wrongScopeId = listTemplates({ courseId: 'microbit', lessonId: 'all', level: 'all' })[0]?.id || 'not-an-allowed-template';
 const jsonPlan = JSON.stringify({ templateIds: [templateId] });
 const response = content => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content } }] }) });
-const prior = Object.fromEntries(['NODE_ENV', 'ALLOWED_ORIGIN', 'AI_MODEL', 'DAILY_REQUEST_LIMIT', 'WOKU_API_KEY'].map(name => [name, process.env[name]]));
+const prior = Object.fromEntries(['NODE_ENV', 'ALLOWED_ORIGIN', 'AI_MODEL', 'DAILY_REQUEST_LIMIT', 'WOKU_API_KEY', 'AI_PROVIDER'].map(name => [name, process.env[name]]));
 const actualNow = Date.now;
 let serverIndex = 0;
 let assertions = 0;
@@ -49,6 +49,7 @@ function request(server, { method = 'POST', path = '/api/practice-plan', origin 
 
 async function withServer(upstream, test, { limit = 50 } = {}) {
   process.env.NODE_ENV = 'test';
+  process.env.AI_PROVIDER = 'woku';
   process.env.ALLOWED_ORIGIN = 'https://practice.test';
   process.env.AI_MODEL = 'test-planner-model';
   process.env.DAILY_REQUEST_LIMIT = String(limit);
@@ -129,7 +130,7 @@ try {
   }, async server => {
     let result = await request(server, { method: 'GET', path: '/health', origin: null, body: undefined });
     assert.equal(result.status, 200); assert.equal(result.data.ok, true);
-    assert.deepEqual(result.data.ai, { keyConfigured: true, modelConfigured: true, allowedOrigin: 'https://practice.test' });
+    assert.deepEqual(result.data.ai, { provider:'woku',keyConfigured: true, modelConfigured: true, allowedOrigin: 'https://practice.test' });
     assert.ok(result.data.revision === null || /^[a-f0-9]{40}$/i.test(result.data.revision));
     assert.equal((await request(server, { path: '/not-an-api' })).status, 404);
     assert.equal((await request(server, { origin: 'https://other.test' })).status, 403);

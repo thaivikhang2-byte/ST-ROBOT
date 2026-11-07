@@ -37,10 +37,11 @@ async function failure(upstream, expected, overrides = {}) {
   return { calls, logs, error: captured };
 }
 
-const prior = Object.fromEntries(['NODE_ENV', 'ALLOWED_ORIGIN', 'AI_MODEL', 'DAILY_REQUEST_LIMIT', 'WOKU_API_KEY'].map(name => [name, process.env[name]]));
+const prior = Object.fromEntries(['NODE_ENV', 'ALLOWED_ORIGIN', 'AI_MODEL', 'DAILY_REQUEST_LIMIT', 'WOKU_API_KEY', 'AI_PROVIDER'].map(name => [name, process.env[name]]));
 let serverIndex = 0;
 async function withServer(upstream, callback, { key = KEY, limit = 50 } = {}) {
   process.env.NODE_ENV = 'test';
+  process.env.AI_PROVIDER = 'woku';
   process.env.ALLOWED_ORIGIN = 'https://chat.test';
   process.env.AI_MODEL = 'configured-test-model';
   process.env.DAILY_REQUEST_LIMIT = String(limit);

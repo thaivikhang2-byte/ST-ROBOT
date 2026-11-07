@@ -5,9 +5,9 @@ import { preparePracticePlan, parsePracticePlan, PracticePlanError } from './pra
 import { requestChatCompletion, ChatUpstreamError } from './chat-upstream.mjs';
 import { normalizeAllowedOrigin } from './origin-policy.mjs';
 import { createModelFallbackResolver } from './model-fallback.mjs';
+import { getProviderConfig } from './provider-config.mjs';
 const curriculum = JSON.parse(readFileSync(new URL('./curriculum.json', import.meta.url), 'utf8'));
 const allowedOrigin = normalizeAllowedOrigin(process.env.ALLOWED_ORIGIN);
-const model = process.env.AI_MODEL?.trim() || 'gemini-4-argon';
 const maxDaily = Number(process.env.DAILY_REQUEST_LIMIT || 50);
 if (!Number.isInteger(maxDaily) || maxDaily < 1 || maxDaily > 1000) throw new Error('DAILY_REQUEST_LIMIT must be 1..1000');
 const maxPlannerDaily = Math.min(10, Math.max(0, maxDaily - 1), Math.ceil(maxDaily / 5));
@@ -24,7 +24,9 @@ function untilAborted(operation, signal) {
   });
 }
 export function createServer(upstream = fetch) {
-  const resolveFallbackModel = createModelFallbackResolver({upstream});
+  const provider = getProviderConfig();
+  const model = provider.model;
+  const resolveFallbackModel = createModelFallbackResolver({upstream,catalogUrl:provider.catalogEndpoint});
   return http.createServer(async (req, res) => {
     const origin = req.headers.origin;
     const headers = {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin'};
@@ -35,7 +37,7 @@ export function createServer(upstream = fetch) {
       return reply(200, {
         ok:true,
         revision:typeof revision === 'string' && /^[a-f0-9]{40}$/i.test(revision) ? revision : null,
-        ai:{keyConfigured:Boolean(process.env.WOKU_API_KEY?.trim()),modelConfigured:Boolean(process.env.AI_MODEL?.trim()),allowedOrigin}
+        ai:{provider:provider.id,keyConfigured:Boolean(process.env[provider.keyVariable]?.trim()),modelConfigured:Boolean(process.env[provider.modelVariable]?.trim()),allowedOrigin}
       });
     }
     const homeChat = req.url === '/api/home-chat';
@@ -47,7 +49,7 @@ export function createServer(upstream = fetch) {
       return res.end();
     }
     if (req.method !== 'POST') return reply(405, {error:'Hãy gửi câu hỏi bằng biểu mẫu của trợ lý.'});
-    const apiKey = process.env.WOKU_API_KEY?.trim();
+    const apiKey = process.env[provider.keyVariable]?.trim();
     if (!apiKey) return reply(503, {error:'Dịch vụ AI cần cập nhật quyền kết nối. Người quản trị hãy kiểm tra khóa API trên máy chủ.',code:'AI_AUTH',retryable:false,stage:'server'});
     if (practicePlan ? !/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] || '') : !req.headers['content-type']?.startsWith('application/json')) return reply(415, {error:practicePlan ? 'Hãy gửi lựa chọn luyện tập bằng biểu mẫu trên website.' : 'Hãy kiểm tra nội dung câu hỏi rồi gửi lại.'});
     let data;
@@ -98,7 +100,7 @@ export function createServer(upstream = fetch) {
       const timeout = setTimeout(() => controller.abort(new DOMException('Planner timed out', 'TimeoutError')), 3500);
       try {
         const selection = await untilAborted(async () => {
-          const result = await upstream('https://llm.wokushop.com/v1/chat/completions', {
+          const result = await upstream(provider.chatEndpoint, {
             method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
             body:JSON.stringify({model, messages:plan.messages, max_tokens:600}), signal:controller.signal
           });
@@ -128,7 +130,7 @@ export function createServer(upstream = fetch) {
     const requestId = randomUUID();
     try {
       const content = await requestChatCompletion({ upstream, apiKey, model,
-        messages:[{role:'system',content:system},...(data.history || []),{role:'user',content:question}], requestId, resolveFallbackModel });
+        messages:[{role:'system',content:system},...(data.history || []),{role:'user',content:question}], requestId, resolveFallbackModel, endpoint:provider.chatEndpoint });
       return reply(200, {reply:content});
     } catch (error) {
       if (error instanceof ChatUpstreamError) {

@@ -7,7 +7,7 @@ const origin = 'https://thaivikhang2-byte.github.io';
 const key = 'private-local-origin-key-never-return';
 const model = 'private-local-origin-model-never-return';
 const revision = 'a'.repeat(40);
-const prior = Object.fromEntries(['NODE_ENV', 'ALLOWED_ORIGIN', 'WOKU_API_KEY', 'AI_MODEL', 'DAILY_REQUEST_LIMIT', 'RENDER_GIT_COMMIT'].map(name => [name, process.env[name]]));
+const prior = Object.fromEntries(['NODE_ENV', 'ALLOWED_ORIGIN', 'WOKU_API_KEY', 'AI_MODEL', 'DAILY_REQUEST_LIMIT', 'RENDER_GIT_COMMIT', 'AI_PROVIDER'].map(name => [name, process.env[name]]));
 const templateId = listTemplates({ courseId: 'arduino', lessonId: 'led' })[0].id;
 const requests = [
   { path: '/api/home-chat', body: { question: 'Kiểm tra kết nối bằng fixture.' } },
@@ -45,6 +45,7 @@ async function withServer(configured, test, options = {}) {
   const aiModel = Object.hasOwn(options, 'aiModel') ? options.aiModel : model;
   const gitRevision = Object.hasOwn(options, 'gitRevision') ? options.gitRevision : revision;
   process.env.NODE_ENV = 'test';
+  process.env.AI_PROVIDER = 'woku';
   for (const [name, value] of Object.entries({ ALLOWED_ORIGIN: configured, WOKU_API_KEY: apiKey, AI_MODEL: aiModel, DAILY_REQUEST_LIMIT: '50', RENDER_GIT_COMMIT: gitRevision })) {
     if (value === undefined) delete process.env[name];
     else process.env[name] = value;
@@ -115,14 +116,14 @@ try {
   await withServer(origin + '/ST-ROBOT', async (server, calls) => {
     const health = await request(server, { requestOrigin: null });
     assert.equal(health.status, 200);
-    assert.deepEqual(health.data, { ok: true, revision, ai: { keyConfigured: true, modelConfigured: true, allowedOrigin: origin } });
+    assert.deepEqual(health.data, { ok: true, revision, ai: { provider:'woku',keyConfigured: true, modelConfigured: true, allowedOrigin: origin } });
     assert.ok(!health.text.includes(key) && !health.text.includes(model), 'Public health must reveal no key or configured model name');
     assert.equal(calls(), 0, 'Health must not call the paid AI provider');
   });
   for (const gitRevision of [undefined, 'invalid-private-revision', 'a'.repeat(39), 'a'.repeat(41)]) {
     await withServer(undefined, async (server, calls) => {
       const health = await request(server, { requestOrigin: null });
-      assert.deepEqual(health.data, { ok: true, revision: null, ai: { keyConfigured: false, modelConfigured: false, allowedOrigin: origin } });
+      assert.deepEqual(health.data, { ok: true, revision: null, ai: { provider:'woku',keyConfigured: false, modelConfigured: false, allowedOrigin: origin } });
       assert.ok(!health.text.includes('invalid-private-revision'));
       assert.equal(calls(), 0);
     }, { apiKey: '   ', aiModel: undefined, gitRevision });

@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { selectGeminiCandidates, isGeminiModel } from './model-selection.mjs';
+import { PROVIDER_ENDPOINTS } from './provider-config.mjs';
 export { GEMINI_FALLBACK_MODELS, MAX_FALLBACK_CANDIDATES, isGeminiModel, isAllowedFallbackModel } from './model-selection.mjs';
 
-const catalogUrl = 'https://llm.wokushop.com/v1/models';
+const supportedCatalogs = new Set(Object.values(PROVIDER_ENDPOINTS).map(provider => provider.catalogEndpoint));
 
 const cancelled = signal => signal?.reason || new DOMException('Request cancelled', 'AbortError');
 
@@ -15,7 +16,9 @@ function emitDiagnostic(observer, diagnostic) {
 
 // Catalog membership is required before changing a model. It does not establish
 // that the model is currently healthy, cheaper, or equivalent to the primary.
-export function createModelFallbackResolver({ upstream = fetch, catalogTimeoutMs = 5000, cacheTtlMs = 600000 } = {}) {
+export function createModelFallbackResolver({ upstream = fetch, catalogTimeoutMs = 5000, cacheTtlMs = 600000,
+  catalogUrl = PROVIDER_ENDPOINTS.woku.catalogEndpoint } = {}) {
+  if (!supportedCatalogs.has(catalogUrl)) throw new Error('Unsupported AI catalog endpoint.');
   const cache = new Map();
 
   async function readCatalog(key, parent, currentModel) {

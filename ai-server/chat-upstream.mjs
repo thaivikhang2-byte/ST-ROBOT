@@ -1,6 +1,8 @@
 import { MAX_FALLBACK_CANDIDATES, isGeminiModel, isAllowedFallbackModel } from './model-selection.mjs';
+import { PROVIDER_ENDPOINTS } from './provider-config.mjs';
 
-const endpoint = 'https://llm.wokushop.com/v1/chat/completions';
+const defaultEndpoint = PROVIDER_ENDPOINTS.woku.chatEndpoint;
+const supportedEndpoints = new Set(Object.values(PROVIDER_ENDPOINTS).map(provider => provider.chatEndpoint));
 // Only these non-secret protocol codes may leave the provider adapter. Never
 // reflect arbitrary error strings, messages, model names or provider bodies.
 const providerCodes = new Set([
@@ -26,7 +28,7 @@ function catalogDetails(value = {}) {
 }
 const messages = {
   AI_AUTH: 'Dịch vụ AI cần cập nhật quyền kết nối. Người quản trị hãy kiểm tra khóa API trên máy chủ.',
-  AI_MODEL: 'Mô hình AI đang cấu hình chưa được dịch vụ hỗ trợ. Người quản trị hãy kiểm tra AI_MODEL trên máy chủ.',
+  AI_MODEL: 'Mô hình AI đang cấu hình chưa được dịch vụ hỗ trợ. Người quản trị hãy kiểm tra cấu hình mô hình trên máy chủ.',
   AI_QUOTA: 'Dịch vụ AI đã hết hạn mức từ nhà cung cấp. Người quản trị hãy kiểm tra hạn mức của tài khoản AI.',
   AI_BUSY: 'Dịch vụ AI đang bận. Bạn hãy thử lại sau ít phút.',
   AI_UNAVAILABLE: 'Dịch vụ AI đang tạm gián đoạn. Bạn có thể thử lại câu hỏi này.',
@@ -88,7 +90,8 @@ function waitForRetry(delay, signal) {
 // One deadline includes connection, response body and the single transient retry.
 // Failed provider bodies and credentials never leave this adapter or enter logs.
 export async function requestChatCompletion({ upstream = fetch, apiKey, model, messages: conversation,
-  maxTokens = 1200, timeoutMs = 55000, retryDelayMs = 400, requestId, logger = console.error, resolveFallbackModel }) {
+  maxTokens = 1200, timeoutMs = 55000, retryDelayMs = 400, requestId, logger = console.error, resolveFallbackModel, endpoint = defaultEndpoint }) {
+  if (!supportedEndpoints.has(endpoint)) throw new Error('Unsupported AI completion endpoint.');
   const key = typeof apiKey === 'string' ? apiKey.trim() : '';
   if (!key) throw new ChatUpstreamError(503, 'AI_AUTH', false, undefined, { stage: 'server' });
   const controller = new AbortController();
