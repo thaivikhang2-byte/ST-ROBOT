@@ -89,6 +89,7 @@ def run_case(browser, kind, width):
         expected_path = '/api/home-chat'
         panel = page.locator('#supportChatWindow')
     else:
+        page.locator('#tutorLauncher').click()
         input_box = page.locator('#tutorQuestion')
         button = page.locator('#tutorSend')
         replies = page.locator('#tutorMessages .chat-message:not(.user) .ai-rich-text')

@@ -149,6 +149,9 @@ with sync_playwright() as pw:
     page.reload(wait_until='domcontentloaded')
     expect(page.locator('#progressText')).to_contain_text('1/6')
     assert page.evaluate('record().note') == 'Ghi chú phiên bản trước'
+    expect(page.locator('#tutorPanel')).to_be_hidden()
+    page.locator('#tutorLauncher').click()
+    expect(page.locator('#tutorPanel')).to_be_visible()
     page.locator('button[onclick="prepareTutorQuestion(\'hint\')"]').click()
     assert 'bước tiếp theo' in page.locator('#tutorQuestion').input_value()
     assert not any('/api/tutor' in url or '/api/home-chat' in url for url in external), 'Prompt buttons sent an unsolicited AI request'

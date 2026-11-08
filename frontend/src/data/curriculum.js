@@ -104,7 +104,80 @@ window.STROBOT_CURRICULUM = [
             "title": "Arduino — ví dụ Blink",
             "url": "https://docs.arduino.cc/built-in-examples/basics/Blink/"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Một chiếc LED sáng lên nhờ có dòng điện chạy qua nó. Bài này giúp bạn nối ba ý: phải có đường đi kín, LED cần đúng chiều và dòng qua LED cần được giới hạn. Chưa cần thuộc công thức: trước hết hãy theo dõi điều gì thay đổi khi chỉ tăng điện trở, rồi dùng một phép tính nhỏ để giải thích.",
+          "analogy": {
+            "familiar": "Hãy hình dung một vòng đường có bơm nước, ống dẫn và một đoạn ống hẹp. Nước chỉ tuần hoàn khi đường ống không bị đứt; đoạn hẹp làm lưu lượng nhỏ hơn trong cùng điều kiện bơm.",
+            "meaning": "Trong cách hình dung này, nguồn tạo chênh lệch điện thế để dòng chạy trong mạch kín; điện trở cản dòng. Điện trở không “tiêu hết dòng” trước khi dòng tới LED: các phần tử nối tiếp có cùng dòng điện ở trạng thái ổn định.",
+            "limit": "Điện áp không phải nước và LED không phải ống thông thường. LED dẫn phụ thuộc chiều và điện áp theo quan hệ phi tuyến; ví von này chỉ giúp hiểu đường kín và vai trò hạn dòng."
+          },
+          "vocabulary": [
+            {
+              "term": "Điện áp · V",
+              "definition": "Chênh lệch điện thế giữa hai điểm. Nguồn 5 V mô tả chênh lệch này, không nói rằng mạch luôn có dòng 5 A."
+            },
+            {
+              "term": "Dòng điện · A, mA",
+              "definition": "Lượng điện tích đi qua một tiết diện mỗi giây. 1 A = 1 000 mA; 0,004 A là 4 mA."
+            },
+            {
+              "term": "Điện trở · Ω",
+              "definition": "Đại lượng liên hệ điện áp hai đầu điện trở với dòng qua nó: I = V/R. Cùng điện áp, điện trở lớn hơn cho dòng nhỏ hơn."
+            },
+            {
+              "term": "Điện áp rơi trên LED · Vf",
+              "definition": "Điện áp hai đầu LED khi đang dẫn ở một điều kiện cụ thể. Bài dùng 2 V như giả định để ước lượng, không coi đó là hằng số cho mọi LED."
+            }
+          ],
+          "workedCase": {
+            "title": "Vì sao đổi 330 Ω thành 680 Ω làm dòng giảm?",
+            "input": "Mạch nối tiếp có nguồn 5 V, LED được mô hình hóa với Vf = 2 V. So sánh R = 330 Ω và R = 680 Ω; giữ nguyên nguồn và mô hình LED.",
+            "steps": [
+              {
+                "title": "Tìm điện áp trên điện trở",
+                "explanation": "Nguồn tạo 5 V; mô hình dành 2 V cho LED. Điện áp trên điện trở còn 5 − 2 = 3 V. Chính 3 V này được đưa vào công thức I = V/R."
+              },
+              {
+                "title": "Tính dòng ở lần đầu",
+                "explanation": "Với 330 Ω: I = 3/330 A ≈ 0,00909 A. Đổi sang mA bằng cách nhân 1 000, được khoảng 9,09 mA."
+              },
+              {
+                "title": "Chỉ đổi một yếu tố",
+                "explanation": "Với 680 Ω: I = 3/680 A ≈ 4,41 mA. So sánh 4,41 với 9,09: dòng giảm còn gần một nửa. Bạn đã kiểm tra tác động của điện trở, vì các giả định khác được giữ nguyên."
+              }
+            ],
+            "output": "Hai đầu ra dự kiến là khoảng 9,09 mA và 4,41 mA. Đây là dòng tính từ mô hình, chưa phải số đo linh kiện thật.",
+            "why": "Mẫu số R tăng làm I giảm khi điện áp trên điện trở giữ nguyên. Đó là lý do LED rời cần điện trở hạn dòng; thử nghiệm với LED tích hợp trên Uno không thay thế việc kiểm tra mạch LED rời."
+          },
+          "checkpoints": [
+            {
+              "question": "Nếu mạch bị hở, có thể dùng I = 3/R để kết luận LED vẫn sáng không?",
+              "answer": "Không. Công thức trên mô tả mạch nối tiếp đang kín trong mô hình đã nêu. Một đường dẫn bị đứt không có dòng ổn định chạy qua LED."
+            },
+            {
+              "question": "Vì sao phải viết mA sau số 4,41?",
+              "answer": "Đơn vị xác định độ lớn. 4,41 A lớn gấp 1 000 lần 4,41 mA; bỏ đơn vị dễ dẫn tới kết luận sai về dòng linh kiện."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Đọc theo đường đi của dòng",
+              "body": "Dùng ngón tay lần theo nguồn → điện trở → LED → đường về nguồn trên sơ đồ. Sau đó so sánh hai kết quả mA mà chưa cần tự biến đổi công thức.",
+              "task": "Thử nói một câu: “Giữ nguồn và mô hình LED như cũ, tăng điện trở thì dòng…”."
+            },
+            "intermediate": {
+              "title": "Nối phép thử với định luật Ohm",
+              "body": "Tách rõ điện áp nguồn 5 V và điện áp trên điện trở 3 V. Tính một hàng bằng A rồi đổi sang mA; đối chiếu với kết quả mô hình.",
+              "task": "Tính cho 470 Ω. Bạn nên thu được khoảng 6,38 mA trong cùng giả định."
+            },
+            "advanced": {
+              "title": "Xét thêm công suất và sai số",
+              "body": "Với 680 Ω, công suất điện trở là P = I²R ≈ 0,0132 W. Chọn linh kiện thật còn phải xét giới hạn dòng LED, công suất điện trở, sai số nguồn và Vf theo datasheet. Giới hạn tối đa của chân Uno không phải dòng thiết kế nên nhắm tới.",
+              "task": "Giữ R = 680 Ω nhưng thay Vf giả định thành 1,8 V và 2,2 V. Tính hai dòng để thấy phép ước lượng phụ thuộc mô hình LED."
+            }
+          }
+        }
       },
       {
         "id": "timing",
@@ -195,7 +268,80 @@ window.STROBOT_CURRICULUM = [
             "title": "Arduino — Blink Without Delay",
             "url": "https://docs.arduino.cc/built-in-examples/digital/BlinkWithoutDelay/"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Một đèn nhấp nháy có ít nhất hai điều để mô tả: bao lâu lặp lại một lần và trong lần đó sáng bao lâu. Tách hai điều này giúp bạn đọc chương trình theo thời gian, thay vì chỉ nhìn đèn rồi nói “nhanh” hoặc “chậm”.",
+          "analogy": {
+            "familiar": "Hãy vỗ tay rồi nghỉ theo một nhịp đều. Một nhịp gồm cả đoạn vỗ và đoạn nghỉ; chỉ đo đoạn vỗ sẽ thiếu một phần của nhịp.",
+            "meaning": "LED cũng có đoạn bật và đoạn tắt. Chu kỳ là khoảng thời gian từ một lần bắt đầu bật tới lần bắt đầu bật kế tiếp. Tỷ lệ bật cho biết phần thời gian bật trong cả chu kỳ.",
+            "limit": "Tay người không tạo mức logic chính xác và cảm nhận ánh sáng không giống việc đếm nhịp. Ví von này không dự đoán độ sáng cảm nhận hay dòng điện của LED."
+          },
+          "vocabulary": [
+            {
+              "term": "Chu kỳ · T",
+              "definition": "Thời gian cho một lần lặp đầy đủ. Nếu bật 300 ms rồi tắt 700 ms, T = 1 000 ms."
+            },
+            {
+              "term": "Tần số · Hz",
+              "definition": "Số chu kỳ trong một giây. 1 Hz là một chu kỳ mỗi giây, không phải một mili giây."
+            },
+            {
+              "term": "Tỷ lệ bật · duty cycle",
+              "definition": "Thời gian bật chia tổng thời gian chu kỳ, thường viết bằng phần trăm."
+            },
+            {
+              "term": "Lệnh chờ · delay",
+              "definition": "Tạm dừng việc chạy tiếp các lệnh trong luồng chính. Trong thời gian đó, những lệnh đọc cảm biến đặt phía sau chưa được thực hiện."
+            }
+          ],
+          "workedCase": {
+            "title": "Hai nhịp cùng 1 Hz nhưng tỷ lệ bật khác nhau",
+            "input": "Phương án A bật 300 ms, tắt 700 ms. Phương án B bật 600 ms, tắt 400 ms. Một giây bằng 1 000 ms.",
+            "steps": [
+              {
+                "title": "Ghép đủ một chu kỳ",
+                "explanation": "A có T = 300 + 700 = 1 000 ms. B có T = 600 + 400 = 1 000 ms. Không lấy riêng thời gian bật làm chu kỳ."
+              },
+              {
+                "title": "Đổi chu kỳ thành tần số",
+                "explanation": "Cả hai có T = 1 s nên f = 1/T = 1 Hz. Nếu giữ ms, dùng f = 1 000/T, cũng được 1 Hz."
+              },
+              {
+                "title": "Tính phần thời gian bật",
+                "explanation": "A có D = 300/1 000 × 100% = 30%. B có D = 600/1 000 × 100% = 60%. B bật lâu hơn trong mỗi chu kỳ, dù số chu kỳ mỗi giây bằng nhau."
+              }
+            ],
+            "output": "Cùng tần số 1 Hz; tỷ lệ bật lần lượt 30% và 60%. Bạn đã dùng hai đại lượng khác nhau để mô tả cùng một tín hiệu.",
+            "why": "Khi đọc mã, hãy dựng một trục thời gian: bật → chờ → tắt → chờ → lặp. Cách này còn cho biết chương trình có thể chậm phản hồi nút bấm vì đang chờ ở đâu."
+          },
+          "checkpoints": [
+            {
+              "question": "Bật 250 ms, tắt 250 ms có phải 4 Hz không?",
+              "answer": "Không. Cả chu kỳ là 500 ms = 0,5 s, nên tần số là 2 Hz. 250 ms chỉ là nửa chu kỳ."
+            },
+            {
+              "question": "Đang delay 700 ms, chương trình có kiểm tra nút bằng lệnh nằm sau delay ngay lập tức không?",
+              "answer": "Không. Lệnh phía sau phải chờ luồng chính chạy tiếp. Khi cần phản hồi thường xuyên, có thể so sánh thời gian millis giữa các lượt lặp thay cho chờ dài."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Vẽ trước khi tính",
+              "body": "Vẽ một thanh dài 1 000 ms, tô phần bật 300 ms, để trắng phần tắt 700 ms. Bạn có thể nhìn thấy tỷ lệ 3 phần bật trong 10 phần của chu kỳ.",
+              "task": "Chỉ ra điểm đầu và điểm cuối của một chu kỳ trên hình."
+            },
+            "intermediate": {
+              "title": "Giữ một đại lượng, đổi đại lượng kia",
+              "body": "So sánh 300/700 với 600/400 để đổi duty mà giữ tần số. So sánh 300/700 với 600/1 400 để giữ duty 30% nhưng giảm tần số còn 0,5 Hz.",
+              "task": "Thiết kế một nhịp 2 Hz có tỷ lệ bật 20%; kiểm tra tổng thời gian và đơn vị."
+            },
+            "advanced": {
+              "title": "Lập lịch không chặn bằng thời gian",
+              "body": "Tách trạng thái đèn và thời điểm cần đổi trạng thái. Mỗi lượt loop đọc cảm biến rồi so sánh thời gian đã trôi với khoảng bật/tắt tương ứng. Khi triển khai millis, dùng hiệu thời gian với kiểu số nguyên không dấu phù hợp để xử lý bộ đếm quay vòng.",
+              "task": "Mô tả điều gì xảy ra nếu xử lý cảm biến tốn lâu hơn khoảng bật dự kiến; phân biệt thời gian yêu cầu và thời gian chuyển thực tế."
+            }
+          }
+        }
       },
       {
         "id": "distance",
@@ -286,7 +432,80 @@ window.STROBOT_CURRICULUM = [
             "title": "Arduino — ví dụ đo siêu âm Ping",
             "url": "https://docs.arduino.cc/built-in-examples/sensors/Ping/"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Cảm biến siêu âm không đọc trực tiếp một con số “cm”. Nó giúp chương trình đo một khoảng thời gian. Muốn từ thời gian suy ra khoảng cách, bạn cần biết sóng đi bao nhanh và nhớ rằng sóng đã đi cả lượt tới lẫn lượt về.",
+          "analogy": {
+            "familiar": "Bạn gọi lớn trước một vách núi và đợi tiếng vọng. Thời gian chờ chứa cả đoạn âm đi tới vách và đoạn âm quay lại tai.",
+            "meaning": "HC-SR04 cũng dựa trên một hành trình âm thanh khứ hồi. Chương trình dùng độ rộng xung Echo như dữ liệu thời gian rồi tính khoảng cách một chiều tới vật.",
+            "limit": "Trig và Echo là tín hiệu điện giữa bo và module, không phải âm thanh đi trong không khí. Việc có vật trước mặt chưa bảo đảm luôn nhận được phản xạ đủ tốt."
+          },
+          "vocabulary": [
+            {
+              "term": "Siêu âm",
+              "definition": "Âm thanh có tần số vượt vùng nghe thông thường của người. Module phát sóng và nhận phản xạ."
+            },
+            {
+              "term": "Thời gian khứ hồi · µs",
+              "definition": "Thời gian đi tới vật rồi quay về; 1 µs = một phần triệu giây."
+            },
+            {
+              "term": "Tốc độ âm · cm/µs",
+              "definition": "Trong phép tính này lấy gần đúng 0,034 cm/µs. Con số thay đổi theo môi trường, đặc biệt nhiệt độ."
+            },
+            {
+              "term": "Timeout",
+              "definition": "Hết thời gian chờ mà chưa có xung đo hoàn chỉnh. Đây là dữ liệu lỗi, không phải khoảng cách bằng 0."
+            }
+          ],
+          "workedCase": {
+            "title": "Từ 1 500 µs đến khoảng cách một chiều",
+            "input": "Một xung Echo hợp lệ dài 1 500 µs. Dùng tốc độ âm gần đúng 0,034 cm/µs; chưa xét nhiệt độ và sai số phản xạ.",
+            "steps": [
+              {
+                "title": "Tính toàn bộ đường sóng đi",
+                "explanation": "Nhân 0,034 cm/µs với 1 500 µs, được 51 cm. Đơn vị µs triệt tiêu; 51 cm là tổng hành trình đi và về."
+              },
+              {
+                "title": "Lấy một nửa hành trình",
+                "explanation": "Khoảng cách từ cảm biến tới vật là 51/2 = 25,5 cm. Bỏ phép chia 2 sẽ khiến kết quả lớn gấp đôi trong mô hình này."
+              },
+              {
+                "title": "Xử lý một lượt không có Echo",
+                "explanation": "Nếu lượt tiếp theo trả 0 do timeout, ghi “không đo được”. Không tính d = 0 cm và không trộn mẫu lỗi với 25,5 cm để lấy trung bình."
+              }
+            ],
+            "output": "Lượt hợp lệ cho 25,5 cm. Lượt timeout không tạo khoảng cách mới; đầu ra cần kèm trạng thái dữ liệu.",
+            "why": "Một số đo tốt gồm cả giá trị và điều kiện hợp lệ. Nhờ vậy, chương trình phía sau phân biệt được “vật gần” và “cảm biến chưa cung cấp dữ liệu”."
+          },
+          "checkpoints": [
+            {
+              "question": "Echo dài gấp đôi thì khoảng cách trong mô hình thay đổi thế nào?",
+              "answer": "Khoảng cách cũng gấp đôi, vì d = 0,034 × t/2 là quan hệ tuyến tính khi giữ tốc độ âm như cũ và xung hợp lệ."
+            },
+            {
+              "question": "Vì sao một tấm vải nghiêng có thể khó đo hơn một mặt phẳng cứng vuông góc?",
+              "answer": "Vật liệu có thể hấp thụ âm và góc nghiêng có thể phản xạ âm ra khỏi cảm biến. Công thức không sửa được một phản xạ yếu hoặc sai mục tiêu."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Theo dõi lượt đi và lượt về",
+              "body": "Vẽ cảm biến và vật, thêm hai mũi tên ngược chiều. Viết 51 cm trên tổng hai mũi tên rồi chia đều để thấy vì sao cần chia 2.",
+              "task": "Tính nhẩm cho Echo = 1 000 µs và so với ví dụ."
+            },
+            "intermediate": {
+              "title": "Kiểm tra đơn vị trước công thức",
+              "body": "Có thể dùng 340 m/s với thời gian tính bằng s hoặc 0,034 cm/µs với thời gian tính bằng µs. Hai cách phải cho cùng khoảng cách sau khi đổi đơn vị.",
+              "task": "Đổi 1 500 µs thành giây rồi tính lại bằng m/s."
+            },
+            "advanced": {
+              "title": "Tách sai số mô hình và lỗi đọc",
+              "body": "Thay đổi tốc độ âm giả định làm dịch khoảng cách tính được ngay cả khi thời gian đúng. Timeout lại là trường hợp không có mẫu hợp lệ. Hai vấn đề cần hai cách xử lý khác nhau; lấy trung bình không tự chữa mọi lỗi. Echo 5 V của module cần chuyển mức phù hợp khi nối sang bo chỉ nhận 3,3 V.",
+              "task": "Tính kết quả với v = 0,033 và 0,035 cm/µs ở cùng 1 500 µs; nêu phạm vi chênh lệch do riêng giả định tốc độ âm."
+            }
+          }
+        }
       },
       {
         "id": "alarm",
@@ -377,7 +596,80 @@ window.STROBOT_CURRICULUM = [
             "title": "Arduino — cấu trúc if",
             "url": "https://docs.arduino.cc/language-reference/en/structure/control-structure/if/"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Sau khi có số đo, robot còn phải quyết định làm gì. Một quy tắc cảnh báo tốt cần nói rõ ba điều: khi nào dữ liệu dùng được, giá trị nào thuộc nhánh gần và khi lỗi thì báo ra sao. Bạn có thể kiểm tra quy tắc này trên giấy trước khi chạy.",
+          "analogy": {
+            "familiar": "Ở cổng soát vé, người kiểm tra cần biết vé đọc được hay không trước khi xét vé còn hạn. Không đọc được mã không đồng nghĩa với có vé hợp lệ.",
+            "meaning": "Tương tự, chương trình kiểm tra trạng thái cảm biến trước, rồi mới so khoảng cách với ngưỡng. Tách hai bước giúp tránh coi lỗi đo là một khoảng cách thật.",
+            "limit": "Chính sách soát vé không quyết định chính sách an toàn cho robot. Việc bật LED trong bài chỉ biểu diễn trạng thái phần mềm, không bảo đảm dừng được một cơ cấu chuyển động."
+          },
+          "vocabulary": [
+            {
+              "term": "Ngưỡng · T",
+              "definition": "Giá trị dùng làm ranh giới ra quyết định; bài chọn T = 20 cm."
+            },
+            {
+              "term": "Điều kiện d < T",
+              "definition": "Đúng khi khoảng cách nhỏ hơn ngưỡng. Dấu < không bao gồm trường hợp bằng ngưỡng."
+            },
+            {
+              "term": "Ca kiểm thử ở biên",
+              "definition": "Đầu vào ngay dưới, đúng bằng và ngay trên ranh giới; giúp phát hiện chọn sai dấu so sánh."
+            },
+            {
+              "term": "Chính sách lỗi",
+              "definition": "Quy tắc xử lý khi dữ liệu không dùng được. Ví dụ của bài ghi SENSOR_ERROR và bật LED để gây chú ý."
+            }
+          ],
+          "workedCase": {
+            "title": "Đọc một bảng quyết định đủ cả dữ liệu lỗi",
+            "input": "T = 20 cm, dùng điều kiện d < 20. Bốn lượt đầu vào: hợp lệ 18 cm; hợp lệ 20 cm; hợp lệ 22 cm; timeout không có d.",
+            "steps": [
+              {
+                "title": "Tách lượt không hợp lệ",
+                "explanation": "Lượt timeout được xử lý riêng: ghi SENSOR_ERROR và bật LED theo chính sách của bài. Không đưa một số d giả vào phép so sánh."
+              },
+              {
+                "title": "So sánh ba khoảng cách thật",
+                "explanation": "18 < 20 đúng nên chọn NEAR. 20 < 20 sai và 22 < 20 sai nên cả hai chọn FAR. Mỗi số d đều dùng cùng đơn vị cm với T."
+              },
+              {
+                "title": "Ghi cả nhãn và đèn",
+                "explanation": "18 cm → NEAR, LED sáng; 20 và 22 cm → FAR, LED tắt; timeout → SENSOR_ERROR, LED sáng. Hai nhãn khác nhau có thể cùng làm LED sáng."
+              }
+            ],
+            "output": "Có ba trạng thái cần hiểu: gần, xa theo phép đo và lỗi cảm biến. Chỉ nhìn một đèn sáng chưa phân biệt được gần với lỗi.",
+            "why": "Bảng dự kiến cho bạn một chuẩn để đối chiếu chương trình. Nếu 20 cm lại thành NEAR, hãy kiểm tra có dùng ≤ thay cho < hoặc có đổi đơn vị sai không."
+          },
+          "checkpoints": [
+            {
+              "question": "Nếu muốn cả 20 cm cũng cảnh báo gần, cần đổi gì?",
+              "answer": "Đổi yêu cầu thành d ≤ 20 và cập nhật kết quả dự kiến ở đúng 20 cm. Đây là thay đổi hành vi, không chỉ thay cách viết."
+            },
+            {
+              "question": "Vì sao thử riêng 5 cm và 80 cm chưa đủ kiểm tra ngưỡng?",
+              "answer": "Cả < và ≤ đều cho cùng nhánh ở hai số đó. Chúng chỉ khác ở đúng ngưỡng; cần thêm ca biên và ca lỗi."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Đọc điều kiện thành câu",
+              "body": "Đọc d < 20 là “khoảng cách nhỏ hơn 20 cm”. Hãy tự hỏi câu đó đúng hay sai với từng thẻ 18, 20, 22; đừng bắt đầu bằng nhớ cú pháp.",
+              "task": "Làm bảng hai cột đầu vào và trạng thái dự kiến trước khi mở Lab."
+            },
+            "intermediate": {
+              "title": "Liên kết yêu cầu, điều kiện và kiểm thử",
+              "body": "Một yêu cầu chính xác phải có đơn vị, dấu so sánh và hành vi lỗi. Ghi cả nhãn trạng thái và LED để không nhầm biểu hiện với nguyên nhân.",
+              "task": "Nếu dữ liệu đầu vào đổi sang mm, hãy viết lại ngưỡng tương ứng và ba ca biên."
+            },
+            "advanced": {
+              "title": "Phân biệt đặc tả logic và bảo đảm thực tế",
+              "body": "Một bảng quyết định đúng không chứng minh cảm biến luôn chính xác hoặc robot dừng kịp. Cần đánh giá thời gian lấy mẫu, độ trễ, khoảng dừng và khả năng nhận biết lỗi theo thiết bị thực. Bài này chỉ kiểm tra logic cảnh báo.",
+              "task": "Mô tả một phép thử mà LED đúng theo số đo nhưng vật thực tế vẫn ở vị trí khác vì cảm biến đọc sai."
+            }
+          }
+        }
       },
       {
         "id": "calibration",
@@ -468,7 +760,80 @@ window.STROBOT_CURRICULUM = [
             "title": "NIST — tổng quan hiệu chuẩn và mô hình đo",
             "url": "https://www.itl.nist.gov/div898/handbook/mpc/section3/mpc3.htm"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Số hiện trên màn hình không tự trở thành sự thật. Hiệu chuẩn bắt đầu bằng việc so số đo với một mốc tham chiếu có cách đặt rõ ràng. Bạn sẽ học cách nhận ra một lệch gần cố định, sửa thử nó rồi kiểm tra ở vị trí mới.",
+          "analogy": {
+            "familiar": "Một chiếc cân luôn hiển thị 0,5 kg khi chưa đặt gì lên cân gợi ý một độ lệch ban đầu. Đặt vật lên nhiều lần và lấy trung bình vẫn có thể giữ nguyên độ lệch ấy.",
+            "meaning": "Cảm biến khoảng cách cũng có thể đọc cao hơn hoặc thấp hơn mốc khá đều. Bù một hằng số là thử sửa phần lệch gần cố định; nó khác với làm mượt các dao động giữa các lượt.",
+            "limit": "Không phải sai số nào cũng là lệch hằng số. Nếu sai số phụ thuộc khoảng cách, góc hoặc vật liệu, một phép trừ duy nhất sẽ không đủ; mốc tham chiếu cũng có độ không chắc chắn."
+          },
+          "vocabulary": [
+            {
+              "term": "Mốc tham chiếu · cm",
+              "definition": "Khoảng cách được xác định bằng thước và cách đặt đã ghi. Đây là cơ sở đối chiếu của thí nghiệm."
+            },
+            {
+              "term": "Sai số có dấu · e",
+              "definition": "e = số đo − mốc. Số dương nghĩa đo lớn hơn mốc; số âm nghĩa đo nhỏ hơn mốc."
+            },
+            {
+              "term": "Sai số tuyệt đối · |e|",
+              "definition": "Độ lớn của chênh lệch, luôn không âm. Ví dụ e = −0,8 cm cho |e| = 0,8 cm."
+            },
+            {
+              "term": "Offset · độ lệch bù",
+              "definition": "Hằng số ước lượng từ dữ liệu để dùng trong d_sửa = d_đo − offset. Phải kiểm chứng bằng dữ liệu mới."
+            }
+          ],
+          "workedCase": {
+            "title": "Một phép bù có giúp ở điểm chưa dùng để tính không?",
+            "input": "Các cặp (mốc, đo) là (10; 10,8), (20; 20,9), (30; 30,7) cm. Dành riêng điểm mốc 25 cm, số đo 25,9 cm để kiểm chứng.",
+            "steps": [
+              {
+                "title": "Tính sai số từng điểm học",
+                "explanation": "Lấy đo trừ mốc: +0,8; +0,9; +0,7 cm. Các số đều dương và khá gần nhau, gợi ý thử mô hình lệch hằng số trong phạm vi này."
+              },
+              {
+                "title": "Ước lượng độ lệch bù",
+                "explanation": "Trung bình ba sai số: offset = (0,8 + 0,9 + 0,7)/3 = 0,8 cm. Không dùng điểm 25 cm trong bước tính này."
+              },
+              {
+                "title": "Kiểm chứng bằng điểm mới",
+                "explanation": "Ở mốc 25 cm, trước bù sai số là +0,9 cm. Sau bù: 25,9 − 0,8 = 25,1 cm, sai số còn +0,1 cm. Ghi rõ điều kiện thử và số mẫu lỗi nếu có."
+              }
+            ],
+            "output": "Ở điểm kiểm chứng này, sai số tuyệt đối giảm từ 0,9 cm còn 0,1 cm. Đó là bằng chứng cải thiện tại điểm đã thử.",
+            "why": "Tách dữ liệu ước lượng và kiểm chứng giúp tránh chỉ “sửa cho khớp” các số đã biết. Cần thêm vị trí và lượt đo để xem mô hình bù còn phù hợp ở đâu."
+          },
+          "checkpoints": [
+            {
+              "question": "Lấy trung bình 100 số cùng lệch +0,8 cm có tự xóa lệch đó không?",
+              "answer": "Không. Trung bình có thể giảm một phần dao động ngẫu nhiên trong điều kiện phù hợp, nhưng vẫn giữ lệch cố định khoảng +0,8 cm."
+            },
+            {
+              "question": "Nếu đọc thấp hơn mốc 1 cm thì offset và phép sửa có dấu gì?",
+              "answer": "offset gần −1 cm. Công thức d_sửa = d_đo − (−1) tương đương cộng 1 cm. Dấu phải theo quy ước đo trừ mốc."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Lập bảng bằng phép trừ",
+              "body": "Vẽ ba cột mốc, số đo, đo trừ mốc. Viết cm ở tiêu đề để mọi phép trừ dùng cùng đơn vị. Chưa cần công thức thống kê để nhận ra các sai số cùng cao hơn.",
+              "task": "Giải thích bằng lời vì sao đọc cao hơn thì ta thử trừ một lượng dương."
+            },
+            "intermediate": {
+              "title": "Tách lệch và độ phân tán",
+              "body": "Ở cùng một mốc, ghi nhiều lần để nhìn độ dao động. Ở nhiều mốc, nhìn xem sai số trung bình có gần cố định không. Hai cách thu thập trả lời hai câu hỏi khác nhau.",
+              "task": "Đề xuất thêm hai vị trí kiểm chứng, cùng cách đặt vật và cách ghi timeout."
+            },
+            "advanced": {
+              "title": "Kiểm tra giới hạn của mô hình offset",
+              "body": "Nếu sai số tăng dần khi mốc tăng, có thể cần mô hình có hệ số tỷ lệ thay vì chỉ bù hằng số. Không chọn mô hình phức tạp chỉ để mọi điểm đã đo khớp hoàn toàn; cần kiểm chứng độc lập và xét độ không chắc chắn của mốc.",
+              "task": "So sánh tập sai số +0,5; +1,0; +1,5 cm tại 10; 20; 30 cm với giả thuyết lệch hằng số. Nêu dữ liệu bổ sung cần có trước khi chọn cách sửa."
+            }
+          }
+        }
       },
       {
         "id": "project",
@@ -559,7 +924,84 @@ window.STROBOT_CURRICULUM = [
             "title": "Arduino — Blink Without Delay",
             "url": "https://docs.arduino.cc/built-in-examples/digital/BlinkWithoutDelay/"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Một vật đứng gần ranh giới có thể làm số đo nhích lên xuống và đèn chớp liên tục. Để tránh đổi quyết định quá dễ, chương trình có thể nhớ trạng thái trước đó và dùng hai ngưỡng khác nhau cho việc bật và tắt. Cách này gọi là hysteresis.",
+          "analogy": {
+            "familiar": "Máy điều hòa có thể bật làm mát khi phòng nóng hơn một mức và chỉ tắt khi đã mát xuống một mức khác. Ở khoảng giữa, nó giữ quyết định hiện tại.",
+            "meaning": "Cảnh báo cũng có một vùng giữ trạng thái: dưới 20 cm bật, trên 25 cm tắt, từ 20 đến 25 cm giữ như trước. Cùng 22 cm có thể cho ON hoặc OFF tùy lịch sử.",
+            "limit": "Quy tắc hai ngưỡng không làm cảm biến đo chính xác hơn. Bài cảnh báo cũng không tự có đầy đủ cơ chế, độ trễ và bảo vệ của một thiết bị điều nhiệt thực."
+          },
+          "vocabulary": [
+            {
+              "term": "Trạng thái nhớ",
+              "definition": "Một giá trị được giữ từ lượt trước, ở đây là cảnh báo ON hoặc OFF."
+            },
+            {
+              "term": "Hysteresis · hai ngưỡng",
+              "definition": "Bật và tắt dùng hai ranh giới khác nhau; đầu ra còn phụ thuộc trạng thái trước đó."
+            },
+            {
+              "term": "Vùng giữ · 20–25 cm",
+              "definition": "Với dấu < 20 và > 25 của bài, cả đúng 20 và đúng 25 đều giữ trạng thái cũ."
+            },
+            {
+              "term": "Lọc dữ liệu",
+              "definition": "Xử lý chuỗi số đo để giảm một số dao động. Khác với hysteresis, vốn thay cách ra quyết định và cần bộ nhớ trạng thái."
+            }
+          ],
+          "workedCase": {
+            "title": "Theo dõi trạng thái nhớ và LED qua một lượt lỗi",
+            "input": "Ban đầu trạng thái nhớ OFF. Lần lượt nhận 28 cm, 19 cm, 22 cm, timeout, 25 cm, 26 cm. Chính sách lỗi của bài: giữ trạng thái nhớ, bật LED và ghi SENSOR_ERROR.",
+            "steps": [
+              {
+                "title": "Khởi tạo và đi vào vùng gần",
+                "explanation": "28 > 25 nên trạng thái OFF. Tiếp theo 19 < 20 nên chuyển ON. LED đi theo trạng thái ở hai lượt hợp lệ này."
+              },
+              {
+                "title": "Đi vào vùng giữ",
+                "explanation": "22 nằm giữa 20 và 25 nên giữ ON. Không lấy việc 22 > 20 làm lý do tắt: đó sẽ là quy tắc một ngưỡng khác."
+              },
+              {
+                "title": "Tách lỗi khỏi cập nhật trạng thái",
+                "explanation": "Timeout không cung cấp d mới. Giữ bộ nhớ ON và bật LED theo chính sách lỗi. Khi có lại số đo 25 cm, vẫn giữ ON vì điều kiện tắt là > 25, không phải ≥ 25."
+              },
+              {
+                "title": "Thoát khỏi vùng giữ",
+                "explanation": "26 > 25 nên chuyển OFF và tắt LED. Sau đó nếu trở về 22 cm, trạng thái vẫn OFF cho tới khi có số đo dưới 20."
+              }
+            ],
+            "output": "Trạng thái nhớ qua chuỗi là OFF, ON, ON, ON, ON, OFF. Lượt timeout cần kèm nhãn lỗi; không được báo rằng đã đo được vật gần.",
+            "why": "Bạn cần ghi cả số đo hợp lệ, trạng thái nhớ và biểu hiện LED. Nếu timeout xảy ra khi bộ nhớ đang OFF thì LED vẫn bật do chính sách lỗi, dù bộ nhớ không đổi."
+          },
+          "checkpoints": [
+            {
+              "question": "Ở 22 cm, có thể xác định đầu ra chỉ từ số 22 không?",
+              "answer": "Không. Trong vùng giữ cần biết trạng thái trước. ON thì tiếp tục ON; OFF thì tiếp tục OFF."
+            },
+            {
+              "question": "Hai ngưỡng có loại bỏ sai số đo không?",
+              "answer": "Không. Chúng giảm một số chuyển trạng thái do dao động quanh một ranh giới; số đo đầu vào vẫn có sai số. Lọc, hiệu chuẩn và hysteresis giải quyết các vấn đề khác nhau."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Dùng một thẻ nhớ ON/OFF",
+              "body": "Viết ON ở một mặt giấy, OFF ở mặt kia. Đọc từng đầu vào và chỉ lật khi gặp điều kiện đổi rõ ràng. Giữ nguyên thẻ khi số đo trong vùng giữa.",
+              "task": "Thử chuỗi 30, 22, 19, 22, 26 và đọc to lý do ở mỗi lượt."
+            },
+            "intermediate": {
+              "title": "So sánh hai quy tắc trên cùng chuỗi",
+              "body": "Lập hai cột cho quy tắc một ngưỡng và hai ngưỡng. Đếm số lần đổi trạng thái trên cùng số đo; không đổi dữ liệu để làm một phương án đẹp hơn.",
+              "task": "Kiểm thử riêng 20 cm và 25 cm với cả trạng thái đầu ON lẫn OFF."
+            },
+            "advanced": {
+              "title": "Đánh đổi ổn định và phản hồi",
+              "body": "Tăng khoảng cách hai ngưỡng có thể giảm đổi qua lại nhưng cũng làm trạng thái cũ được giữ trong một vùng rộng hơn. Kết hợp lọc còn có thể tăng độ trễ. Chọn tham số cần dựa vào nhiệm vụ, số đo và tiêu chí, không chỉ số lần nhấp nháy ít nhất.",
+              "task": "Đề xuất tiêu chí so sánh độ ổn định và thời gian phản hồi; mô tả cách kiểm thử timeout khi bộ nhớ đang OFF rồi phục hồi ở 22 cm."
+            }
+          }
+        }
       }
     ],
     "lab": "circuit"
@@ -680,7 +1122,80 @@ window.STROBOT_CURRICULUM = [
             "title": "GEARS — API GPS và đơn vị tọa độ",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/virtual.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Một robot chuyển động nhờ cả chương trình lẫn cơ cấu. Brain đọc lệnh, động cơ tạo chuyển động và bánh xe truyền chuyển động ra mặt sân. Bài bắt đầu bằng một chuỗi tiến ngắn trên lưới để bạn thấy rõ thứ tự; sau đó mới liên hệ với hai bánh của robot thật.",
+          "analogy": {
+            "familiar": "Hãy nhờ một bạn cầm mũi tên đứng trên các ô gạch. Mỗi thẻ “tiến” là đi một ô theo mũi tên hiện tại; thẻ “rẽ” chỉ xoay người tại ô đang đứng.",
+            "meaning": "Người đưa thẻ giống phần chương trình xác định thứ tự. Người cầm mũi tên giống robot thực hiện lệnh. Muốn đoán ô tiếp theo phải biết cả ô hiện tại và hướng hiện tại.",
+            "limit": "Một ô trên mô hình chỉ là đơn vị của bàn lưới. Nó không tự bằng một số mm trên VEX IQ; robot thật cần cấu hình đúng động cơ, bánh xe và cơ cấu truyền động."
+          },
+          "vocabulary": [
+            {
+              "term": "Brain",
+              "definition": "Bộ điều khiển lưu và thực thi chương trình của VEX IQ; bản thân nó không tạo lực đẩy bánh xe."
+            },
+            {
+              "term": "Động cơ và bánh xe",
+              "definition": "Động cơ biến năng lượng điện thành chuyển động quay. Bánh xe tiếp xúc mặt sân để tạo dịch chuyển khi có điều kiện bám phù hợp."
+            },
+            {
+              "term": "Đầu vào và đầu ra",
+              "definition": "Cảm biến đưa số đo vào chương trình; lệnh tới động cơ là đầu ra. Lệnh yêu cầu không tự chứng minh robot đã đi đúng."
+            },
+            {
+              "term": "Trạng thái · vị trí và hướng",
+              "definition": "Trên lưới ghi (x, y, hướng). Bài quy ước x sang phải, y xuống dưới; trạng thái đầu là (0,0,đông)."
+            }
+          ],
+          "workedCase": {
+            "title": "Từ ba lệnh tiến đến mô hình hai bánh",
+            "input": "Trên lưới bắt đầu tại (0,0,đông), thực hiện F,F,F. Trong phép tính riêng cho bánh thật, giả sử hai bánh cùng có vận tốc tiếp tuyến 80 mm/s trong 2 s và lăn không trượt.",
+            "steps": [
+              {
+                "title": "Theo dõi từng lệnh trên lưới",
+                "explanation": "F thứ nhất đưa tới (1,0,đông), F thứ hai tới (2,0,đông), F thứ ba tới (3,0,đông). Mỗi F dùng hướng ngay lúc đó; không có lệnh rẽ nên hướng giữ nguyên."
+              },
+              {
+                "title": "Xét vận tốc của cơ cấu hai bánh",
+                "explanation": "Trong mô hình lý tưởng, hai bánh cùng đẩy tiến với 80 mm/s thì tâm robot có v = (80 + 80)/2 = 80 mm/s. Động cơ lắp đối xứng có thể cần cấu hình đảo chiều để hai bánh cùng tạo hướng tiến."
+              },
+              {
+                "title": "Tính dịch chuyển với đơn vị vật lý",
+                "explanation": "s = v × t = 80 mm/s × 2 s = 160 mm. Đây là kết quả của giả định bánh thật, không phải phép đổi từ 3 ô thành 160 mm."
+              }
+            ],
+            "output": "Mô hình lưới cho (3,0,đông). Mô hình bánh xe cho dịch chuyển lý tưởng 160 mm. Mỗi kết quả chỉ có nghĩa trong mô hình và đơn vị của nó.",
+            "why": "Tách rõ mô hình giúp bạn dùng bàn lưới để học thuật toán và dùng phép đo/cấu hình để kiểm tra cơ cấu thật. Một chương trình đúng thứ tự vẫn cần phần cứng hoạt động và được cấu hình đúng."
+          },
+          "checkpoints": [
+            {
+              "question": "Nếu chỉ biết robot ở (3,0), có đoán được F tiếp theo không?",
+              "answer": "Chưa. Nếu hướng đông thì x tăng; nếu hướng nam thì y tăng. Cần biết hướng cùng với vị trí."
+            },
+            {
+              "question": "Hai lệnh motor cùng số dương có luôn làm robot tiến không?",
+              "answer": "Không thể kết luận nếu chưa biết cách lắp và cấu hình chiều quay. Hai bánh phải tạo vận tốc tiếp tuyến cùng đẩy robot tiến theo quy ước đã chọn."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Đóng vai robot bằng mũi tên giấy",
+              "body": "Đặt một mũi tên tại (0,0), hướng đông. Di chuyển đúng một ô cho từng F và nói vị trí mới; chưa cần đọc Python hoặc cấu hình động cơ.",
+              "task": "Dự đoán và ghi ba trạng thái trước khi chạy lại F,F,F trong Lab."
+            },
+            "intermediate": {
+              "title": "Nối lệnh, cơ cấu và phép đo",
+              "body": "Hãy phân biệt “yêu cầu đi” với “đã đi”. Từ vận tốc và thời gian có thể ước lượng quãng đường, nhưng kiểm chứng thực cần thước hoặc dữ liệu phù hợp.",
+              "task": "Nêu ba yếu tố phải biết trước khi chuyển một nhiệm vụ lưới sang VEX IQ thật."
+            },
+            "advanced": {
+              "title": "Xét mô hình truyền động vi sai",
+              "body": "v = (vL + vR)/2 mô tả vận tốc tâm trong mô hình lăn không trượt. Khi hai bánh khác vận tốc, hướng robot cũng thay đổi, nên chỉ tính trung bình vận tốc chưa đủ để xác định đường đi. Ma sát, độ rơ và mặt sân có thể làm kết quả thực lệch mô hình.",
+              "task": "Giải thích trường hợp vL = −vR: vì sao tâm có vận tốc tiến bằng 0 nhưng robot vẫn có thể đang quay?"
+            }
+          }
+        }
       },
       {
         "id": "turn",
@@ -782,7 +1297,80 @@ window.STROBOT_CURRICULUM = [
             "title": "GEARS — API GPS và đơn vị tọa độ",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/virtual.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Robot rẽ làm thay đổi hướng; bánh xe quay làm thay đổi góc bánh. Hai góc này không cùng một đại lượng. Bạn sẽ đi từ việc xoay một mũi tên trên lưới tới giải thích vì sao thân robot quay 90° có thể cần bánh quay nhiều hơn 90°.",
+          "analogy": {
+            "familiar": "Đặt một thước ngang lên bàn và quay thước quanh trung điểm. Hai đầu thước đi theo hai cung tròn ngược chiều, còn trung điểm vẫn ở chỗ cũ.",
+            "meaning": "Khi robot hai bánh quay tại chỗ lý tưởng, mỗi bánh đi trên một cung quanh tâm robot. Bánh cách tâm càng xa thì phải đi cung càng dài để thân quay cùng một góc.",
+            "limit": "Một thước cứng không thể hiện trượt bánh, đàn hồi hoặc sai số điều khiển. Phép tính hình học chỉ áp dụng gần đúng khi cơ cấu và điều kiện lăn đáp ứng giả định."
+          },
+          "vocabulary": [
+            {
+              "term": "Góc thân robot · độ",
+              "definition": "Mức đổi hướng của cả robot. Rẽ phải 90° biến hướng đông thành nam theo lưới của bài."
+            },
+            {
+              "term": "Góc bánh · độ hoặc vòng",
+              "definition": "Mức bánh quay quanh chính trục của nó; không đồng nhất với góc thân."
+            },
+            {
+              "term": "Bề rộng vệt bánh · b",
+              "definition": "Khoảng cách giữa hai đường tiếp xúc của bánh trái và phải; mỗi bánh cách tâm khoảng b/2 trong mô hình đối xứng."
+            },
+            {
+              "term": "Radian · rad",
+              "definition": "Đơn vị góc dùng trong s = rθ. 180° = π rad; phải đổi độ sang rad khi dùng công thức này."
+            }
+          ],
+          "workedCase": {
+            "title": "Thân quay 90°, mỗi bánh cần quay bao nhiêu?",
+            "input": "Giả sử b = 140 mm, đường kính bánh D = 70 mm, quay tại chỗ 90° và lăn không trượt.",
+            "steps": [
+              {
+                "title": "Tìm bán kính quỹ đạo của bánh",
+                "explanation": "Tâm quay ở giữa hai bánh nên mỗi bánh đi theo cung bán kính b/2 = 70 mm. Đổi góc thân: 90° = π/2 rad."
+              },
+              {
+                "title": "Tính chiều dài cung mỗi bánh",
+                "explanation": "sB = 70 × π/2 = 35π mm, khoảng 109,96 mm. Hai bánh đi cùng độ dài cung nhưng theo hai chiều ngược nhau để quay tại chỗ."
+              },
+              {
+                "title": "Đổi cung đi thành góc bánh",
+                "explanation": "Chu vi bánh là πD = 70π mm. Mỗi bánh lăn 35π/(70π) = 0,5 vòng, tức 180°. Đó là góc bánh, trong khi góc thân chỉ 90°."
+              }
+            ],
+            "output": "Trong mô hình này, hai bánh quay ngược chiều khoảng 180° mỗi bánh để thân quay 90°. Vị trí tâm được giữ, hướng thay đổi.",
+            "why": "Góc yêu cầu còn phải được thử và đo trên robot thật. Không lấy kết quả hình học làm bằng chứng đã bù hết trượt bánh hay độ rơ cơ khí."
+          },
+          "checkpoints": [
+            {
+              "question": "Rẽ tại chỗ trên lưới có tự làm tăng x hoặc y không?",
+              "answer": "Không. Lệnh rẽ chỉ đổi hướng trong mô hình lưới. Lệnh F sau đó mới đổi vị trí theo hướng mới."
+            },
+            {
+              "question": "Nếu tăng b mà giữ D và góc thân, bánh cần quay nhiều hơn hay ít hơn?",
+              "answer": "Nhiều hơn. Bánh ở xa tâm hơn phải đi cung dài hơn; cùng chu vi bánh thì cần nhiều vòng hơn."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Xoay mũi tên, giữ nguyên ô",
+              "body": "Tập rẽ đông → nam → tây → bắc. Đánh dấu ô đang đứng để thấy việc xoay hướng khác với tiến sang ô khác.",
+              "task": "Từ hướng bắc, dự đoán hướng sau R rồi F sẽ làm tọa độ nào thay đổi."
+            },
+            "intermediate": {
+              "title": "Dùng hình học trước phép chia",
+              "body": "Vẽ tâm quay và hai đường bánh, ghi b/2 trên bán kính. Sau khi tính cung, mới chia cho chu vi bánh để ra số vòng.",
+              "task": "Tính lại trường hợp thân quay 180° với cùng b và D."
+            },
+            "advanced": {
+              "title": "Đo sai số quay có dấu",
+              "body": "Cố định mặt sân, tốc độ, pin và cách đo góc; ghi từng lượt thay vì chỉ một kết quả đẹp. Nếu thân thường quay thiếu, tìm tham số mô hình hoặc cấu hình phù hợp rồi thay một yếu tố mỗi lần. Công thức lý tưởng không giải quyết sai số đổi theo tải và tốc độ.",
+              "task": "Lập bảng yêu cầu 45°, 90°, 180° và góc thực đo; kiểm tra giả thuyết sai số tỷ lệ trước khi chọn một hệ số bù chung."
+            }
+          }
+        }
       },
       {
         "id": "detect",
@@ -884,7 +1472,80 @@ window.STROBOT_CURRICULUM = [
             "title": "GEARS — API cảm biến siêu âm",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Dừng theo cảm biến cần hơn một câu “gặp vật thì dừng”. Bạn cần khoảng cách hợp lệ, một ranh giới rõ ràng và thời gian để robot đọc rồi hãm. Bài này tách logic quyết định khỏi quãng đường robot còn đi sau khi cần dừng.",
+          "analogy": {
+            "familiar": "Khi đạp xe, bạn không đứng yên ngay lúc nhìn thấy vật. Bạn cần thời gian phản ứng rồi thêm một đoạn đường để phanh.",
+            "meaning": "Robot cũng có độ trễ giữa hai lượt đo và thời gian xử lý; sau lệnh dừng, cơ cấu còn cần hãm. Vì vậy tốc độ lớn hơn thường đòi hỏi khoảng dự phòng lớn hơn.",
+            "limit": "Khả năng phanh của xe đạp và robot khác nhau. Công thức trong bài giả sử hãm đều và chỉ là ước lượng; còn phải đo thực tế, xét trượt và sai số cảm biến."
+          },
+          "vocabulary": [
+            {
+              "term": "Ngưỡng dừng · cm hoặc mm",
+              "definition": "Ranh giới so sánh với khoảng cách. Cả số đo và ngưỡng phải dùng cùng đơn vị."
+            },
+            {
+              "term": "Độ trễ · τ, s",
+              "definition": "Thời gian robot tiếp tục đi trước khi hiệu lực hãm bắt đầu, gồm các thành phần cần xét trong mô hình."
+            },
+            {
+              "term": "Gia tốc hãm · a, m/s²",
+              "definition": "Độ lớn tốc độ giảm theo thời gian trong giả định hãm đều; dùng a > 0 khi tính khoảng hãm."
+            },
+            {
+              "term": "Dữ liệu hợp lệ",
+              "definition": "Số đo có trạng thái và phạm vi phù hợp theo thiết bị. Không có dữ liệu hợp lệ phải xử lý riêng, không coi là đường trống."
+            }
+          ],
+          "workedCase": {
+            "title": "Quyết định dừng và quãng đường dừng là hai phép kiểm tra",
+            "input": "Logic dùng T = 20 cm, d < T thì dừng. Phép tính động học riêng giả sử v = 0,30 m/s, τ = 0,10 s và a = 0,60 m/s².",
+            "steps": [
+              {
+                "title": "Thử ba đầu vào quanh ngưỡng",
+                "explanation": "19 cm chọn dừng; 20 cm và 21 cm chọn tiến chậm vì bài dùng dấu <. Nếu nhận dữ liệu lỗi, chọn dừng và báo lỗi thay vì so một khoảng cách giả."
+              },
+              {
+                "title": "Tính quãng đi trong độ trễ",
+                "explanation": "vτ = 0,30 × 0,10 = 0,030 m. Robot đã đi thêm 3 cm trong thời gian chưa bắt đầu hãm của mô hình."
+              },
+              {
+                "title": "Tính và cộng khoảng hãm",
+                "explanation": "v²/(2a) = 0,30²/(2 × 0,60) = 0,075 m. Tổng dự kiến là 0,030 + 0,075 = 0,105 m = 10,5 cm, trước khi cộng các dự phòng khác."
+              }
+            ],
+            "output": "Logic có ranh giới rõ; mô hình động học cho thêm 10,5 cm từ độ trễ và hãm theo các giả định. Hai kết quả không thay thế nhau.",
+            "why": "Chọn ngưỡng thực phải xét khoảng dừng cùng kích thước robot, vị trí cảm biến, sai số và điều kiện thử. Chỉ việc chương trình gọi lệnh dừng chưa chứng minh không va chạm."
+          },
+          "checkpoints": [
+            {
+              "question": "Khoảng cách 200 mm so với ngưỡng 20 cm có nhỏ hơn không?",
+              "answer": "Không. 200 mm = 20 cm, đúng bằng ngưỡng. Phải đổi về cùng đơn vị trước khi so sánh."
+            },
+            {
+              "question": "Nếu tăng gấp đôi v, thành phần v²/(2a) tăng mấy lần khi a giữ nguyên?",
+              "answer": "Tăng bốn lần vì v được bình phương. Thành phần trễ vτ chỉ tăng hai lần nếu τ giữ nguyên."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Bắt đầu bằng bảng quyết định",
+              "body": "Dùng bốn thẻ: 19 cm, 20 cm, 21 cm và “lỗi”. Ghép mỗi thẻ với dừng/tiến và lý do. Chưa cần dùng công thức hãm để hiểu điều kiện.",
+              "task": "Viết ra điều robot phải làm nếu mất số đo giữa lúc đang tiến."
+            },
+            "intermediate": {
+              "title": "Nối tốc độ với thời gian phản ứng",
+              "body": "Đổi mọi đại lượng về m, s trước phép tính động học. Tách khoảng trễ và khoảng hãm để biết việc giảm tốc hoặc tăng tần suất đo ảnh hưởng phần nào.",
+              "task": "So sánh tổng ước lượng khi τ giảm còn 0,05 s, giữ các thông số khác."
+            },
+            "advanced": {
+              "title": "Kiểm chứng mô hình dừng bằng dữ liệu",
+              "body": "Đo nhiều lượt ở từng tốc độ và điều kiện mặt sân. Hãm đều là giả định đơn giản; tải, pin và độ bám có thể làm a thay đổi. Xác nhận cách thiết bị báo lỗi theo đúng thế hệ VEX IQ; nút dừng thủ công phải sử dụng được khi thử phần cứng.",
+              "task": "Thiết kế bảng ghi tốc độ, độ trễ ước lượng, khoảng dừng đo được và điều kiện sân để đánh giá phạm vi mô hình còn phù hợp."
+            }
+          }
+        }
       },
       {
         "id": "mission",
@@ -986,7 +1647,80 @@ window.STROBOT_CURRICULUM = [
             "title": "GEARS — API GPS và đơn vị tọa độ",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/virtual.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Một nhiệm vụ robot chỉ kiểm tra được khi bạn biết thế nào là hoàn thành. Hãy xác định điểm đầu, hướng đầu, đích và giới hạn trước, rồi chia đường đi thành các đoạn có thể đối chiếu. Cách làm này giúp tìm lệnh gây sai ngay tại chỗ.",
+          "analogy": {
+            "familiar": "Chỉ đường cho một người tới lớp học cần biết họ đang đứng đâu và quay về hướng nào. “Đi ba bước rồi rẽ phải” sẽ đưa tới nơi khác nếu người ấy bắt đầu quay ngược.",
+            "meaning": "Điểm đầu và hướng đầu là dữ liệu của nhiệm vụ. Các mốc giữa đường giống điểm kiểm tra: nếu sai ở một mốc, kiểm tra đoạn vừa đi thay vì đổi toàn bộ chỉ dẫn.",
+            "limit": "Bước chân và ô lưới chỉ hỗ trợ lập kế hoạch. Robot thật cần đơn vị quãng đường, cấu hình và số đo phù hợp; không thể chuyển nguyên số ô thành mm tùy ý."
+          },
+          "vocabulary": [
+            {
+              "term": "Đặc tả nhiệm vụ",
+              "definition": "Danh sách điều kiện đầu vào, điều cần đạt và giới hạn. Nó cho phép hai người đánh giá cùng một kết quả."
+            },
+            {
+              "term": "Mốc kiểm tra",
+              "definition": "Trạng thái dự kiến ở giữa đường; dùng để khoanh vùng nơi chương trình bắt đầu lệch kế hoạch."
+            },
+            {
+              "term": "Ràng buộc",
+              "definition": "Điều không được vi phạm, như không ra ngoài lưới hoặc không đi qua ô cấm."
+            },
+            {
+              "term": "Tiêu chí tối ưu",
+              "definition": "Đại lượng muốn giảm hoặc tăng sau khi đã hoàn thành đúng, ví dụ số rẽ hoặc thời gian."
+            }
+          ],
+          "workedCase": {
+            "title": "Chia một tuyến giao hàng thành ba đoạn",
+            "input": "Lưới không vật cản; x sang phải, y xuống dưới. Xuất phát (0,0,đông), đích (2,1). Tuyến đề xuất F,F,R,F; không được vượt biên của bàn.",
+            "steps": [
+              {
+                "title": "Đặt mốc sau đoạn thẳng đầu",
+                "explanation": "Hai F từ hướng đông đưa robot lần lượt tới (1,0,đông) và (2,0,đông). Mốc cần đạt là (2,0,đông)."
+              },
+              {
+                "title": "Kiểm tra hướng sau lệnh rẽ",
+                "explanation": "R đưa hướng đông thành nam nhưng giữ vị trí (2,0). Nếu lúc này robot đã sang ô khác thì cách hiểu hoặc thao tác lệnh đang sai."
+              },
+              {
+                "title": "Đi đoạn cuối và xét hoàn thành",
+                "explanation": "F khi hướng nam đưa tới (2,1,nam). Kiểm tra đúng đích, không vượt biên và dừng theo yêu cầu; sau đó mới đếm chi phí tuyến."
+              }
+            ],
+            "output": "Tuyến dùng 3 bước tiến và 1 lần rẽ, kết thúc ở (2,1,nam). Nếu đề không yêu cầu hướng cuối thì vị trí này đáp ứng phần đích; các ràng buộc còn lại vẫn phải được kiểm tra.",
+            "why": "Ghi trạng thái giữa các đoạn làm bản chạy có thể giải thích. Khi so hai tuyến, hãy đặt lại cùng điểm và hướng đầu; nếu không, sự khác nhau có thể chỉ do điều kiện xuất phát."
+          },
+          "checkpoints": [
+            {
+              "question": "Đến đúng tọa độ nhưng đi xuyên ô cấm có hoàn thành không?",
+              "answer": "Không. Hoàn thành phải đáp ứng cả đích và ràng buộc đã nêu. Đi nhanh hoặc ít lệnh không bù cho việc vi phạm đề bài."
+            },
+            {
+              "question": "Vì sao chỉ ghi “xuất phát ở (0,0)” chưa đủ cho tuyến F,F,R,F?",
+              "answer": "Thiếu hướng đầu. F phụ thuộc hướng; cùng tọa độ nhưng khác hướng có thể đi tới ô khác ngay lệnh đầu."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Dùng bảng từng lệnh",
+              "body": "Vẽ cột lệnh, x, y và hướng. Mỗi lần chỉ sửa phần trạng thái mà lệnh thực sự tác động. Bảng ngắn giúp bạn không phải nhớ cả đường đi trong đầu.",
+              "task": "Tự đi bằng mũi tên trên giấy, rồi đối chiếu với Lab sau mỗi đoạn."
+            },
+            "intermediate": {
+              "title": "Kiểm tra đúng trước, so sánh chi phí sau",
+              "body": "Tách hai câu hỏi: tuyến có đạt yêu cầu không và trong các tuyến đạt, tuyến nào có chi phí tốt hơn. Dùng cùng quy ước đếm cho mọi tuyến.",
+              "task": "Đề xuất một tuyến thứ hai cùng đích rồi ghi số bước tiến và số rẽ của cả hai."
+            },
+            "advanced": {
+              "title": "Từ mốc lưới sang mốc đo được",
+              "body": "Trên robot thật, sai số từng đoạn có thể tích lũy. Cân nhắc điểm kiểm tra bằng cảm biến hoặc dấu mốc có thể quan sát thay vì chỉ chờ một khoảng thời gian. Một bộ ba lần chạy cùng mô hình xác định chưa đánh giá khả năng gặp sân khác.",
+              "task": "Viết một bộ ba nhiệm vụ có vị trí/hướng đầu khác nhau và nêu đoạn nào của chương trình cần tham số hóa để tái sử dụng."
+            }
+          }
+        }
       },
       {
         "id": "odometry",
@@ -1080,7 +1814,80 @@ window.STROBOT_CURRICULUM = [
             "title": "Python 3 — hàm có sẵn và kiểu dữ liệu",
             "url": "https://docs.python.org/3/library/functions.html"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Một vòng bánh không đưa robot đi một khoảng tùy ý: trong mô hình lăn không trượt, quãng đường bằng chu vi bánh. Từ ý này bạn có thể đổi quãng đường thành số vòng, rồi kiểm tra xem robot thật có đi giống phép tính hay không.",
+          "analogy": {
+            "familiar": "Lăn một đồng xu dọc thước, đánh dấu một chấm trên mép. Khi chấm trở lại vị trí tương ứng sau một vòng, đồng xu đã đi xấp xỉ một chu vi nếu không trượt.",
+            "meaning": "Bánh robot cũng biến số vòng quay thành quãng đường thông qua chu vi. Bánh lớn hơn đi xa hơn trong cùng số vòng; bộ truyền quyết định motor phải quay bao nhiêu vòng để bánh quay được như vậy.",
+            "limit": "Đồng xu và bánh robot có độ biến dạng, tải và độ bám khác nhau. Encoder đo góc quay chứ không trực tiếp chứng minh điểm trên robot đã dịch chuyển đúng quãng tính toán."
+          },
+          "vocabulary": [
+            {
+              "term": "Đường kính hiệu dụng · D",
+              "definition": "Đường kính dùng để mô tả quan hệ giữa quay bánh và dịch chuyển khi làm việc; cần dựa vào bánh và điều kiện thực."
+            },
+            {
+              "term": "Chu vi · C = πD",
+              "definition": "Quãng đường một vòng bánh tạo ra trong mô hình lăn không trượt; C và D cùng đơn vị chiều dài."
+            },
+            {
+              "term": "Số vòng · n",
+              "definition": "n = s/(πD). Đây là tỷ số nên không mang đơn vị chiều dài; có thể là một phần của vòng."
+            },
+            {
+              "term": "Tỷ số motor/bánh · g",
+              "definition": "Nếu motor quay g vòng để bánh quay một vòng thì số vòng motor là g × số vòng bánh. Không nhân lặp nếu cấu hình đã xử lý tỷ số này."
+            }
+          ],
+          "workedCase": {
+            "title": "Cần bao nhiêu vòng bánh cho 300 mm?",
+            "input": "Bánh có D = 60 mm, cần s = 300 mm. Truyền trực tiếp trong bước đầu; giả định không trượt.",
+            "steps": [
+              {
+                "title": "Tính một vòng đi được bao xa",
+                "explanation": "C = π × 60 ≈ 188,50 mm. Đây là quãng đường cho một vòng bánh trong mô hình."
+              },
+              {
+                "title": "Đổi quãng đường thành vòng và độ",
+                "explanation": "n = 300/188,50 ≈ 1,592 vòng. Góc bánh bằng 360 × 1,592 ≈ 573,0°. Góc vượt 360° là bình thường vì bánh cần hơn một vòng."
+              },
+              {
+                "title": "Xét bộ giảm tốc nếu có",
+                "explanation": "Nếu motor cần 2 vòng cho mỗi vòng bánh thì motor cần khoảng 3,183 vòng. Đó là góc motor; bánh vẫn chỉ cần khoảng 1,592 vòng để đi 300 mm theo mô hình."
+              }
+            ],
+            "output": "Truyền trực tiếp: khoảng 1,592 vòng bánh, hay 573,0°. Với g = 2: khoảng 3,183 vòng motor. Mỗi kết quả phải ghi rõ đang nói về trục nào.",
+            "why": "Sau phép tính, đánh dấu và đo dịch chuyển cùng một điểm trên robot. Nếu lệnh 300 mm chỉ đi được 288 mm ổn định trong điều kiện thử, có thể thử hệ số 300/288 ≈ 1,042 rồi đo lại; chưa thể coi đó là bảo đảm cho mọi sân."
+          },
+          "checkpoints": [
+            {
+              "question": "Dùng s = 30 cm và D = 6 cm có đổi số vòng không?",
+              "answer": "Không. Cả hai đã đổi cùng tỷ lệ nên s/(πD) vẫn khoảng 1,592. Chỉ đổi một trong hai đơn vị mới làm kết quả sai."
+            },
+            {
+              "question": "Encoder báo đúng số vòng có đủ để khẳng định đã đi đúng 300 mm không?",
+              "answer": "Chưa. Bánh có thể trượt, đường kính hiệu dụng có thể khác hoặc bộ truyền được mô tả sai. Cần đối chiếu với dịch chuyển thực."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Lăn một vòng để hiểu chu vi",
+              "body": "Vẽ một bánh có chấm đánh dấu rồi hình dung lăn đủ một vòng. Viết “một vòng → một chu vi” trước khi dùng phép chia.",
+              "task": "So sánh hai bánh đường kính khác nhau: bánh nào cần ít vòng hơn cho cùng quãng đường?"
+            },
+            "intermediate": {
+              "title": "Kiểm tra thứ nguyên và tỷ số truyền",
+              "body": "Đầu tiên đổi s và D về cùng đơn vị, tính vòng bánh, sau đó mới đổi sang vòng motor. Ghi rõ thư viện đã xử lý tỷ số truyền hay chưa để tránh nhân hai lần.",
+              "task": "Tính số vòng bánh và motor cho 600 mm với cùng D = 60 mm và g = 2."
+            },
+            "advanced": {
+              "title": "Hiệu chuẩn ở nhiều điều kiện",
+              "body": "Một hệ số từ một quãng đường có thể che sai số không tuyến tính hoặc trượt phụ thuộc tải. Dùng nhiều quãng đường và lượt đo, tách dữ liệu tính hệ số khỏi dữ liệu kiểm chứng; ghi cả tốc độ, sàn và pin.",
+              "task": "Đề xuất cách phân biệt sai lệch tỷ lệ do D cấu hình chưa đúng với những lượt sai thất thường do trượt bánh."
+            }
+          }
+        }
       },
       {
         "id": "control",
@@ -1174,7 +1981,84 @@ window.STROBOT_CURRICULUM = [
             "title": "Python 3 — hàm có sẵn và kiểu dữ liệu",
             "url": "https://docs.python.org/3/library/functions.html"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Đi đúng hướng cần liên tục so hướng mong muốn với hướng đo được rồi điều chỉnh. Bộ điều khiển P tạo hiệu chỉnh tỷ lệ với sai lệch. Trước khi chọn hệ số lớn hay nhỏ, điều quan trọng nhất là dấu hiệu chỉnh phải làm robot quay về mục tiêu.",
+          "analogy": {
+            "familiar": "Khi đi dọc một vạch, bạn nhìn mình lệch sang đâu rồi điều chỉnh tay lái. Lệch nhiều có thể cần sửa mạnh hơn; lệch ít thì sửa nhẹ hơn.",
+            "meaning": "Bộ P dùng một quy tắc cụ thể: u = Kp × e. Dấu của e chọn chiều sửa, độ lớn chọn mức sửa. Sai dấu sẽ làm robot càng lệch dù phép nhân tính đúng.",
+            "limit": "Con người còn dự đoán và nhớ nhiều điều khác. Bộ P ở đây chỉ dùng sai lệch hiện tại, không tự có thành phần tích phân hay vi phân, không tự xử lý mọi độ trễ."
+          },
+          "vocabulary": [
+            {
+              "term": "Sai lệch góc · e, độ",
+              "definition": "Mục tiêu trừ góc đo, sau đó quy về [−180°,180°) để chọn hướng quay ngắn theo quy ước của bài."
+            },
+            {
+              "term": "Hệ số P · Kp",
+              "definition": "Mức hiệu chỉnh cho một độ sai lệch. Nếu lệnh là %, đơn vị phù hợp là điểm phần trăm/độ."
+            },
+            {
+              "term": "Hiệu chỉnh · u",
+              "definition": "Giá trị cộng/trừ vào lệnh hai bánh. Theo quy ước góc tăng ngược kim đồng hồ: trái = v − u, phải = v + u."
+            },
+            {
+              "term": "Giới hạn lệnh · clamp",
+              "definition": "Giữ lệnh trong miền được phép. Ví dụ muốn 110% nhưng miền chỉ tới 100% thì phải giới hạn lại; bão hòa làm hành vi khác tính tuyến tính ban đầu."
+            }
+          ],
+          "workedCase": {
+            "title": "Dùng dấu sai lệch để sửa lệch sang phải",
+            "input": "Quy ước góc dương ngược chiều kim đồng hồ. Mục tiêu 0°, góc đo −8°, tốc độ nền v = 25%, Kp = 0,5 điểm %/độ; tốc độ bánh dương là tiến.",
+            "steps": [
+              {
+                "title": "Tìm sai lệch theo quy ước",
+                "explanation": "e = 0 − (−8) = +8°. Dấu dương nghĩa cần quay trái về 0° trong quy ước đang dùng. Nếu API đo hướng theo chiều khác, phải đổi quy ước trước."
+              },
+              {
+                "title": "Tính mức hiệu chỉnh",
+                "explanation": "u = 0,5 × 8 = 4 điểm phần trăm. Không hiểu u là 4% của 25; đây là lượng cộng/trừ trực tiếp vào lệnh phần trăm."
+              },
+              {
+                "title": "Tạo hai lệnh bánh",
+                "explanation": "Trái = 25 − 4 = 21%; phải = 25 + 4 = 29%. Bánh phải đẩy tiến nhanh hơn nên robot có xu hướng quay trái trong mô hình, giảm sai lệch."
+              },
+              {
+                "title": "Đọc lại để đóng vòng phản hồi",
+                "explanation": "Sau chuyển động, đọc góc mới rồi tính e mới. Không tiếp tục dùng e = 8° mãi. Nếu góc càng đi xa mục tiêu, kiểm tra dấu và cấu hình trước khi tăng Kp."
+              }
+            ],
+            "output": "Lượt tính đầu cho trái 21%, phải 29%. Đây là lệnh điều khiển; hiệu quả thực phải được xác nhận bằng góc đo sau đó.",
+            "why": "Vòng đọc → tính → điều khiển → đọc lại tạo phản hồi. Một phép tính u duy nhất chưa là bằng chứng robot đã giữ đúng hướng, và bàn lưới không mô phỏng bộ P liên tục."
+          },
+          "checkpoints": [
+            {
+              "question": "Mục tiêu 179°, đo −179° thì có nên quay +358° không?",
+              "answer": "Không. Hiệu thô là +358°; quy về khoảng [−180°,180°) được −2°, là hướng quay ngắn theo quy ước này."
+            },
+            {
+              "question": "Robot càng lệch khi tăng Kp, có chắc vì Kp còn nhỏ không?",
+              "answer": "Không. Có thể dấu điều khiển hoặc quy ước heading sai. Tăng Kp khi sai dấu thường làm tình hình nặng hơn; cần thử từng phía ở tốc độ thấp."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Hiểu dấu trước công thức",
+              "body": "Vẽ mũi tên mục tiêu và mũi tên đang lệch. Chỉ ra cần quay trái hay phải, rồi xem lệnh bánh có tạo đúng chiều đó không.",
+              "task": "Đổi góc đo thành +8° trong cùng ví dụ và dự đoán bánh nào phải nhanh hơn."
+            },
+            "intermediate": {
+              "title": "Tính rồi kiểm tra giới hạn",
+              "body": "Sau e và u, tính từng lệnh bánh và giới hạn riêng theo miền cho phép. Phân biệt điểm phần trăm với phần trăm tương đối để tránh sai đơn vị.",
+              "task": "Với v = 80% và u = 30 điểm %, viết lệnh trước và sau khi giới hạn vào [−100%,100%]."
+            },
+            "advanced": {
+              "title": "Đánh giá dao động, độ trễ và bão hòa",
+              "body": "Kp lớn không luôn cho chất lượng tốt hơn: độ trễ và cơ cấu có thể gây vượt mục tiêu, dao động hoặc chạm giới hạn. Kp quá nhỏ sửa chậm. Chọn tiêu chí như sai lệch theo thời gian và số lần bão hòa; dừng motor khi lỗi cảm biến, hết thời gian hoặc người dùng yêu cầu dừng.",
+              "task": "Thiết kế hai ca sai lệch đối xứng và một ca qua biên ±180° để kiểm tra dấu, wrap và giới hạn trước khi chỉnh Kp."
+            }
+          }
+        }
       }
     ],
     "lab": "gears"
@@ -1300,7 +2184,84 @@ window.STROBOT_CURRICULUM = [
             "lang": "MakeCode JavaScript",
             "code": "basic.clearScreen()\nled.plot(2, 2)\nled.plot(1, 2)\nled.plot(3, 2)\nled.plot(2, 1)\nled.plot(2, 3)\n"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Bạn có thể bắt đầu bài này bằng giấy kẻ ô, chưa cần biết vòng lặp. Hãy xem màn hình micro:bit là 25 vị trí cố định: chương trình chọn vị trí nào thì thay độ sáng của LED ở đó. Khi biến hình vẽ thành danh sách tọa độ, bạn đang biến một ý tưởng nhìn thấy được thành dữ liệu mà máy xử lý được. Việc đầu tiên là chỉ đúng một điểm, sau đó mới ghép nhiều điểm thành hình.",
+          "analogy": {
+            "familiar": "Hãy tưởng tượng 25 ngăn tủ được xếp thành 5 hàng và 5 cột. Muốn tìm một ngăn, bạn chỉ cột trước rồi hàng sau.",
+            "meaning": "Cặp (x,y) chính là địa chỉ của LED: x đi ngang từ trái, y đi xuống từ trên. Cả hai bắt đầu ở 0; điểm (0,0) là góc trên trái và (4,4) là góc dưới phải.",
+            "limit": "Các ngăn tủ chỉ giúp hiểu địa chỉ. LED còn có độ sáng; giá trị 9 là mức trong API, không phải 9 volt hay 9 lux. Các tọa độ này cũng không phải vị trí ngoài đời của robot."
+          },
+          "vocabulary": [
+            {
+              "term": "Tọa độ (x,y)",
+              "definition": "Hai số xác định một điểm. Trong ma trận này x là cột và y là hàng, đều thuộc 0..4; đổi thứ tự hai số thường đổi vị trí."
+            },
+            {
+              "term": "Điểm ảnh",
+              "definition": "Một vị trí phát sáng trên màn hình; ở đây một điểm ảnh tương ứng một LED. Nhiều điểm tạo thành hình."
+            },
+            {
+              "term": "Độ sáng b",
+              "definition": "Số nguyên từ 0 đến 9 trong display.set_pixel: 0 tắt, 9 sáng nhất theo API. Nó không cho biết chính xác lượng ánh sáng phát ra."
+            },
+            {
+              "term": "Xóa màn hình",
+              "definition": "display.clear() đưa mọi điểm về tắt. Nếu chỉ vẽ thêm mà không xóa, những LED đã bật trước đó vẫn có thể còn sáng."
+            }
+          ],
+          "workedCase": {
+            "title": "Từ hình chữ L đến danh sách điểm",
+            "input": "Màn hình ban đầu trống; cần sáng toàn bộ cột trái và hàng dưới ở mức 9.",
+            "steps": [
+              {
+                "title": "Vẽ cột trái",
+                "explanation": "Cột trái có x = 0. Đi lần lượt qua y = 0,1,2,3,4: được (0,0), (0,1), (0,2), (0,3), (0,4). Có 5 vị trí."
+              },
+              {
+                "title": "Nối hàng dưới",
+                "explanation": "Hàng dưới có y = 4. Thêm (1,4), (2,4), (3,4), (4,4). Không cần thêm lại (0,4) vì đó đã là điểm cuối của cột trái."
+              },
+              {
+                "title": "Cho máy vẽ",
+                "explanation": "Sau khi xóa màn hình, danh sách 9 điểm được đọc lần lượt. Mỗi lần gọi đặt một điểm; những điểm trước không tự bị xóa."
+              },
+              {
+                "title": "Đối chiếu",
+                "explanation": "Đếm LED theo hình: cột 5 điểm và phần hàng nhô ra 4 điểm. Nếu hình nằm ở góc khác, kiểm tra hướng tăng của x,y trước khi sửa vòng lặp."
+              }
+            ],
+            "output": "Có 9 LED sáng tạo chữ L. Chín là số vị trí khác nhau, không phải số lần có thể gọi hàm vẽ.",
+            "why": "Hai nhóm giao nhau tại (0,4), nên số điểm là 5 + 5 − 1 = 9. Máy lưu trạng thái của từng điểm; vẽ cùng điểm hai lần không tạo thêm một LED."
+          },
+          "checkpoints": [
+            {
+              "question": "Điểm (4,0) nằm ở đâu? Vì sao không dùng (5,0)?",
+              "answer": "Đó là góc trên phải. Có 5 cột nhưng chỉ số là 0,1,2,3,4; 5 nằm ngoài phạm vi."
+            },
+            {
+              "question": "Giảm b từ 9 xuống 3 có làm hình chữ L ít điểm hơn không?",
+              "answer": "Không, nếu vẫn vẽ đủ 9 tọa độ thì hình có cùng các điểm, nhưng các điểm được đặt ở mức sáng thấp hơn."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Bắt đầu bằng một LED",
+              "body": "Vẽ lưới rồi chỉ (0,0), (4,0), (0,4). Sau khi quen góc và hướng, hãy nối thành chữ L; chưa cần tự viết vòng for.",
+              "task": "Dự đoán vị trí (1,3), vẽ đúng một điểm rồi đối chiếu."
+            },
+            "intermediate": {
+              "title": "Hiểu danh sách và vòng lặp",
+              "body": "Danh sách giữ dữ liệu hình; vòng for dùng lại một thao tác cho từng cặp tọa độ. Thay dữ liệu có thể đổi hình mà không đổi cách vẽ.",
+              "task": "Tạo dấu cộng năm điểm và giải thích vì sao điểm giữa chỉ xuất hiện một lần trong danh sách."
+            },
+            "advanced": {
+              "title": "Xem hình như một tập điểm",
+              "body": "Hình có thể biểu diễn bằng tập các cặp tọa độ. Khi ghép hình A và B, điểm chung phải được trừ khỏi tổng nếu đếm số LED; mức sáng của điểm vẽ lại theo lần đặt sau.",
+              "task": "Tạo phép đối xứng trái–phải bằng (x,y) → (4−x,y), rồi dự đoán chữ L đổi như thế nào."
+            }
+          }
+        }
       },
       {
         "id": "buttons",
@@ -1411,7 +2372,80 @@ window.STROBOT_CURRICULUM = [
             "lang": "MakeCode JavaScript",
             "code": "basic.clearScreen()\ninput.onButtonPressed(Button.A, function () {\n    basic.showIcon(IconNames.Heart)\n})\ninput.onButtonPressed(Button.B, function () {\n    basic.clearScreen()\n})\n"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Một nút bấm là đầu vào, còn hình trên LED là đầu ra. Giữa hai bên có chương trình liên tục kiểm tra xem vừa có điều gì xảy ra. Bài này giúp bạn tách ba chuyện dễ nhầm: nút đang bị giữ, đã có một lần bấm, và số lần đã bấm. Ta bắt đầu với quy tắc đơn giản: A hiện trái tim, B xóa. Sau đó theo dõi từng lần thay đổi thay vì chỉ nhìn màn hình cuối.",
+          "analogy": {
+            "familiar": "Một người trực bảng thông báo thường xuyên kiểm tra hộp thư: có phiếu A thì treo hình, có phiếu B thì gỡ hình.",
+            "meaning": "while True là những lượt kiểm tra lặp lại. was_pressed() giống một dấu báo “đã có ít nhất một phiếu” từ lần kiểm tra trước; đọc dấu thì dấu đó được xóa.",
+            "limit": "Đây không phải hàng đợi giữ riêng từng lần bấm. was_pressed() không cho biết có một hay ba lần bấm; cần get_presses() nếu muốn lấy số lần."
+          },
+          "vocabulary": [
+            {
+              "term": "Đầu vào và đầu ra",
+              "definition": "Nút A/B cung cấp thông tin vào; chương trình chọn hành động; ma trận LED thể hiện kết quả. Nút không tự quyết định biểu tượng nếu chưa có quy tắc."
+            },
+            {
+              "term": "Vòng lặp",
+              "definition": "Nhóm lệnh được thực hiện nhiều lượt. while True tiếp tục kiểm tra nút cho đến khi chương trình bị dừng hoặc khởi động lại."
+            },
+            {
+              "term": "was_pressed()",
+              "definition": "Trả lời có ít nhất một lần bấm kể từ lần đọc trước hay không, rồi xóa dấu đã bấm. Kết quả là True hoặc False, không phải số lần."
+            },
+            {
+              "term": "is_pressed()",
+              "definition": "Cho biết nút có đang được giữ tại thời điểm đọc. Giữ lâu có thể cho True qua nhiều lượt; đó không đồng nghĩa nhiều lần bấm mới."
+            }
+          ],
+          "workedCase": {
+            "title": "Theo dõi chuỗi A → B → A",
+            "input": "Màn hình trống khi khởi động; bấm từng nút rời nhau, chờ nhìn thấy phản hồi trước lần tiếp theo.",
+            "steps": [
+              {
+                "title": "Sau A thứ nhất",
+                "explanation": "Lượt đọc gặp dấu A, nhánh A đặt Image.HEART lên màn hình. Trạng thái mới là trái tim."
+              },
+              {
+                "title": "Sau B",
+                "explanation": "Lượt sau gặp dấu B, nhánh B gọi display.clear(). Trạng thái mới là trống; nó không “trừ một trái tim”, mà đặt mọi LED về tắt."
+              },
+              {
+                "title": "Sau A cuối",
+                "explanation": "Một lần bấm A mới tạo dấu mới. Chương trình lại hiện cùng hình trái tim; không cần nhớ đã hiện hình này bao nhiêu lần."
+              }
+            ],
+            "output": "Các trạng thái lần lượt là trống → trái tim → trống → trái tim.",
+            "why": "Mỗi thao tác ghi trạng thái mới lên cùng một màn hình. Nếu A và B đều được ghi nhận trong cùng lượt, mẫu xử lý A trước rồi B, nên cuối lượt là trống; đây là quy tắc riêng của thứ tự lệnh trong bài."
+          },
+          "checkpoints": [
+            {
+              "question": "Bấm A hai lần liên tiếp có tạo hai hình trái tim cạnh nhau không?",
+              "answer": "Không. Cả hai lần cùng đặt một biểu tượng lên cùng ma trận nên trạng thái vẫn là một trái tim."
+            },
+            {
+              "question": "Vì sao giữ A không có nghĩa chương trình nhận một lần bấm mới ở mọi lượt?",
+              "answer": "was_pressed() đọc dấu về lần bấm mới, khác với is_pressed() kiểm tra trạng thái đang giữ."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Theo dấu từng thao tác",
+              "body": "Viết “trống” hoặc “tim” sau mỗi nút trên giấy. Quan sát chậm giúp nối một đầu vào với một đầu ra trước khi nghĩ đến nhiều nút gần nhau.",
+              "task": "Dự đoán B,B,A rồi thử và ghi đủ ba trạng thái."
+            },
+            "intermediate": {
+              "title": "Đọc luồng chương trình",
+              "body": "Phần trước while True chạy một lần; phần thụt vào chạy nhiều lần. sleep(20) nghỉ 20 ms giữa các lượt, không tự xóa màn hình.",
+              "task": "Giải thích vì sao chuyển display.clear() vào đầu mỗi lượt sẽ làm hành vi hiển thị khác."
+            },
+            "advanced": {
+              "title": "Xét các sự kiện cùng lượt",
+              "body": "Hai if độc lập cho phép cả hai nhánh chạy trong một lượt. Chính sách ưu tiên phải được suy ra từ thứ tự lệnh, không chỉ từ tốc độ bấm bằng tay.",
+              "task": "Lập bảng bốn trường hợp dấu A/B: không/không, có/không, không/có, có/có; ghi màn hình cuối mỗi lượt."
+            }
+          }
+        }
       },
       {
         "id": "light",
@@ -1522,7 +2556,80 @@ window.STROBOT_CURRICULUM = [
             "lang": "MakeCode JavaScript",
             "code": "input.lightLevel() // Khoi dong phep doc truoc vong lap\nbasic.pause(200)\nbasic.forever(function () {\n    let level = input.lightLevel()\n    if (level < 80) {\n        basic.showIcon(IconNames.Heart, 0)\n    } else {\n        basic.clearScreen()\n    }\n    basic.pause(100)\n})\n"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Cảm biến không trả về câu “phòng tối”, mà trả về một con số. Chương trình dùng quy tắc do bạn chọn để biến số đó thành hành động. Trong bài, số nhỏ hơn 80 làm hiện trái tim; số bằng hoặc lớn hơn 80 làm màn hình trống. Muốn hiểu quy tắc, hãy thử ngay sát ranh giới trước, rồi mới khảo sát ngưỡng có phù hợp với nơi dùng hay không.",
+          "analogy": {
+            "familiar": "Một vạch trên thước giúp chia các số đo thành hai nhóm: phía dưới vạch và từ vạch trở lên.",
+            "meaning": "Ngưỡng 80 đóng vai trò ranh giới trong điều kiện level < 80. Cảm biến cung cấp level; dấu so sánh quyết định nhánh.",
+            "limit": "Thang 0..255 ở đây là mức sáng tương đối, không phải thước đo lux đã hiệu chuẩn. Cùng số đọc không bảo đảm cùng độ rọi trên mọi bo hoặc mọi cách đặt."
+          },
+          "vocabulary": [
+            {
+              "term": "Mức sáng tương đối",
+              "definition": "Số từ 0 đến 255 do display.read_light_level() trả về. Số thấp biểu thị tối hơn trên thang này; không gắn đơn vị lux cho nó."
+            },
+            {
+              "term": "Ngưỡng",
+              "definition": "Giá trị dùng để chia đầu vào thành các nhánh. Ngưỡng phù hợp phải dựa vào số đo ở điều kiện dự định dùng."
+            },
+            {
+              "term": "Giá trị biên",
+              "definition": "Số nằm đúng ranh giới hoặc sát ranh giới, như 79,80,81. Chúng giúp phát hiện nhầm < với ≤."
+            },
+            {
+              "term": "Khởi tạo phép đo",
+              "definition": "Phép đọc đầu tiên có thể là 0 khi chưa sẵn sàng. Mẫu đọc khởi tạo rồi chờ 200 ms; không nên diễn giải riêng số đầu đó là phòng tối."
+            }
+          ],
+          "workedCase": {
+            "title": "Thử ba số để hiểu một dấu so sánh",
+            "input": "Điều kiện level < 80; sau khi phép đo đã sẵn sàng, lần lượt đưa đầu vào 79, 80, 81.",
+            "steps": [
+              {
+                "title": "Đầu vào 79",
+                "explanation": "79 nhỏ hơn 80 nên điều kiện đúng. Chương trình hiện trái tim."
+              },
+              {
+                "title": "Đầu vào 80",
+                "explanation": "80 bằng 80 nhưng không nhỏ hơn. Điều kiện sai, nên chạy nhánh xóa màn hình."
+              },
+              {
+                "title": "Đầu vào 81",
+                "explanation": "81 lớn hơn 80 nên cũng chạy nhánh xóa. Ghi lại cả ba kết quả để tách kiểm tra quy tắc khỏi việc chọn ngưỡng thực tế."
+              }
+            ],
+            "output": "Bảng kết quả: 79 → tim; 80 → trống; 81 → trống. Các số là mức trên thang tương đối, không có đơn vị lux.",
+            "why": "Chương trình chỉ xét một điều kiện logic. Simulator cho phép đặt số để kiểm tra điều kiện; việc đó chưa chứng minh 80 phân biệt tốt bàn học sáng và góc tối ngoài đời."
+          },
+          "checkpoints": [
+            {
+              "question": "Đổi điều kiện thành level ≤ 80 thì kết quả nào trong bộ ba đổi?",
+              "answer": "Chỉ mức 80 đổi từ trống sang trái tim; 79 vẫn hiện tim, 81 vẫn trống."
+            },
+            {
+              "question": "Hai nhóm số đo thực chồng lấn nhiều thì đặt một ngưỡng có chắc phân biệt ổn định không?",
+              "answer": "Không. Cần xem cách đặt, điều kiện sáng và độ dao động; có thể phải thay phương pháp hoặc bổ sung dữ liệu."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Bắt đầu bằng bảng ba dòng",
+              "body": "Bạn chưa cần đo phòng thật. Viết đầu vào, kết quả so sánh và hình kỳ vọng cho từng số quanh ngưỡng, rồi dùng simulator đối chiếu.",
+              "task": "Với ngưỡng 50 và dấu <, thử 49,50,51 rồi giải thích riêng trường hợp 50."
+            },
+            "intermediate": {
+              "title": "Chọn ngưỡng từ dữ liệu",
+              "body": "Đo nhiều lần ở hai điều kiện muốn phân biệt. Với nhóm giả định 20..35 và 120..160, có nhiều ngưỡng nằm giữa; phải thử lại khi điều kiện đổi.",
+              "task": "Đề xuất ngưỡng 80, rồi nêu hai tình huống cần kiểm tra trước khi dùng thực."
+            },
+            "advanced": {
+              "title": "Xử lý dao động quanh biên",
+              "body": "Nếu số đọc dao động 79,80,79,81, một ngưỡng có thể làm đầu ra đổi liên tục. Hai ngưỡng với việc nhớ trạng thái có thể giảm đổi qua lại, nhưng cần đặc tả rõ điều kiện bật/tắt.",
+              "task": "Thiết kế bật khi level < 70, tắt khi level > 90, giữ trạng thái ở giữa; chạy tay chuỗi 65,75,85,95,80."
+            }
+          }
+        }
       },
       {
         "id": "counter",
@@ -1633,7 +2740,80 @@ window.STROBOT_CURRICULUM = [
             "lang": "MakeCode JavaScript",
             "code": "let count = 0\nbasic.showNumber(count)\ninput.onButtonPressed(Button.A, function () {\n    count += 1\n    basic.showNumber(count)\n})\ninput.onButtonPressed(Button.B, function () {\n    count = 0\n    basic.showNumber(count)\n})\n"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Bộ đếm khác bài hiện biểu tượng ở chỗ nó phải nhớ lịch sử. Mỗi lần nhận một số lần bấm A mới, chương trình cộng số đó vào count đang có. B đưa count về 0. Ta sẽ tách giá trị được nhớ trong biến khỏi chữ đang cuộn trên LED: hình có thể đang giữa lượt cuộn, nhưng count vẫn là một số xác định trong chương trình.",
+          "analogy": {
+            "familiar": "Hãy coi count như số ghi trên một tờ giấy: nhận thêm hai vé thì cộng hai; yêu cầu đặt lại thì xóa số cũ và ghi 0.",
+            "meaning": "Biến giữ trạng thái giữa các lượt của vòng lặp. get_presses() lấy số lần A kể từ lần đọc trước; phép cộng dùng số đó cùng count cũ.",
+            "limit": "Tờ giấy có thể còn sau khi cất đi, còn biến trong mẫu thì mất khi chạy lại hoặc mất nguồn. Muốn lưu bền vững cần một thiết kế khác."
+          },
+          "vocabulary": [
+            {
+              "term": "Biến count",
+              "definition": "Tên gắn với số đang được nhớ. count = 0 trước vòng lặp đặt trạng thái ban đầu một lần; các lượt sau dùng trạng thái đã cập nhật."
+            },
+            {
+              "term": "get_presses()",
+              "definition": "Trả số lần bấm kể từ lần gọi trước rồi đưa bộ đếm sự kiện của nút về 0. Không cộng cùng một lượt bấm mãi mãi."
+            },
+            {
+              "term": "Đặt lại",
+              "definition": "Gán count = 0 bất kể trước đó là bao nhiêu. Đặt lại hai lần vẫn là 0."
+            },
+            {
+              "term": "Hiển thị không chờ",
+              "definition": "wait=False cho phép vòng lặp tiếp tục khi số đang cuộn. Một ảnh LED giữa chừng không nhất thiết cho thấy toàn bộ số."
+            }
+          ],
+          "workedCase": {
+            "title": "Cộng theo lượt đọc, không chỉ theo ảnh LED",
+            "input": "Ban đầu count = 0. Bấm rời nhau theo A,A,B,A; mỗi lần chờ đọc được số.",
+            "steps": [
+              {
+                "title": "Hai lần A đầu",
+                "explanation": "Lượt đầu lấy presses = 1: 0 + 1 = 1. Lượt sau lấy thêm 1: 1 + 1 = 2. Biến giữ 1 giữa hai lượt nên mới cộng dồn được."
+              },
+              {
+                "title": "Lần B",
+                "explanation": "Có reset nên count được gán 0. Mẫu ưu tiên nhánh reset; nếu A cũng được ghi nhận trong cùng lượt thì không cộng các lần A của lượt đó."
+              },
+              {
+                "title": "Lần A cuối",
+                "explanation": "Không có reset, presses = 1, nên count mới là 0 + 1 = 1. Yêu cầu hiển thị dùng giá trị 1 này."
+              }
+            ],
+            "output": "Dãy giá trị count là 0 → 1 → 2 → 0 → 1. Chạy lại toàn bộ chương trình sẽ trở về 0.",
+            "why": "Bộ đếm hoạt động nhờ ba phần: nhận sự kiện mới, dùng trạng thái cũ để tính trạng thái mới, rồi hiển thị. Khởi tạo count trong mỗi nhánh A sẽ làm mất lịch sử trước khi cộng."
+          },
+          "checkpoints": [
+            {
+              "question": "Một lượt đọc nhận presses = 3, count cũ là 5 và không reset. Count mới bằng bao nhiêu?",
+              "answer": "Bằng 8. get_presses() có thể trả nhiều lần bấm tích lũy giữa hai lượt đọc, không chỉ 0 hoặc 1."
+            },
+            {
+              "question": "Vì sao A,A không thể kiểm thử đúng nếu chỉ nhìn số cuối của A,A,B?",
+              "answer": "B cuối đặt lại 0 nên có thể che lỗi cộng dồn trước đó. Cần ghi cả trạng thái 1 rồi 2 trước B."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Làm bảng trước và sau",
+              "body": "Vẽ hai cột count trước/count sau. Mỗi lần A tăng một ở bộ thử chậm; mỗi lần B đưa về 0. Chưa cần bấm nhanh.",
+              "task": "Chạy tay B,B,A,A từ 0 rồi đối chiếu từng bước với simulator."
+            },
+            "intermediate": {
+              "title": "Phân biệt số đếm và màn hình",
+              "body": "display.scroll trình bày số bằng nhiều khung hình. Kiểm tra phải có mốc quan sát rõ; khi cần chẩn đoán có thể dùng đầu ra số thử nghiệm trong bản sao.",
+              "task": "Giải thích trạng thái count và chữ đang cuộn có thể khác nhau về thời điểm cập nhật như thế nào."
+            },
+            "advanced": {
+              "title": "Đặc tả xung đột sự kiện",
+              "body": "Một vòng có thể nhận cả presses > 0 và reset = True. Mẫu chọn reset, nên số lần A đã đọc trong lượt đó bị bỏ qua theo chính sách đã nêu.",
+              "task": "Lập bảng với count cũ 7 cho bốn cặp (presses,reset): (0,False),(2,False),(0,True),(2,True)."
+            }
+          }
+        }
       },
       {
         "id": "radio",
@@ -1751,7 +2931,84 @@ window.STROBOT_CURRICULUM = [
             "lang": "MakeCode JavaScript · hai dự án gửi/nhận riêng",
             "code": "// CHUONG TRINH BEN NHAN: dan vao mot du an MakeCode rieng.\nlet lastValid = 0\nradio.setGroup(7)\nradio.onReceivedValue(function (name, value) {\n    if (name == \"temp\" && value >= -20 && value <= 60) {\n        lastValid = value\n        basic.showNumber(lastValid)\n    }\n})\n\n// BEN GUI: tao du an khac, khong ghep nguyen hai chuong trinh.\n// radio.setGroup(7)\n// input.onButtonPressed(Button.A, function () {\n//     radio.sendValue(\"temp\", 23)\n// })\n"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Hai thiết bị chỉ hiểu nhau khi thống nhất cách viết bản tin. Chuỗi temp:23 không tự có ý nghĩa với radio: ta quy ước temp là tên trường và 23 là nhiệt độ giả định theo °C. Bên nhận phải kiểm tra trước khi dùng số. Bài này dạy cách giữ thông tin đúng gần nhất khi gặp bản tin lỗi, đồng thời nhận ra thông tin cũ không phải một phép đo mới.",
+          "analogy": {
+            "familiar": "Hình dung hai người trao phiếu theo mẫu “tên:một số”. Người nhận kiểm tra đúng mẫu và đúng tên trước khi chép số lên bảng.",
+            "meaning": "Giao thức quy định cấu trúc temp:23, đơn vị °C, nhóm 7 và miền được chấp nhận −20..60. Nếu phiếu sai, số hợp lệ cũ trên bảng vẫn được giữ.",
+            "limit": "Nhóm radio giống bộ lọc nhận, không phải phong bì khóa. Nó không mã hóa dữ liệu và không chứng minh ai đã gửi; bản tin có thể bị mất hoặc đến chậm."
+          },
+          "vocabulary": [
+            {
+              "term": "Giao thức",
+              "definition": "Các quy tắc hai bên cùng tuân theo: định dạng, tên trường, đơn vị, miền giá trị và cách xử lý lỗi. Cùng bật radio chưa đủ để hiểu dữ liệu."
+            },
+            {
+              "term": "None",
+              "definition": "radio.receive() trả None khi chưa có bản tin để đọc. Đây là trạng thái thiếu dữ liệu mới, khác số nhiệt độ 0 °C."
+            },
+            {
+              "term": "Kiểm tra miền",
+              "definition": "Chấp nhận số trong đoạn đóng [−20,60], có cả hai đầu mút. Miền này là yêu cầu của bài, không phải công bố độ chính xác của cảm biến."
+            },
+            {
+              "term": "last_valid",
+              "definition": "Biến giữ giá trị hợp lệ gần nhất. Giữ nguyên sau lỗi giúp tránh dùng dữ liệu sai, nhưng vẫn cần biết thời điểm nhận nếu muốn phát hiện quá hạn."
+            }
+          ],
+          "workedCase": {
+            "title": "Giữ dữ liệu đúng qua các bản tin lỗi",
+            "input": "Bên nhận MicroPython dùng nhóm 7, last_valid đang là 21 °C. Các bản tin đến theo thứ tự temp:23, temp:999, other:22, temp:-20.",
+            "steps": [
+              {
+                "title": "Nhận temp:23",
+                "explanation": "Tách tại dấu : được tên temp và phần số 23. Đúng tên, đổi được thành số, nằm trong miền nên lưu 23 °C."
+              },
+              {
+                "title": "Nhận temp:999 và other:22",
+                "explanation": "999 vượt miền nên bị loại. Bản tin tiếp có số 22 hợp miền nhưng tên other sai quy ước nên cũng bị loại. Giá trị lưu vẫn là 23 °C."
+              },
+              {
+                "title": "Nhận temp:-20",
+                "explanation": "Tên đúng và −20 là biên được phép. Cập nhật last_valid thành −20 °C; không loại chỉ vì số có dấu âm."
+              },
+              {
+                "title": "Chưa có bản tin tiếp",
+                "explanation": "Lần đọc trả None. Không ghi 0 vào last_valid; cũng không gọi −20 là số đo mới. Muốn biết đã cũ bao lâu cần thêm dấu thời gian."
+              }
+            ],
+            "output": "Giá trị lưu lần lượt là 23, 23, 23, −20 °C. Chuỗi số cuộn là đầu ra tạm thời; dùng print thử nghiệm hoặc theo dõi biến để kiểm tra trạng thái sau bản tin bị loại.",
+            "why": "Kiểm tra tách biệt giúp giải thích nguyên nhân loại dữ liệu: sai cấu trúc, sai tên, không đổi được sang số hoặc sai miền. Việc giữ số cũ bảo vệ trạng thái, nhưng không bảo đảm dữ liệu còn mới hay đúng về mặt vật lý."
+          },
+          "checkpoints": [
+            {
+              "question": "temp:60 và temp:61 khác nhau ra sao?",
+              "answer": "60 °C được nhận vì miền có cả biên 60; 61 °C bị loại và giữ last_valid cũ."
+            },
+            {
+              "question": "Hai bên cùng nhóm nhưng một bên dùng MakeCode sendValue, một bên nhận chuỗi MicroPython của bài có đủ để kết luận tương thích không?",
+              "answer": "Không. Cần cùng định dạng và cơ chế xử lý; bài yêu cầu một cặp MicroPython dùng chuỗi hoặc một cặp MakeCode riêng."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Đọc bản tin như một phiếu",
+              "body": "Gạch dưới tên và khoanh phần số. Kiểm tra từng điều kiện theo thứ tự trước khi đổi giá trị đang lưu; chưa cần hai bo thật để chạy tay quy tắc.",
+              "task": "Từ last_valid = 10, dự đoán temp:0, abc, temp:70 sẽ để lại số nào."
+            },
+            "intermediate": {
+              "title": "Theo dõi trạng thái nhận",
+              "body": "Không đồng nhất màn hình trống sau cuộn với biến bị xóa. Mỗi bản tin cần có quyết định nhận/loại và lý do, còn trường hợp None cần ghi là chưa có dữ liệu mới.",
+              "task": "Lập bảng bản tin, lý do, giá trị trước và sau cho temp:-21, temp:-20, temp:60."
+            },
+            "advanced": {
+              "title": "Thiết kế hạn dùng dữ liệu",
+              "body": "Đặt trước một thời hạn theo nhiệm vụ, ghi thời điểm nhận hợp lệ cuối và có trạng thái “cũ”. Việc nhận bản tin lỗi không nên làm mới tuổi của phép đo đúng cũ.",
+              "task": "Đề xuất thời hạn 5 s cho ví dụ giả định: nêu đầu ra ở 2 s và 6 s sau bản tin hợp lệ cuối, rồi giải thích giới hạn bảo mật vẫn còn."
+            }
+          }
+        }
       },
       {
         "id": "project",
@@ -1863,7 +3120,84 @@ window.STROBOT_CURRICULUM = [
             "lang": "MakeCode JavaScript · phiên bản bộ đếm cơ bản để kiểm thử",
             "code": "let count = 0\nbasic.showNumber(count)\ninput.onButtonPressed(Button.A, function () {\n    count += 1\n    basic.showNumber(count)\n})\ninput.onButtonPressed(Button.B, function () {\n    count = 0\n    basic.showNumber(count)\n})\n"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Một dự án hoàn chỉnh cần hơn một lần chạy thấy đúng. Bạn sẽ viết điều mong đợi trước, ghi kết quả thực sau từng thao tác, rồi dùng chênh lệch để tìm lỗi. Với bộ đếm, phần khó thường nằm ở lịch sử: một lần đặt lại có thể che lỗi cộng dồn phía trước. Vì vậy báo cáo phải có các mốc trung gian và ca khởi động lại, chứ không chỉ ảnh chụp số cuối.",
+          "analogy": {
+            "familiar": "Hãy coi bộ ca thử như công thức kiểm tra một chiếc cân: đặt vật nào, theo thứ tự nào, mong chờ gì đều được ghi trước.",
+            "meaning": "Ca thử bộ đếm cũng cần trạng thái đầu, chuỗi nút và giá trị sau từng nút. Người khác làm lại cùng ca có thể xác nhận lỗi hoặc bản sửa.",
+            "limit": "Một vài ca đúng không chứng minh mọi cách bấm đều đúng. Bấm gần nhau và ưu tiên cùng lượt đọc cần ca riêng; mẫu MicroPython không tự đại diện cho cơ chế sự kiện MakeCode."
+          },
+          "vocabulary": [
+            {
+              "term": "Yêu cầu",
+              "definition": "Mệnh đề có thể kiểm tra, như khởi động bằng 0, A cộng số lần đã nhận, B đặt lại và B ưu tiên nếu cùng lượt. Viết trước khi thử để có chuẩn so sánh."
+            },
+            {
+              "term": "Ca kiểm thử",
+              "definition": "Một bộ gồm trạng thái đầu, đầu vào có thứ tự, kết quả kỳ vọng và mốc quan sát. Ca càng rõ càng dễ lặp lại."
+            },
+            {
+              "term": "Lỗi có thể tái hiện",
+              "definition": "Sai khác xuất hiện khi người khác thực hiện được cùng các bước từ cùng trạng thái đầu. “Có lúc số sai” chưa đủ để tìm nguyên nhân."
+            },
+            {
+              "term": "Kiểm tra lại sau sửa",
+              "definition": "Chạy lại ca từng lỗi và những ca từng đúng. Một thay đổi có thể chữa tăng đếm nhưng làm hỏng reset."
+            }
+          ],
+          "workedCase": {
+            "title": "Phát hiện lỗi bị kết quả cuối che khuất",
+            "input": "Yêu cầu A tăng một khi bấm rời nhau, B đặt lại. Bản bị lỗi đặt count = 0 ngay trước phép cộng trong nhánh A.",
+            "steps": [
+              {
+                "title": "Viết kỳ vọng trước",
+                "explanation": "Từ 0, ca A,A,B phải cho 1,2,0. Ghi cả ba số; số 2 là bằng chứng bộ đếm đã nhớ lần A trước."
+              },
+              {
+                "title": "Chạy bản lỗi",
+                "explanation": "Quan sát được 1,1,0. Kết quả cuối 0 vẫn đúng, nhưng mốc thứ hai sai: bộ đếm đã xóa lịch sử trước khi cộng."
+              },
+              {
+                "title": "Rút ca tái hiện ngắn",
+                "explanation": "A,A từ 0 đã đủ: mong 1,2 nhưng thấy 1,1. Ca ngắn này chỉ ra lỗi ở tích lũy, không cần kéo thêm B vào."
+              },
+              {
+                "title": "Sửa và kiểm tra lại",
+                "explanation": "Bỏ dòng khởi tạo sai trong nhánh A, giữ khởi tạo trước vòng lặp. Chạy lại A,A và ca reset B,B,A; sau đó thử Run lại để xác nhận về 0."
+              }
+            ],
+            "output": "Báo cáo có thể ghi: “Từ count = 0, bấm A hai lần rời nhau; kỳ vọng 1,2; quan sát 1,1; sau sửa quan sát 1,2.”",
+            "why": "Quan sát trung gian giúp định vị mất trạng thái. Thử lại các ca khác bảo đảm sửa đúng nguyên nhân mà vẫn giữ các yêu cầu còn lại; đây là bằng chứng trong phạm vi bộ thử đã dùng."
+          },
+          "checkpoints": [
+            {
+              "question": "Vì sao không sửa cột kỳ vọng thành 1,1 sau khi thấy bản lỗi chạy như vậy?",
+              "answer": "Kỳ vọng xuất phát từ yêu cầu đã chọn. Đổi kỳ vọng theo lỗi sẽ mất chuẩn đánh giá; chỉ đổi yêu cầu khi có quyết định thiết kế rõ ràng."
+            },
+            {
+              "question": "Chạy lại chương trình từ count = 3 cần mong số nào?",
+              "answer": "Mẫu khởi tạo count = 0 nên về 0. Giữ số sau mất nguồn là một yêu cầu mới chưa được mẫu thực hiện."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Hoàn thành bốn ca rõ ràng",
+              "body": "Bắt đầu bằng bấm chậm: tăng, reset khi 0, reset sau tăng, khởi động lại. Mỗi hàng ghi kỳ vọng rồi mới điền quan sát.",
+              "task": "Viết ca B,B từ 0 và ca A,A,Run lại, ghi đủ trạng thái sau từng thao tác."
+            },
+            "intermediate": {
+              "title": "Viết báo cáo lỗi hữu ích",
+              "body": "Báo cáo cần bản mã đang dùng, trạng thái đầu, bước ngắn nhất, kỳ vọng và quan sát. Khi số đang cuộn, ghi mốc đợi đọc đủ số để người khác lặp lại được.",
+              "task": "Tạo bản lỗi trong bản sao, báo cáo A,A, rồi xác nhận lại bằng bản đã khôi phục."
+            },
+            "advanced": {
+              "title": "Kiểm thử chính sách cùng lượt",
+              "body": "Trong mẫu, presses được đọc rồi reset được kiểm tra; reset thắng khi cả hai cùng được nhận trong một lượt. Ca bấm chậm không kiểm tra được hết tình huống này.",
+              "task": "Thiết kế bảng đầu vào (presses,reset) và kỳ vọng; tách kết quả chạy tay chắc chắn với kết quả bấm gần nhau chưa quan sát rõ."
+            }
+          }
+        }
       }
     ],
     "lab": "python"
@@ -1983,7 +3317,84 @@ window.STROBOT_CURRICULUM = [
             "title": "GearsBot — Python ev3dev2 cảm biến màu và siêu âm",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Khi bạn ra lệnh motor quay 90°, tay gạt có nhất thiết quay 90° không? Câu trả lời phụ thuộc những gì nằm giữa trục motor và tay gạt. Bài này bắt đầu bằng một bộ truyền hai bánh răng, đánh dấu vị trí nghỉ rồi theo dõi đầu vào và đầu ra riêng. Hiểu đường truyền chuyển động giúp bạn tránh nhầm lệnh phần mềm với góc mà cơ cấu thật đã đạt.",
+          "analogy": {
+            "familiar": "Đánh một dấu trên mỗi bánh răng rồi quay bánh nhỏ chậm bằng tay: răng bánh này đẩy răng bánh kia.",
+            "meaning": "Bánh vào 12 răng quay một vòng đưa 12 răng qua chỗ ăn khớp. Bánh ra 36 răng chỉ đi qua 12/36 vòng, nên quay chậm hơn và ngược chiều với cặp bánh ngoài.",
+            "limit": "Mô tả này giả sử các răng ăn khớp lý tưởng. Độ rơ, ma sát, liên kết khác và chặn cơ khí có thể làm góc tay gạt thực khác phép tính."
+          },
+          "vocabulary": [
+            {
+              "term": "Trục vào và trục ra",
+              "definition": "Trục vào nhận chuyển động từ motor; trục ra truyền chuyển động tới tay gạt. Phân biệt chúng trước khi gắn một con số góc."
+            },
+            {
+              "term": "Vị trí nghỉ",
+              "definition": "Mốc được chọn để đo góc, thường gọi 0°. Bật Hub không tự chứng minh cơ cấu đang ở mốc này."
+            },
+            {
+              "term": "Góc có dấu",
+              "definition": "Dấu +/− chỉ hai chiều quay theo quy ước. Với hai bánh răng ngoài, đầu ra có dấu ngược đầu vào; độ lớn là khoảng góc quay."
+            },
+            {
+              "term": "Độ rơ",
+              "definition": "Khoảng chuyển động mất khi đảo chiều do khe hở của cơ cấu. Motor bắt đầu quay ngược không bảo đảm đầu ra đã đổi ngay cùng lúc."
+            }
+          ],
+          "workedCase": {
+            "title": "Đi ra và về với bộ truyền 12:36",
+            "input": "Mô hình lý tưởng, bánh vào 12 răng, bánh ra 36 răng; tay gạt gắn trực tiếp trục ra. Chọn vị trí nghỉ 0° và góc motor 0° → 90° → 0°.",
+            "steps": [
+              {
+                "title": "Xác định mốc và chiều",
+                "explanation": "Cả góc motor và góc đầu ra đo từ mốc đã đặt. Chọn chiều dương cho đầu vào; chiều ngược được biểu diễn bằng dấu âm."
+              },
+              {
+                "title": "Tính lúc đi ra",
+                "explanation": "Góc đầu ra = −90° × 12/36 = −30°. Tay gạt đổi độ lớn 30°, không phải 90°."
+              },
+              {
+                "title": "Đưa về mốc",
+                "explanation": "Khi motor trở lại 0° từ cùng mốc, mô hình lý tưởng cho đầu ra 0°. Cần quan sát đầu ra thực hoặc mô hình, không chỉ nhìn lệnh đã gửi."
+              },
+              {
+                "title": "Đọc kết quả trong đúng mô hình",
+                "explanation": "GearsBot Cage Bot có tay chắn truyền động trực tiếp riêng; chuỗi góc tay chắn 0° → 30° → 0° ở đó không phải phép kiểm chứng bộ bánh răng SPIKE 12:36 này."
+              }
+            ],
+            "output": "Bảng mô hình: motor 0°,90°,0° tương ứng đầu ra 0°,−30°,0°. Đơn vị là độ góc, ký hiệu °.",
+            "why": "Số răng quyết định tỷ số góc lý tưởng. Trên cơ cấu thật còn phải xác định gốc, giới hạn và cách dừng khi không đạt; giá trị tính được không cho phép vượt chặn cơ khí."
+          },
+          "checkpoints": [
+            {
+              "question": "Muốn độ lớn đầu ra 20° trong cùng mô hình, motor cần đổi bao nhiêu?",
+              "answer": "60°, vì 60 × 12/36 = 20. Chiều đầu ra ngược motor; phải xét giới hạn cơ khí trước khi thử thật."
+            },
+            {
+              "question": "Motor đã nhận lệnh về 0° có đủ chứng minh tay gạt thực đã về nghỉ không?",
+              "answer": "Chưa. Cần quan sát hoặc phản hồi phù hợp; tải, kẹt, độ rơ hoặc mốc đặt sai đều có thể ảnh hưởng."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Quan sát hai góc riêng",
+              "body": "Chưa cần nhớ công thức. Thay motor từ 0° đến 90° rồi về 0°, ghi góc đầu ra và chỉ chiều quay trên sơ đồ.",
+              "task": "Dùng hai cột “góc motor” và “góc tay gạt”; khoanh chỗ hai số khác nhau."
+            },
+            "intermediate": {
+              "title": "Giải thích bằng số răng",
+              "body": "Một góc đầu vào đưa cùng số răng đi qua điểm ăn khớp ở hai bánh. Bánh ra nhiều răng hơn cần quay một phần vòng nhỏ hơn.",
+              "task": "Tính và thử trong mô hình motor 30°,60°,90°; so sánh tỷ số góc."
+            },
+            "advanced": {
+              "title": "Từ mô hình sang cơ cấu thật",
+              "body": "Công thức chỉ đúng cho quan hệ truyền động đã giả định. Tay gạt qua liên kết không gắn trực tiếp có thể cần hình học khác; encoder motor không đo trực tiếp mọi đầu ra.",
+              "task": "Đề xuất phép đo góc đầu ra khi đi tới cùng một vị trí từ hai chiều để khảo sát độ rơ, với góc nhỏ trong phạm vi đã xác nhận an toàn."
+            }
+          }
+        }
       },
       {
         "id": "colors",
@@ -2085,7 +3496,84 @@ window.STROBOT_CURRICULUM = [
             "title": "GearsBot — Python ev3dev2 cảm biến màu và siêu âm",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Màu bạn nhìn thấy trên vật và nhãn cảm biến trả về là hai thứ liên quan nhưng không đồng nhất. Cảm biến nhận ánh sáng phản xạ trong một điều kiện đặt cụ thể; phần mềm dùng số đo đó để chọn nhãn. Vì vậy một vật đỏ có thể có lượt đọc chưa xác định. Điều cần học là ghi đúng kết quả đo và xử lý sự không chắc chắn, thay vì ép mọi đầu vào thành đỏ hoặc xanh.",
+          "analogy": {
+            "familiar": "Hãy hình dung nhận màu một chiếc áo qua ảnh: ánh sáng và góc chụp có thể làm cùng chiếc áo trông khác nhau.",
+            "meaning": "Cảm biến cũng phụ thuộc ánh sáng phản xạ, khoảng đặt và bề mặt. Nhãn đỏ/xanh là kết quả diễn giải số đo, không phải bản thân vật.",
+            "limit": "Cảm biến màu có nguồn sáng, cách thu và thuật toán riêng, khác mắt người hay máy ảnh. Ví dụ chỉ giúp hiểu ảnh hưởng điều kiện đo, không dự đoán chính xác độ sai của từng thiết bị."
+          },
+          "vocabulary": [
+            {
+              "term": "Nhãn màu",
+              "definition": "Tên như đỏ, xanh hoặc chưa xác định do hệ thống phân loại trả về. Đây là dữ liệu phân loại, không phải số đo độ phản xạ."
+            },
+            {
+              "term": "Độ phản xạ",
+              "definition": "Đại lượng mô tả mức ánh sáng thu về theo thang của cảm biến. Hai vật khác màu vẫn có thể có mức phản xạ gần nhau."
+            },
+            {
+              "term": "Chưa xác định",
+              "definition": "Hệ thống chưa gán được nhãn đáng tin trong tập đang dùng. Có thể do vật lạ, ngoài tầm hoặc điều kiện đo, không tự chứng minh vùng trống."
+            },
+            {
+              "term": "Nhánh loại trừ nhau",
+              "definition": "Mỗi lượt chọn đúng một trong các nhánh đỏ, xanh, còn lại; if/elif/else biểu diễn lựa chọn này rõ hơn những if rời dễ gắn nhầm else."
+            }
+          ],
+          "workedCase": {
+            "title": "Một vật, năm lượt đọc",
+            "input": "Giữ cùng một vật đỏ ở vị trí đã chọn. Nhãn lần lượt: đỏ, đỏ, chưa xác định, đỏ, đỏ.",
+            "steps": [
+              {
+                "title": "Ghi sự thật quan sát",
+                "explanation": "Ghi nguyên năm nhãn theo thứ tự, giữ nguyên nhãn chưa xác định ở lượt 3. Không sửa dữ liệu theo màu mình biết trước."
+              },
+              {
+                "title": "Đếm nhãn phù hợp",
+                "explanation": "Có 4 lượt nhận đỏ trên 5 lượt, tức 4/5 = 80% lượt đọc trong điều kiện này. Có 1 lượt chưa xác định, không phải một vật mới."
+              },
+              {
+                "title": "Chọn nhánh",
+                "explanation": "Bốn lượt đỏ đi nhánh A; lượt chưa xác định đi nhánh kiểm tra/chưa phân loại. Không tự đổi lượt đó thành xanh hay đỏ."
+              },
+              {
+                "title": "Tìm yếu tố ảnh hưởng",
+                "explanation": "Đo một nhóm mới khi chỉ thay khoảng đặt và giữ các yếu tố còn lại. So sánh bảng để có bằng chứng thay vì cùng lúc đổi cả ánh sáng lẫn góc."
+              }
+            ],
+            "output": "Bảng có năm mẫu nhưng chỉ một vật. Kết quả mô tả khả năng đọc trong điều kiện đã ghi, chưa phải tỷ lệ phân loại toàn trạm.",
+            "why": "Tách vật thật, mẫu đo và quyết định giúp tránh suy luận quá mức. Trên bàn logic, màu do người dùng chọn chỉ kiểm tra nhánh; nó không mô phỏng phép đo quang học của kit thật."
+          },
+          "checkpoints": [
+            {
+              "question": "Một lượt chưa xác định có đủ kết luận không có vật không?",
+              "answer": "Không. Vật có thể còn đó nhưng ngoài tầm hoặc đọc không ổn định; cần tín hiệu hiện diện phù hợp nếu muốn xác nhận trống."
+            },
+            {
+              "question": "Đọc đúng màu có đảm bảo vật tới đúng ngăn không?",
+              "answer": "Chưa. Cơ cấu gạt và điều khiển phía sau vẫn có thể lỗi; đó là kết quả của toàn quy trình."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Tách điều biết và điều đo",
+              "body": "Ghi hai cột: màu vật bạn chuẩn bị và nhãn cảm biến báo. Khi hai cột khác nhau, giữ cả hai để hiểu lỗi.",
+              "task": "Với đỏ, xanh, chưa xác định, hãy chọn nhánh A, B, kiểm tra mà không cần motor."
+            },
+            "intermediate": {
+              "title": "Đo lặp có kiểm soát",
+              "body": "Giữ vật, khoảng cách, góc và ánh sáng ổn định trong một nhóm đo. Sau đó đổi một yếu tố để xem sự khác nhau gắn với yếu tố nào.",
+              "task": "Thiết kế hai nhóm năm lượt chỉ khác khoảng đặt; ghi những điều phải giữ nguyên."
+            },
+            "advanced": {
+              "title": "Đánh giá từng nhãn",
+              "body": "Một tỷ lệ chung có thể che trường hợp xanh thường bị nhận thành đỏ. Bảng màu kỳ vọng so với nhãn đo cho biết lỗi nhầm cụ thể; chưa xác định cần cột riêng.",
+              "task": "Lập bảng đếm cho hai vật đỏ/xanh với ba đầu ra đỏ/xanh/chưa biết; nêu cách dùng bảng để chọn thử nghiệm tiếp."
+            }
+          }
+        }
       },
       {
         "id": "sort",
@@ -2187,7 +3675,80 @@ window.STROBOT_CURRICULUM = [
             "title": "GearsBot — Python ev3dev2 cảm biến màu và siêu âm",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Robot đọc cảm biến nhiều lần trong lúc một vật còn đứng trước nó. Nếu cứ thấy đỏ là gạt và tăng đếm, một vật sẽ bị xử lý nhiều lần. Ta cần thêm trí nhớ: vật hiện tại đã được xử lý chưa? Bài này theo dõi mẫu đo, sự xuất hiện của vật mới và hoàn tất chu kỳ như những sự kiện riêng. Nhờ vậy số đếm có ý nghĩa rõ ràng.",
+          "analogy": {
+            "familiar": "Một người kiểm vé cần đánh dấu vé đã kiểm; nhìn lại cùng chiếc vé không được tính là một người mới.",
+            "meaning": "Cờ đã_xử_lý giữ dấu cho vật hiện tại. Chỉ khi xác nhận vật cũ rời vùng nhận, hệ thống mới cho phép xử lý vật kế tiếp.",
+            "limit": "Một nhãn màu chưa biết không giống một chiếc vé đã rời bàn. Cần bằng chứng trống đáng tin; chờ một khoảng thời gian cố định cũng không bảo đảm vật đã đi."
+          },
+          "vocabulary": [
+            {
+              "term": "Mẫu đo",
+              "definition": "Một lần lấy dữ liệu cảm biến. Một vật có thể tạo nhiều mẫu, ví dụ 20 mẫu nếu đọc 20 lần/s trong 1 s."
+            },
+            {
+              "term": "Vật mới",
+              "definition": "Một sự kiện được xác định theo quy tắc vào–ra/hiện diện. Nó không đồng nghĩa với mọi mẫu có nhãn màu."
+            },
+            {
+              "term": "Cờ đã xử lý",
+              "definition": "Biến đúng/sai nhớ rằng vật hiện tại đã được chốt xử lý. Cờ chặn khởi động lại chu kỳ khi còn cùng vật."
+            },
+            {
+              "term": "Bộ đếm thành công",
+              "definition": "Chỉ tăng khi chu kỳ hoàn tất theo tiêu chí đã đặt. Khác với số vật nhận vào hoặc số lần đã khởi động gạt."
+            }
+          ],
+          "workedCase": {
+            "title": "Một vật đỏ rồi một vật xanh",
+            "input": "Ban đầu vùng trống, cờ sai, số vật nhận vào = 0 và thành công = 0. Mẫu hiện diện/màu: đỏ, đỏ, đỏ, trống, xanh, xanh, trống; giả sử mỗi chu kỳ đều hoàn tất.",
+            "steps": [
+              {
+                "title": "Đỏ đầu tiên",
+                "explanation": "Có vật hợp lệ và cờ sai nên chốt một chu kỳ, đặt cờ đúng. Số nhận vào tăng 1; chỉ sau khi chu kỳ hoàn tất mới tăng thành công lên 1."
+              },
+              {
+                "title": "Hai mẫu đỏ tiếp",
+                "explanation": "Cờ vẫn đúng nên không mở chu kỳ khác. Dữ liệu được đọc lại nhưng vẫn thuộc vật đang có."
+              },
+              {
+                "title": "Trống rồi xanh",
+                "explanation": "Khi xác nhận trống, cho phép vật kế tiếp. Xanh đầu tiên mở chu kỳ thứ hai; xanh lặp không mở thêm. Trống cuối cho phép bắt đầu chu kỳ sau."
+              }
+            ],
+            "output": "Có 5 mẫu màu nhưng 2 vật mới và 2 chu kỳ thành công. Nếu chu kỳ xanh bị kẹt thì nhận vào vẫn là 2, thành công chỉ là 1.",
+            "why": "Cờ cung cấp bộ nhớ giữa các lượt đọc. Tách chốt chống lặp khỏi báo thành công giúp lỗi cơ khí không biến thành một lượt phân loại đúng hoặc gây khởi động gạt lại liên tục."
+          },
+          "checkpoints": [
+            {
+              "question": "Đang xử lý cùng vật, một mẫu đổi thành chưa biết rồi lại đỏ. Có nên xóa cờ không?",
+              "answer": "Không nếu chưa xác nhận vùng trống. Mất nhãn tạm thời không chứng minh vật đã rời đi."
+            },
+            {
+              "question": "Tại sao chờ 1 s sau mỗi lần gạt chưa đủ chống lặp?",
+              "answer": "Vật có thể còn trước cảm biến hơn 1 s. Khi hết chờ, cùng vật sẽ bị nhận lại nếu không kiểm tra chu kỳ vào–ra."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Chạy tay với cờ",
+              "body": "Viết một ô đúng/sai cho cờ và cập nhật sau mỗi mẫu. Chưa cần lắp tay gạt; quan trọng là hiểu khi nào mở chu kỳ.",
+              "task": "Chạy đỏ, đỏ, trống, đỏ và đánh dấu hai mẫu thực sự mở chu kỳ."
+            },
+            "intermediate": {
+              "title": "Theo dõi hai bộ đếm",
+              "body": "Ghi riêng nhận vào và thành công để biết vật đã được nhận nhưng cơ cấu chưa hoàn tất. Không tăng thành công ngay khi chỉ vừa gửi lệnh motor.",
+              "task": "Chạy hai vật, cho vật thứ hai bị kẹt; báo cả hai số và trạng thái chặn tiếp theo."
+            },
+            "advanced": {
+              "title": "Thiết kế tín hiệu cho phép nhận lại",
+              "body": "Điều kiện trống cần xuất phát từ khả năng cảm biến hiện diện. Có thể yêu cầu ổn định nhiều mẫu để giảm dao động, nhưng phải thừa nhận lỗi có hệ thống vẫn tồn tại.",
+              "task": "Đặc tả cờ được xóa khi nào, khi nào giữ, và hệ thống làm gì nếu tín hiệu hiện diện lỗi quá lâu."
+            }
+          }
+        }
       },
       {
         "id": "project",
@@ -2289,7 +3850,84 @@ window.STROBOT_CURRICULUM = [
             "title": "GearsBot — Python ev3dev2 cảm biến màu và siêu âm",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Trạm phân loại có nhiều khâu: thấy vật, nhận màu, chọn ngăn, điều khiển tay gạt và đưa vật tới ngăn. Sản phẩm chỉ đạt khi đầu ra cuối đúng theo yêu cầu, không chỉ khi một khâu báo tốt. Bài dự án giúp bạn đặt tiêu chí trước, giữ mọi lượt thử trong báo cáo và dùng dữ liệu để biết nên sửa ở đâu.",
+          "analogy": {
+            "familiar": "Một đơn hàng được giao thành công khi đến đúng người; đọc đúng địa chỉ ở kho mới hoàn thành một phần công việc.",
+            "meaning": "Tương tự, nhận đúng màu là một khâu. Vật phải tới đúng ngăn thì lượt phân loại mới đúng theo yêu cầu toàn trạm.",
+            "limit": "Ví dụ không thay thế tiêu chí của dự án. Với vật ngoài tập đỏ/xanh, bạn phải định nghĩa trước ngăn kiểm tra hay cách xử lý khác mới chấm được đúng/sai."
+          },
+          "vocabulary": [
+            {
+              "term": "Tiêu chí đầu ra",
+              "definition": "Mô tả kết quả có thể quan sát, như đỏ vào A, xanh vào B, loại khác vào ngăn kiểm tra. Cần chốt trước khi chạy."
+            },
+            {
+              "term": "Tỷ lệ đúng",
+              "definition": "Số lượt có đầu ra đúng chia tổng số lượt thử, rồi nhân 100%. Các lượt kẹt, timeout hoặc không hoàn tất vẫn nằm trong tổng."
+            },
+            {
+              "term": "Nguyên nhân lỗi",
+              "definition": "Khâu có bằng chứng gây đầu ra sai, như nhãn đo sai, gạt sai góc hoặc vật mắc. Đầu ra sai riêng nó chưa chỉ ra nguyên nhân."
+            },
+            {
+              "term": "Biến kiểm soát",
+              "definition": "Các điều giữ giống nhau để so sánh, như bộ vật, thứ tự, khoảng đặt, ánh sáng và tốc độ. Chỉ đổi yếu tố đang muốn khảo sát."
+            }
+          ],
+          "workedCase": {
+            "title": "Tính tỷ lệ mà không làm mất lượt lỗi",
+            "input": "Bộ thử 12 lượt đã được xác định tiêu chí. Kết quả: 9 đúng ngăn, 1 sai ngăn, 1 chưa xác định không hoàn tất, 1 kẹt.",
+            "steps": [
+              {
+                "title": "Chốt mẫu số",
+                "explanation": "Có 12 lượt đưa vào theo bộ thử, nên mẫu số là 12. Không bỏ hai lượt chưa hoàn tất ra khỏi báo cáo."
+              },
+              {
+                "title": "Tính tỷ lệ",
+                "explanation": "Số lượt đúng là 9. Tỷ lệ đúng = 9/12 × 100% = 75% trên bộ thử này."
+              },
+              {
+                "title": "Tìm dữ liệu còn thiếu",
+                "explanation": "Với lượt sai ngăn, cần nhãn đã đọc và lệnh gạt để phân biệt cảm biến sai với cơ cấu sai. Với lượt kẹt, ghi vị trí và thời gian phát hiện."
+              },
+              {
+                "title": "Chọn một cải tiến",
+                "explanation": "Nếu bằng chứng cho thấy khoảng đặt dao động gây nhãn chưa biết, thêm cách giữ khoảng đặt rồi thử lại cùng bộ vật. Ghi cả tỷ lệ và loại lỗi sau sửa."
+              }
+            ],
+            "output": "Báo cáo: 12 lượt, 9 đúng, 1 sai ngăn, 1 chưa hoàn tất do chưa xác định, 1 kẹt; tỷ lệ đúng 75%.",
+            "why": "Mẫu số đầy đủ phản ánh trải nghiệm toàn quy trình. Phân loại lỗi theo khâu giúp sửa có cơ sở; 75% không phải bảo đảm cho mọi vật hay mọi ánh sáng ngoài bộ đã thử."
+          },
+          "checkpoints": [
+            {
+              "question": "Nếu cảm biến nhận đúng 10/10 nhưng chỉ 8 vật tới đúng ngăn, tỷ lệ đúng toàn trạm có phải 100% không?",
+              "answer": "Không. Theo tiêu chí đến đúng ngăn, tỷ lệ là 8/10 = 80%; cần xem cơ cấu và điều khiển các lượt còn lại."
+            },
+            {
+              "question": "Có được đổi tiêu chí vật lạ sau khi thấy trạm xử lý chúng không?",
+              "answer": "Không trong cùng lượt đánh giá. Tiêu chí phải đặt trước; nếu thay yêu cầu cần ghi phiên bản và thử lại."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Theo một vật từ đầu đến cuối",
+              "body": "Đánh dấu vật kỳ vọng vào ngăn nào, nhãn đọc là gì và cuối cùng nằm ở đâu. Bắt đầu với từng vật, chưa cần chạy nhanh.",
+              "task": "Lập ba cột màu chuẩn bị, nhãn đọc, ngăn thực cho đỏ/xanh/khác."
+            },
+            "intermediate": {
+              "title": "Ghi lỗi theo khâu",
+              "body": "Tách nhận màu, quyết định nhánh và cơ cấu. Nhờ vậy một con số tỷ lệ chung có thể dẫn tới hành động sửa cụ thể.",
+              "task": "Với một lượt nhận đỏ nhưng rơi vào B, liệt kê dữ liệu cần để kiểm tra phần điều khiển và phần cơ khí."
+            },
+            "advanced": {
+              "title": "So sánh cải tiến có phạm vi",
+              "body": "Giữ bộ thử và quy tắc chấm, thay một yếu tố rồi thử lại. Nếu đã dùng bộ thử để chỉnh nhiều lần, nên có thêm bộ mới để đánh giá khả năng áp dụng.",
+              "task": "Thiết kế thử A/B cho hai khoảng đặt: ghi điều giữ nguyên, cách đếm mọi lượt lỗi và giới hạn kết luận từ kết quả."
+            }
+          }
+        }
       },
       {
         "id": "ratio",
@@ -2379,7 +4017,84 @@ window.STROBOT_CURRICULUM = [
             "title": "LEGO Education — thư viện bài học chính thức",
             "url": "https://education.lego.com/en-us/lessons/"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Bộ truyền bánh răng giúp chọn cách dùng chuyển động của motor. Bánh nhỏ kéo bánh lớn làm đầu ra chậm hơn trong mô hình lý tưởng, đồng thời tăng mô-men; đảo cặp bánh thì đổi theo hướng ngược lại. Để hiểu điều này, ta cần nói rõ đầu vào, đầu ra, số răng, đơn vị tốc độ và chiều quay. Bộ truyền không sinh thêm năng lượng miễn phí.",
+          "analogy": {
+            "familiar": "Quan sát răng tại chỗ ăn khớp: mỗi răng đi qua của bánh vào phải tương ứng với một răng của bánh ra.",
+            "meaning": "Bánh ra có ba lần số răng cần ba lần lượng răng đi qua để quay đủ một vòng; vì thế nó quay bằng một phần ba tốc độ bánh vào.",
+            "limit": "Phép đếm răng giải thích tỷ số hình học. Tốc độ có tải và mô-men thực còn chịu tổn hao, giới hạn motor và độ bền cơ cấu; không suy chúng chính xác từ ảnh mô phỏng."
+          },
+          "vocabulary": [
+            {
+              "term": "rpm",
+              "definition": "Số vòng quay trong một phút. Có thể dùng rpm ở cả hai phía khi tính tỷ số tốc độ, nhưng khi tính công suất bằng watt cần tốc độ góc theo rad/s."
+            },
+            {
+              "term": "Mô-men",
+              "definition": "Đại lượng thể hiện tác dụng làm quay của lực quanh trục, đo bằng N·m. Nó khác tốc độ quay và khác một lực đơn lẻ."
+            },
+            {
+              "term": "Tỷ số truyền",
+              "definition": "Trong bài dùng độ lớn tốc độ ra/vào = số răng vào/số răng ra. Nêu quy ước này vì tài liệu khác có thể gọi tỷ số theo chiều ngược."
+            },
+            {
+              "term": "Hiệu suất η",
+              "definition": "Tỷ phần công suất hữu ích còn lại sau tổn hao, nằm dưới hoặc bằng 1 trong mô hình. η = 0,8 nghĩa là 80%, không phải thêm 80% năng lượng."
+            }
+          ],
+          "workedCase": {
+            "title": "Giảm tốc với cặp 12:36",
+            "input": "Bánh vào 12 răng, bánh ra 36 răng, tốc độ vào 90 rpm, mô-men vào giả định 0,10 N·m; xét mô hình hiệu suất 0,8.",
+            "steps": [
+              {
+                "title": "Tính tốc độ",
+                "explanation": "Độ lớn tốc độ ra = 90 × 12/36 = 30 rpm. Hai bánh răng ngoài ăn khớp nên chiều ra ngược chiều vào."
+              },
+              {
+                "title": "Tính mô-men lý tưởng",
+                "explanation": "Tỷ số mô-men lý tưởng là 36/12 = 3. Mô-men ra lý tưởng = 0,10 × 3 = 0,30 N·m."
+              },
+              {
+                "title": "Thêm tổn hao trong mô hình",
+                "explanation": "Với η = 0,8, mô-men ra xấp xỉ 0,8 × 0,30 = 0,24 N·m ở điều kiện mà mô hình áp dụng. Không coi đây là số đo motor thật."
+              },
+              {
+                "title": "Liên hệ nhiệm vụ",
+                "explanation": "Đầu ra chậm hơn có thể phù hợp tay gạt cần mô-men hơn. Nhưng vẫn phải kiểm tra tải, góc, thời gian và giới hạn cơ khí thực tế."
+              }
+            ],
+            "output": "Đầu ra lý tưởng về tốc độ: 30 rpm ngược chiều. Mô-men lý tưởng 0,30 N·m; mô hình có hiệu suất 0,8 cho khoảng 0,24 N·m.",
+            "why": "Trong lý tưởng, công suất được bảo toàn: giảm tốc đổi lấy tăng mô-men. Với tổn hao, công suất ra giảm; bộ truyền không cho phép vượt các giới hạn của motor hoặc bánh răng."
+          },
+          "checkpoints": [
+            {
+              "question": "Đảo thành bánh vào 36, ra 12 ở 60 rpm thì tốc độ ra bao nhiêu?",
+              "answer": "Độ lớn 60 × 36/12 = 180 rpm, ngược chiều. Mô-men ra lý tưởng chỉ bằng một phần ba đầu vào."
+            },
+            {
+              "question": "Thêm một bánh trung gian đơn giản có tự đổi tỷ số đầu/cuối không?",
+              "answer": "Không nếu đó chỉ là một bánh trung gian, không ghép tầng đồng trục; nó đổi chiều thêm một lần. Tỷ số cuối vẫn phụ thuộc số răng đầu và cuối."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Đếm răng để đoán nhanh/chậm",
+              "body": "Chỉ hai bánh, chỉ rõ bánh nào được motor kéo. Bánh ra nhiều răng hơn sẽ quay ít vòng hơn khi cùng số răng đi qua điểm ăn khớp.",
+              "task": "So sánh 12:36 và 36:12, dự đoán đầu ra nhanh hay chậm trước khi tính."
+            },
+            "intermediate": {
+              "title": "Nối góc và tốc độ",
+              "body": "Cùng một tỷ số răng áp dụng cho độ lớn góc và tốc độ trong mô hình cứng. Góc motor 90° ở cặp 12:36 cho đầu ra 30° ngược chiều.",
+              "task": "Tính đồng thời góc ra với đầu vào 180° và tốc độ ra với đầu vào 60 rpm."
+            },
+            "advanced": {
+              "title": "Kiểm tra công suất và tổn hao",
+              "body": "P = Tω dùng T theo N·m và ω theo rad/s để ra W. Đổi rpm sang rad/s bằng nhân 2π/60; tốc độ và mô-men cần thuộc cùng điều kiện vận hành.",
+              "task": "Dùng số trong ví dụ để kiểm tra công suất lý tưởng vào/ra rồi giải thích ảnh hưởng của η = 0,8."
+            }
+          }
+        }
       },
       {
         "id": "state",
@@ -2481,7 +4196,84 @@ window.STROBOT_CURRICULUM = [
             "title": "GearsBot — Python ev3dev2 cảm biến màu và siêu âm",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Khi hệ thống vừa phải chờ vật, gạt, chờ vật rời và xử lý kẹt, một điều kiện “nếu đỏ thì gạt” không còn đủ rõ. Máy trạng thái đặt tên cho việc đang làm và chỉ cho phép những chuyển tiếp nhất định. Mỗi mẫu cảm biến được diễn giải cùng trạng thái hiện tại, nên cùng nhãn đỏ có thể mở chu kỳ mới ở WAIT nhưng không mở chu kỳ ở WAIT_CLEAR.",
+          "analogy": {
+            "familiar": "Hãy nghĩ đến các bước mượn sách: chờ bạn đọc, xử lý mượn, chờ hoàn tất bàn giao rồi mới phục vụ lượt tiếp.",
+            "meaning": "Trạng thái giữ ngữ cảnh để một yêu cầu lặp không bị coi là người mới. Các mũi tên chỉ ra sự kiện nào cho phép chuyển bước.",
+            "limit": "Robot cần điều kiện và thời hạn đo được; không thể dựa vào phán đoán mơ hồ như “có vẻ xong”. Trạng thái ERROR còn cần quy tắc dừng và phục hồi rõ ràng."
+          },
+          "vocabulary": [
+            {
+              "term": "Trạng thái",
+              "definition": "Tên của một chế độ hiện tại, như WAIT, CLASSIFY, WAIT_CLEAR, ERROR. Nó giúp quyết định đầu vào nào có ý nghĩa ở thời điểm đó."
+            },
+            {
+              "term": "Điều kiện chuyển",
+              "definition": "Sự kiện hoặc điều kiện cho phép sang trạng thái khác, như xác nhận có vật, gạt hoàn tất hoặc quá thời gian."
+            },
+            {
+              "term": "Hành động khi vào",
+              "definition": "Việc khởi tạo một lần lúc vừa vào trạng thái, chẳng hạn bắt đầu gạt. Khác với gửi lại lệnh gạt ở mọi vòng lặp."
+            },
+            {
+              "term": "Timeout",
+              "definition": "Giới hạn thời gian đã đặt. Quá giới hạn mà chưa hoàn tất phải đi nhánh lỗi/dừng phù hợp, không được mặc nhiên báo thành công."
+            }
+          ],
+          "workedCase": {
+            "title": "Một nhãn chưa biết trong lúc chờ vật rời",
+            "input": "Trạm đang WAIT_CLEAR sau khi đã gạt một vật đỏ. Mẫu tiếp theo: đỏ, chưa biết, đỏ, trống đã xác nhận, đỏ mới.",
+            "steps": [
+              {
+                "title": "Ba mẫu đầu",
+                "explanation": "Đỏ và nhãn chưa biết chưa xác nhận vật rời. Trạm giữ WAIT_CLEAR; không chạy lại gạt và không tăng bộ đếm nhận vật."
+              },
+              {
+                "title": "Mẫu trống đáng tin",
+                "explanation": "Điều kiện vùng trống được xác nhận theo thiết kế, nên chuyển WAIT_CLEAR → WAIT. Lúc này mới cho phép vật tiếp theo."
+              },
+              {
+                "title": "Đỏ cuối",
+                "explanation": "Ở WAIT, có vật mới nên tăng nhận vào và sang CLASSIFY. Khởi tạo gạt đúng một lần khi vào, không khởi tạo lại với mỗi mẫu đỏ."
+              },
+              {
+                "title": "Xét hoàn tất hoặc lỗi",
+                "explanation": "Nếu gạt hoàn tất thì tăng thành công, sang WAIT_CLEAR. Nếu quá hạn thì dừng motor và sang ERROR, không tăng thành công; cần xử lý lỗi trước khi nhận tiếp."
+              }
+            ],
+            "output": "Chỉ mẫu đỏ cuối mở một chu kỳ mới. Các mẫu đỏ trước và nhãn chưa biết không làm mất ngữ cảnh của vật cũ.",
+            "why": "Cùng đầu vào có thể dẫn đến hành động khác vì trạng thái khác. Quy tắc chuyển và hành động một lần làm hệ thống có thể kiểm tra, đồng thời tách nhận vật khỏi xác nhận thành công."
+          },
+          "checkpoints": [
+            {
+              "question": "CLASSIFY bị timeout có được tự quay lại WAIT để thử vật khác ngay không?",
+              "answer": "Không theo thiết kế an toàn của bài. Phải dừng và sang ERROR, xác định cách phục hồi để vật kẹt không gây chu kỳ lặp."
+            },
+            {
+              "question": "Nhiều mẫu “chưa biết” liên tiếp có chắc là trống không?",
+              "answer": "Không. Nếu cảm biến không phân biệt được mất nhãn và không có vật, lặp mẫu không tự tạo bằng chứng hiện diện đáng tin."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Đóng vai từng trạng thái",
+              "body": "Viết bốn thẻ tên trạng thái. Đặt một thẻ hiện tại, đọc một mẫu rồi chỉ chuyển khi điều kiện trên mũi tên đúng.",
+              "task": "Chạy đỏ, đỏ, trống, xanh, trống với giả định mỗi chu kỳ hoàn tất; đánh dấu hai lần vào CLASSIFY."
+            },
+            "intermediate": {
+              "title": "Làm bảng chuyển đầy đủ",
+              "body": "Với mỗi trạng thái, ghi đầu vào liên quan, trạng thái kế tiếp và hành động. Phân biệt giữ nguyên trạng thái với khởi tạo một chu kỳ mới.",
+              "task": "Ở WAIT_CLEAR, ghi ba trường hợp có vật, chưa xác nhận, trống xác nhận và hành động của từng trường hợp."
+            },
+            "advanced": {
+              "title": "Đặc tả thời gian và phục hồi",
+              "body": "Ghi thời điểm vào CLASSIFY và so thời gian đã trôi với giới hạn. ERROR phải có điều kiện phục hồi được kiểm chứng, ví dụ can thiệp rồi kiểm tra vùng/cơ cấu, không chỉ hết một delay.",
+              "task": "Thiết kế một ca gạt kẹt, một ca mất nhãn tạm và một ca phục hồi; báo cả số nhận vào lẫn số thành công."
+            }
+          }
+        }
       }
     ],
     "lab": "gears"
@@ -2605,7 +4397,80 @@ window.STROBOT_CURRICULUM = [
             "title": "GEARS — API GPS và đơn vị tọa độ",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/virtual.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Trước khi đọc một chương trình dài, hãy học cách làm robot bằng mũi tên trên giấy. Lệnh tiến đổi ô, lệnh rẽ đổi hướng. Kết quả của một lệnh phụ thuộc trạng thái mà lệnh trước để lại, nên thứ tự là một phần của lời giải.",
+          "analogy": {
+            "familiar": "Đứng ở một ngã tư, “đi thẳng rồi rẽ phải” và “rẽ phải rồi đi thẳng” không đưa bạn đến cùng một chỗ. Hướng nhìn trước khi bước quyết định bước ấy đi về đâu.",
+            "meaning": "Robot trên lưới cũng thực hiện từng lệnh theo thứ tự. Muốn dự đoán, lưu cả tọa độ và hướng sau mỗi lệnh thay vì đếm tổng số F rồi tổng số R.",
+            "limit": "Bàn lưới là mô hình rời rạc dùng F/R/L của bài. VEXcode VR có Playground, hệ tọa độ và đơn vị API riêng; một ô ở đây không tự tương ứng với một quãng đường VR."
+          },
+          "vocabulary": [
+            {
+              "term": "Chuỗi lệnh",
+              "definition": "Danh sách hành động được thực hiện theo thứ tự; đổi thứ tự có thể đổi kết quả."
+            },
+            {
+              "term": "Trạng thái · (x,y,hướng)",
+              "definition": "Thông tin cần giữ để tính bước tiếp theo. Bài dùng x tăng sang phải, y tăng xuống dưới."
+            },
+            {
+              "term": "F · tiến một ô",
+              "definition": "Đổi tọa độ theo hướng đang nhìn, giữ hướng. Khi hướng nam, F tăng y."
+            },
+            {
+              "term": "R và L · rẽ tại chỗ",
+              "definition": "Đổi hướng 90° phải hoặc trái và giữ ô hiện tại trong mô hình."
+            }
+          ],
+          "workedCase": {
+            "title": "Vì sao F,R khác R,F?",
+            "input": "Cùng bắt đầu tại (1,1,đông) trong vùng lưới cho phép. So sánh chuỗi A = F,R và chuỗi B = R,F.",
+            "steps": [
+              {
+                "title": "Chạy A bằng hai trạng thái",
+                "explanation": "F đầu tiên đưa robot đến (2,1,đông). R sau đó đổi hướng thành nam, nên kết thúc (2,1,nam)."
+              },
+              {
+                "title": "Đặt lại đầu vào rồi chạy B",
+                "explanation": "B phải bắt đầu lại ở (1,1,đông). R đầu tiên cho (1,1,nam); F sau đó tăng y nên tới (1,2,nam)."
+              },
+              {
+                "title": "Đối chiếu điều thực sự khác",
+                "explanation": "A và B đều có một F, một R và cùng hướng cuối nam. Nhưng vị trí cuối khác nhau vì F được thực hiện khi robot hướng khác nhau."
+              }
+            ],
+            "output": "A kết thúc ở (2,1,nam); B ở (1,2,nam). Số lượng từng loại lệnh giống nhau không bảo đảm trạng thái cuối giống nhau.",
+            "why": "Dòng bảng trạng thái nối đầu ra của lệnh trước thành đầu vào của lệnh sau. Đây là cách kiểm tra thuật toán có thể dùng trước khi chạy mô phỏng."
+          },
+          "checkpoints": [
+            {
+              "question": "Một R có làm robot tiến thêm một ô không?",
+              "answer": "Không. Trong mô hình này R chỉ đổi hướng; phải có F mới dịch chuyển sang ô tiếp theo."
+            },
+            {
+              "question": "Nếu hai tuyến cùng đích nhưng khác hướng cuối, có coi là cùng trạng thái không?",
+              "answer": "Không. Trạng thái bao gồm hướng. Chúng chỉ cùng đáp ứng bài toán nếu yêu cầu đích cho phép mọi hướng cuối."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Dùng mũi tên thay cho ký hiệu khó nhớ",
+              "body": "Vẽ mũi tên tại ô đầu. Với F, trượt nó một ô; với R/L, xoay nó ngay tại chỗ. Ghi lại sau mỗi hành động để giảm việc phải nhớ trong đầu.",
+              "task": "Tự dự đoán F,R,F từ (0,0,đông), rồi mới đối chiếu trong Lab."
+            },
+            "intermediate": {
+              "title": "Đọc trạng thái như dữ liệu",
+              "body": "Mỗi lệnh nhận một trạng thái và trả trạng thái mới. Dùng quy ước x/y của bài nhất quán; đừng mặc định y tăng lên trên như một hệ tọa độ toán học khác.",
+              "task": "Viết bảng cho F,R,F,L,F và kiểm tra riêng vị trí, hướng, số bước tiến."
+            },
+            "advanced": {
+              "title": "Tách mô hình lưới và API chuyển động",
+              "body": "Một lệnh drive_for trong VR có thể cần đơn vị mm hoặc inch, còn rẽ có đơn vị góc và quy ước nền tảng. Cần cấu hình đúng sân và đọc API trước khi chuyển kế hoạch lưới thành chương trình; GearsBot chạy trên hệ riêng.",
+              "task": "Nêu những thông tin cần bổ sung để biến F thành một lệnh quãng đường có nghĩa trong Playground đã chọn."
+            }
+          }
+        }
       },
       {
         "id": "loop",
@@ -2711,7 +4576,80 @@ window.STROBOT_CURRICULUM = [
             "title": "GEARS — API GPS và đơn vị tọa độ",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/virtual.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Khi một nhóm hành động xuất hiện nhiều lần, bạn có thể mô tả nhóm đó một lần rồi yêu cầu lặp. Điều khó nhất thường là chọn đúng phần nằm trong vòng lặp: lặp cả “tiến rồi rẽ” khác với chỉ lặp “tiến”.",
+          "analogy": {
+            "familiar": "Một động tác thể dục gồm bước sang bên rồi xoay người. Làm cả động tác bốn lần khác với bước bốn lần rồi chỉ xoay một lần.",
+            "meaning": "Thân vòng lặp là trọn nhóm hành động được làm lại. REPEAT 4 {F; R} chạy F,R,F,R,F,R,F,R theo đúng thứ tự ấy.",
+            "limit": "Một động tác người có thể không chính xác bằng một ô hoặc một góc. Vòng lặp chỉ rút gọn mô tả; nó không tự kiểm tra biên sân hay sửa chuyển động sai."
+          },
+          "vocabulary": [
+            {
+              "term": "Thân vòng lặp",
+              "definition": "Nhóm lệnh nằm bên trong Repeat hoặc cùng khối thụt lề Python; toàn bộ nhóm được lặp."
+            },
+            {
+              "term": "Số lần lặp",
+              "definition": "Số lần thực hiện cả thân, không phải tổng số lệnh bên trong."
+            },
+            {
+              "term": "Số hành động và quãng đường",
+              "definition": "Rẽ là hành động nhưng không thêm quãng đường lưới. Cần đếm riêng F và R/L."
+            },
+            {
+              "term": "Đường kín",
+              "definition": "Đường kết thúc ở vị trí đầu. Muốn cùng trạng thái đầu còn phải kiểm tra cả hướng cuối."
+            }
+          ],
+          "workedCase": {
+            "title": "Theo từng lượt lặp của một hình vuông cạnh hai ô",
+            "input": "Bắt đầu (0,0,đông), vùng lưới đủ cho x,y từ 0 đến 2. Chạy REPEAT 4 {F; F; R}.",
+            "steps": [
+              {
+                "title": "Hiểu một lần làm cả thân",
+                "explanation": "Lần 1 có hai F rồi một R: tới (2,0,nam). Không tách hai F và R thành các nhóm lặp độc lập."
+              },
+              {
+                "title": "Theo dõi hai lần tiếp theo",
+                "explanation": "Lần 2 từ hướng nam tới (2,2,tây). Lần 3 từ hướng tây tới (0,2,bắc). Hướng cuối mỗi lượt là hướng dùng cho F đầu lượt sau."
+              },
+              {
+                "title": "Khép kín và đếm đúng",
+                "explanation": "Lần 4 đưa về (0,0,đông). Có 4 × 2 = 8 bước tiến và 4 lần rẽ, tổng 12 hành động. Chu vi trên mô hình là 8 ô, không phải 12 ô."
+              }
+            ],
+            "output": "Robot trở về cả vị trí và hướng đầu, đi 8 ô và thực hiện 4 lần rẽ. Bốn lượt lặp không đồng nghĩa với bốn hành động.",
+            "why": "Theo dõi sau mỗi thân vòng lặp tạo bốn mốc kiểm tra ngắn. Nếu đường không khép kín, đối chiếu xem thân thiếu F/R hay chương trình đi ra ngoài vùng cho phép."
+          },
+          "checkpoints": [
+            {
+              "question": "REPEAT 4 {F}; R có giống REPEAT 4 {F; R} không?",
+              "answer": "Không. Cách đầu tiến bốn ô rồi rẽ một lần. Cách sau đan xen tiến và rẽ bốn lần, thường tạo đường khác."
+            },
+            {
+              "question": "Bỏ R cuối mà vẫn về ô đầu, có cùng trạng thái đầu không?",
+              "answer": "Không. Vị trí có thể đúng nhưng hướng còn khác. Cần kiểm tra yêu cầu có bao gồm hướng cuối hay không."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Khoanh trọn nhóm được lặp",
+              "body": "Viết F,F,R lên ba thẻ, khoanh chúng thành một nhóm và chép cả nhóm bốn lần. Nhìn bản trải dài trước khi dùng Repeat.",
+              "task": "Chỉ ra các lệnh thuộc thân trên bản khối hoặc qua thụt lề Python."
+            },
+            "intermediate": {
+              "title": "Dùng số lần lặp để đếm",
+              "body": "Nhân riêng số F trong thân với số lượt, rồi làm tương tự với R. Chỉ dùng số F cho quãng đường ô, không dùng tổng số hành động.",
+              "task": "Thiết kế hình vuông cạnh 3 ô và tính số bước tiến, số rẽ trước khi chạy."
+            },
+            "advanced": {
+              "title": "Xác định điều kiện để đường khép kín",
+              "body": "Bốn góc quay ngoài 90° cho tổng 360°, nhưng tổng góc quay đủ chưa chứng minh vị trí trở lại đầu nếu độ dài cạnh khác nhau. Cần xét cả chuyển vị và hướng, đồng thời mọi trạng thái trung gian phải nằm trong sân hợp lệ.",
+              "task": "Nêu một chuỗi có tổng góc rẽ 360° nhưng không trở lại vị trí đầu; giải thích điều kiện còn thiếu."
+            }
+          }
+        }
       },
       {
         "id": "avoid",
@@ -2821,7 +4759,80 @@ window.STROBOT_CURRICULUM = [
             "title": "GEARS — API cảm biến siêu âm",
             "url": "https://github.com/QuirkyCort/gears/blob/master/public/ev3dev2/sensor/lego.py"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Một quy tắc tránh vật cản có thể ngắn mà vẫn có nhiều trường hợp cần nghĩ tới. Bạn sẽ kiểm tra số đo, chọn nhánh rồi đọc lại sau khi rẽ. Cách này giúp robot phản ứng với phía trước, nhưng chưa đủ để hứa tìm được mọi đích.",
+          "analogy": {
+            "familiar": "Trong phòng lạ, bạn nhìn phía trước; thấy bị chắn thì đứng lại, quay người rồi nhìn lại. Quay sang phải không tự bảo đảm hướng mới đã thông.",
+            "meaning": "Robot cần một vòng đọc → quyết định → hành động → đọc lại. Nếu chỉ rẽ rồi tiến ngay, nó có thể đi vào một vật khác ở phía vừa quay sang.",
+            "limit": "Một người có thể nhớ sơ đồ phòng; quy tắc một cảm biến trong bài không có bản đồ hay kế hoạch toàn cục. Nó có thể lặp trong ngõ cụt dù từng lần đều làm đúng quy tắc."
+          },
+          "vocabulary": [
+            {
+              "term": "Điều kiện cục bộ",
+              "definition": "Quyết định dựa trên thông tin gần robot hiện tại, ví dụ khoảng cách phía trước."
+            },
+            {
+              "term": "Ngưỡng · T",
+              "definition": "Ranh giới cùng đơn vị với d. Bài dùng d < 20 cm để chọn dừng rồi rẽ."
+            },
+            {
+              "term": "Đọc lại sau hành động",
+              "definition": "Lấy thông tin mới sau khi vị trí hoặc hướng thay đổi; không dùng mẫu cũ như mô tả mãi môi trường mới."
+            },
+            {
+              "term": "Giới hạn chạy",
+              "definition": "Số bước hoặc thời gian tối đa để kết thúc cả khi chưa tới đích; cần báo rõ chưa hoàn thành."
+            }
+          ],
+          "workedCase": {
+            "title": "Rẽ một lần chưa đủ để chọn tiến",
+            "input": "T = 20 cm, dữ liệu đều dùng cm. Robot lần lượt đo phía trước: 15 cm; sau rẽ đo lại 12 cm; sau lần rẽ nữa đo được 30 cm. Giữ giới hạn bước và điều kiện tới đích đã đặt.",
+            "steps": [
+              {
+                "title": "Đọc mẫu đầu và chọn nhánh",
+                "explanation": "15 < 20 nên dừng rồi rẽ phải. Số 15 mô tả hướng cũ; chưa cho biết hướng mới có trống không."
+              },
+              {
+                "title": "Đọc lại trước khi đi",
+                "explanation": "Sau rẽ đo 12 < 20 nên vẫn chưa tiến; tiếp tục dừng và xử lý rẽ theo quy tắc. Không coi lần rẽ trước như bảo đảm tránh va chạm."
+              },
+              {
+                "title": "Dùng mẫu mới để cho phép tiến",
+                "explanation": "Sau lần rẽ tiếp, 30 < 20 sai nên chọn tiến chậm. Tiếp tục kiểm tra theo vòng lặp, không mở quyền tiến mãi từ một mẫu 30 cm."
+              }
+            ],
+            "output": "Nhánh được chọn là dừng–rẽ, dừng–rẽ, tiến chậm. Nếu mất số đo ở bất cứ bước nào, dừng và báo lỗi theo yêu cầu thay vì suy ra phía trước trống.",
+            "why": "Nhật ký khoảng cách và nhánh giải thích vì sao robot hành động. Đến giới hạn mà chưa tới đích thì báo chưa hoàn thành; tránh được vài vật chưa đồng nghĩa tìm đường thành công."
+          },
+          "checkpoints": [
+            {
+              "question": "Ở đúng 20 cm, quy tắc d < 20 chọn nhánh nào?",
+              "answer": "Nhánh ngược lại, tức tiến chậm theo đặc tả bài. Dùng ≤ sẽ đổi hành vi tại biên và phải kiểm thử lại."
+            },
+            {
+              "question": "Nếu robot quay vòng trong một ngõ cụt, có chắc phép so sánh viết sai không?",
+              "answer": "Không. Đó có thể là giới hạn của chiến lược chỉ nhìn cục bộ và luôn rẽ một phía; cần đọc log và có thể cần chiến lược khác."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Chọn nhánh bằng thẻ khoảng cách",
+              "body": "Đặt trước mặt các thẻ 15, 20, 30 và “lỗi”. Nói điều kiện đúng/sai rồi hành động; coi “lỗi” là trường hợp riêng.",
+              "task": "Giải thích vì sao sau R phải nhìn lại trước khi F."
+            },
+            "intermediate": {
+              "title": "Tách phản xạ và tìm đường",
+              "body": "Kiểm tra quy tắc cục bộ đúng bằng các ca biên. Sau đó thử sân có góc, hành lang cụt và vật cản khác nhau để xem nhiệm vụ có hoàn thành không.",
+              "task": "Tạo một nhật ký gồm bước, d, nhánh, hướng; chỉ ra dấu hiệu robot lặp."
+            },
+            "advanced": {
+              "title": "Đưa giả định chuyển động vào ngưỡng",
+              "body": "Trong mô hình số không có quán tính thực. Trong simulator 3D hoặc robot thật, cần xét độ trễ, tốc độ, khoảng dừng và vùng nhìn cảm biến. Bám tường hay BFS là chiến lược riêng, có dữ liệu và điều kiện áp dụng khác.",
+              "task": "Mô tả thêm thông tin hoặc bộ nhớ cần có để tránh lặp ở ngõ cụt; phân biệt thông tin đó với chỉ tăng ngưỡng T."
+            }
+          }
+        }
       },
       {
         "id": "challenge",
@@ -2919,7 +4930,80 @@ window.STROBOT_CURRICULUM = [
             "title": "Python 3 — hàm có sẵn và kiểu dữ liệu",
             "url": "https://docs.python.org/3/library/functions.html"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Hai tuyến tới cùng đích có thể khác nhau về số ô, số rẽ và thời gian. Trước khi chọn tuyến “tốt hơn”, hãy chọn điều cần tối ưu và quy ước tính. Bài này cho thấy một tuyến đi xa hơn vẫn có thể nhanh hơn khi rẽ tốn nhiều thời gian.",
+          "analogy": {
+            "familiar": "Hai con đường tới trường: đường ngắn phải chờ nhiều lần ở giao lộ, đường vòng ít chờ hơn. Chỉ so chiều dài chưa đủ để biết đường nào ít thời gian hơn.",
+            "meaning": "Trong mô hình robot, mỗi F và mỗi R có thể có chi phí khác nhau. Tổng chi phí được tính từ số lần từng loại hành động, sau khi đã kiểm tra tuyến tới đúng đích.",
+            "limit": "Giao thông đời thực phức tạp hơn hai hằng số. Mô hình chi phí cố định chỉ là ước lượng; thời gian đo thật còn phụ thuộc tăng tốc, cảm biến và cách simulator thực hiện lệnh."
+          },
+          "vocabulary": [
+            {
+              "term": "Chi phí hành động",
+              "definition": "Giá trị gán cho từng loại hành động, ví dụ một F tốn 1 s và một R tốn 3 s."
+            },
+            {
+              "term": "Tuyến hợp lệ",
+              "definition": "Đạt đích và đáp ứng ràng buộc sân, vùng cấm, hướng cuối nếu có, cùng giới hạn đã đặt."
+            },
+            {
+              "term": "Số bước và số khối",
+              "definition": "Một khối có thể yêu cầu đi nhiều ô. Đếm khối và đếm quãng đường là hai quy ước khác nhau."
+            },
+            {
+              "term": "So sánh công bằng",
+              "definition": "Giữ cùng đề bài, trạng thái đầu và quy tắc đo khi so các phương án."
+            }
+          ],
+          "workedCase": {
+            "title": "Cùng đích, ít bước tiến hơn vẫn có thể tốn thời gian hơn",
+            "input": "Lưới 5×4, không vật cản, bắt đầu (0,0,đông), đích (3,2), không yêu cầu hướng cuối. Tuyến A: F,R,F,L,F,F,R,F. Tuyến B: F,F,F,F,R,F,F,R,F. Giả sử F tốn 1 s, mỗi lần rẽ tốn 3 s.",
+            "steps": [
+              {
+                "title": "Kiểm tra cả hai tuyến tới đích",
+                "explanation": "A đi lần lượt qua (1,0), (1,1), (3,1) rồi (3,2). B đi qua (4,0), (4,2) rồi quay về (3,2). Cả hai ở trong lưới và tới đích; hướng cuối lần lượt nam và tây đều được phép."
+              },
+              {
+                "title": "Đếm riêng tiến và rẽ",
+                "explanation": "A có 5 F và 3 lần rẽ. B có 7 F và 2 lần rẽ. B đi nhiều hơn 2 ô nhưng ít hơn 1 lần rẽ."
+              },
+              {
+                "title": "Áp dụng cùng mô hình chi phí",
+                "explanation": "A: 5 × 1 + 3 × 3 = 14 s. B: 7 × 1 + 2 × 3 = 13 s. Trong mô hình này B có thời gian thấp hơn 1 s."
+              }
+            ],
+            "output": "A ngắn hơn theo số ô; B nhanh hơn theo mô hình thời gian đã chọn. Kết luận phải đi kèm chỉ số và giả định.",
+            "why": "Nếu đổi chi phí rẽ, thứ tự tốt hơn có thể đổi. Bạn đang chọn lời giải cho một mục tiêu xác định, không tìm một tuyến luôn tốt nhất theo mọi tiêu chí."
+          },
+          "checkpoints": [
+            {
+              "question": "Nếu một lần rẽ chỉ tốn 1 s, tuyến nào có thời gian mô hình thấp hơn?",
+              "answer": "A tốn 5 + 3 = 8 s; B tốn 7 + 2 = 9 s, nên A thấp hơn. Chi phí đã thay đổi nên kết luận thay đổi."
+            },
+            {
+              "question": "Một tuyến ngắn hơn nhưng vượt biên có được so như phương án thành công không?",
+              "answer": "Không. Trước hết tuyến phải hợp lệ. Có thể ghi lượt đó là thất bại, nhưng không dùng thời gian ngắn của nó làm bằng chứng hoàn thành tốt hơn."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Dùng hai cột F và rẽ",
+              "body": "Mỗi lần gặp F thêm một dấu vào cột tiến, gặp R/L thêm vào cột rẽ. Nhân từng cột với giá của nó rồi cộng.",
+              "task": "Tự xác nhận 5 F + 3 rẽ của A bằng cách đi từng lệnh trên giấy."
+            },
+            "intermediate": {
+              "title": "Tìm điều kiện đổi thứ tự",
+              "body": "Với cùng hai tuyến, A có thêm 1 rẽ nhưng bớt 2 F. So lợi ích bớt tiến với chi phí thêm rẽ thay vì chỉ thử một bảng giá.",
+              "task": "Tìm giá trị tR làm hai tuyến hòa nhau nếu tF = 1 s."
+            },
+            "advanced": {
+              "title": "Định nghĩa đúng mục tiêu tối ưu",
+              "body": "Nếu hướng cuối cũng bị ràng buộc, hai tuyến trên có thể không còn tương đương. Tối ưu thời gian cần trạng thái và chi phí đủ mô tả cả quay lẫn tiến; tối ưu số khối còn khác nữa. Dùng thời gian đo để kiểm tra mức phù hợp của mô hình cố định.",
+              "task": "Đề xuất cách báo đồng thời tỷ lệ hoàn thành, số ô, số rẽ và thời gian mà không tráo chỉ số khi chọn tuyến."
+            }
+          }
+        }
       },
       {
         "id": "search",
@@ -3017,7 +5101,80 @@ window.STROBOT_CURRICULUM = [
             "title": "Python 3 — hàm có sẵn và kiểu dữ liệu",
             "url": "https://docs.python.org/3/library/functions.html"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "BFS tìm đường bằng cách mở rộng dần: mọi ô cách điểm đầu một bước, rồi hai bước, rồi ba bước. Hàng đợi giữ thứ tự đó. Để hiểu thuật toán, bạn sẽ theo dõi một hàng đợi rất nhỏ và xem “lưu cha” giúp dựng lại đường đi ra sao.",
+          "analogy": {
+            "familiar": "Một nhóm người tìm đồ thất lạc bằng cách kiểm tra tất cả khu vực sát điểm bắt đầu, rồi các khu xa hơn từng lớp. Các khu đã xếp lịch kiểm tra được đánh dấu để không xếp lại.",
+            "meaning": "BFS cũng đánh dấu ngay khi đưa ô vào hàng đợi. Hàng đợi FIFO đưa ô được thêm sớm ra xét sớm, nhờ đó các lớp theo số bước không bị đảo thứ tự.",
+            "limit": "BFS của bài nhận bản đồ đã biết. Nó không tự nhìn ra tường bằng cảm biến và không tự tối ưu thời gian quay; điều bảo đảm ngắn nhất chỉ đúng khi các cạnh có cùng chi phí."
+          },
+          "vocabulary": [
+            {
+              "term": "Đồ thị lưới",
+              "definition": "Mỗi ô đi được là một đỉnh; các ô kề theo bốn hướng có cạnh nối nếu cho phép đi qua."
+            },
+            {
+              "term": "Hàng đợi FIFO",
+              "definition": "Thêm ở cuối, lấy ở đầu; phần tử vào trước được lấy ra trước."
+            },
+            {
+              "term": "Tập đã thăm",
+              "definition": "Ghi các ô đã được đưa vào hàng đợi để tránh lặp lại, không đợi đến lúc lấy ra mới đánh dấu."
+            },
+            {
+              "term": "Cha · parent",
+              "definition": "Với mỗi ô mới, lưu ô đã dẫn tới nó. Lần ngược các cha từ đích rồi đảo thứ tự sẽ cho đường từ đầu tới đích."
+            }
+          ],
+          "workedCase": {
+            "title": "Theo hàng đợi trên lưới 3×2 có một ô cấm",
+            "input": "Các ô có x = 0..2, y = 0..1. Bắt đầu S = (0,0), đích G = (2,0), ô cấm (1,0). Xét láng giềng theo đông, nam, tây, bắc; mọi bước có chi phí bằng 1.",
+            "steps": [
+              {
+                "title": "Khởi tạo và xét ô đầu",
+                "explanation": "Hàng đợi ban đầu [(0,0)], đã thăm có (0,0). Lấy (0,0): phía đông bị cấm, phía nam (0,1) hợp lệ. Đưa (0,1) vào hàng đợi và đặt cha của nó là (0,0)."
+              },
+              {
+                "title": "Mở rộng từng ô theo FIFO",
+                "explanation": "Lấy (0,1), thêm (1,1), lưu cha (0,1). Lấy (1,1), thêm (2,1), lưu cha (1,1). Những ô đã thăm hoặc ngoài lưới không được thêm lại."
+              },
+              {
+                "title": "Gặp đích và lần ngược cha",
+                "explanation": "Lấy (2,1), phát hiện (2,0) và lưu cha (2,1). Từ đích lần ngược: (2,0) ← (2,1) ← (1,1) ← (0,1) ← (0,0). Đảo lại để có đường đi."
+              }
+            ],
+            "output": "Đường tìm được là (0,0) → (0,1) → (1,1) → (2,1) → (2,0), gồm 4 bước. Khoảng cách Manhattan trực tiếp là 2 nhưng ô cấm buộc đi vòng.",
+            "why": "BFS tìm đường ít cạnh nhất trong bản đồ và mô hình chi phí bằng nhau này. Đổi thứ tự láng giềng có thể chọn đường khác cùng độ dài, nhưng không biến BFS thành tối ưu mọi loại chi phí."
+          },
+          "checkpoints": [
+            {
+              "question": "Nếu hàng đợi rỗng mà chưa gặp đích thì kết luận gì?",
+              "answer": "Không có đường trong phần bản đồ và luật di chuyển đã mô hình hóa. Chương trình phải báo kết quả đó thay vì dựng một đường giả."
+            },
+            {
+              "question": "Tại sao đánh dấu ngay khi thêm vào hàng đợi?",
+              "answer": "Một ô có thể được nhiều ô kề phát hiện. Đánh dấu ngay ngăn thêm trùng và giữ một quan hệ cha nhất quán cho lần phát hiện đầu."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Diễn thuật toán bằng thẻ ô",
+              "body": "Viết các tọa độ lên thẻ. Thêm thẻ mới vào cuối hàng, luôn lấy thẻ đầu; vẽ mũi tên cha ngay khi thêm. Chưa cần thuộc mã Python.",
+              "task": "Dùng ba bước của ví dụ để tự vẽ lại đường từ đích ngược về đầu."
+            },
+            "intermediate": {
+              "title": "Phân biệt bản đồ, đường và lệnh",
+              "body": "Đường BFS là danh sách ô. Muốn robot chạy cần đổi mỗi cạnh thành hướng di chuyển rồi thành lệnh tiến/rẽ theo hướng hiện tại. Số ô trên đường bằng số bước cộng một nếu đường có cả đầu và đích.",
+              "task": "Đếm số cạnh của ví dụ và viết chuỗi F/R/L hợp lệ khi robot bắt đầu hướng đông."
+            },
+            "advanced": {
+              "title": "Kiểm tra mô hình tối ưu và chi phí tìm kiếm",
+              "body": "BFS trên (x,y) tối ưu số cạnh đồng giá. Khi rẽ có giá, cần biểu diễn thêm hướng và dùng thuật toán theo trọng số phù hợp. Số ô mở rộng là công sức tìm kiếm, còn độ dài đường là chi phí lời giải; hai số không đồng nghĩa. Nếu áp giới hạn mở rộng, hết ngân sách là chưa tìm xong, không tự chứng minh không có đường.",
+              "task": "Nêu một ca không có đường và một ca có đường nhưng ngân sách mở rộng quá nhỏ; xác định thông báo khác nhau cần có."
+            }
+          }
+        }
       },
       {
         "id": "experiment",
@@ -3115,7 +5272,80 @@ window.STROBOT_CURRICULUM = [
             "title": "Python 3 — hàm có sẵn và kiểu dữ liệu",
             "url": "https://docs.python.org/3/library/functions.html"
           }
-        ]
+        ],
+        "learningGuide": {
+          "intro": "Muốn biết một thuật toán tốt hơn thuật toán khác, bạn cần một phép thử có thể giải thích và lặp lại. Chọn sân, dữ liệu mà mỗi thuật toán được biết và tiêu chí trước khi chạy. Đừng chỉ lưu những lần thành công hoặc những chỉ số có lợi cho phương án mình thích.",
+          "analogy": {
+            "familiar": "Hai bạn làm cùng một đề nhưng một bạn được xem trước đáp án thì điểm số không chỉ phản ánh cách giải. Muốn so cách làm, cần nói rõ điều kiện và thông tin mà mỗi người nhận được.",
+            "meaning": "Thuật toán robot cũng vậy: cùng bản đồ, cùng trạng thái đầu và cùng ngân sách mới tạo nền so sánh rõ ràng. Nếu một thuật toán có bản đồ đầy đủ còn thuật toán kia chỉ có cảm biến, phải báo khác biệt ấy.",
+            "limit": "Thử nghiệm vẫn chỉ hỗ trợ kết luận trong phạm vi bộ sân và điều kiện đã xét. Lặp cùng một mô phỏng xác định nhiều lần không tạo thêm nhiều tình huống độc lập."
+          },
+          "vocabulary": [
+            {
+              "term": "Tỷ lệ hoàn thành",
+              "definition": "Số sân hoàn thành đúng chia tổng số sân thử, nhân 100%. Timeout và sai đích vẫn có trong mẫu số."
+            },
+            {
+              "term": "Ngân sách tìm kiếm",
+              "definition": "Giới hạn tài nguyên như số ô mở rộng. Cùng giới hạn giúp so công sức xử lý, nhưng cần ghi ca hết ngân sách riêng."
+            },
+            {
+              "term": "Biến được giữ cố định",
+              "definition": "Điều kiện chung như bản đồ, thứ tự láng giềng, vị trí đầu, đích và cách tính chi phí."
+            },
+            {
+              "term": "Bộ kiểm thử chưa dùng để chỉnh",
+              "definition": "Các sân được giữ lại đến đánh giá cuối, giúp xem cải tiến có dùng được ngoài các sân đã quen hay không."
+            }
+          ],
+          "workedCase": {
+            "title": "Tách hoàn thành, độ dài đường và công sức tìm kiếm",
+            "input": "Trên ba sân chung, A thành công cả 3, đường dài 6, 8, 10 bước. B thành công hai sân đầu với đường 6, 9 bước; sân thứ ba hết ngân sách mở rộng. Cả hai nhận cùng bản đồ đầy đủ và cùng giới hạn.",
+            "steps": [
+              {
+                "title": "Ghi tỷ lệ hoàn thành trước",
+                "explanation": "A đạt 3/3 = 100%; B đạt 2/3 ≈ 66,7%. Không bỏ sân B hết ngân sách ra khỏi mẫu số."
+              },
+              {
+                "title": "So đường trên các sân chung đều thành công",
+                "explanation": "Ở hai sân đầu, A có đường 6 và 8 bước; B có 6 và 9. Trung bình trên hai sân này là 7 bước cho A và 7,5 cho B. Báo rõ đang dùng đúng hai sân chung, không trộn với cả ba của A."
+              },
+              {
+                "title": "Báo riêng công sức tìm kiếm",
+                "explanation": "Nếu ghi số ô mở rộng, đặt cột riêng. Thuật toán có thể mở rộng ít ô mà tìm đường dài hơn; số ô mở rộng không phải độ dài đường. Hết ngân sách nghĩa chưa có lời giải trong giới hạn, không đủ kết luận sân vô nghiệm."
+              }
+            ],
+            "output": "Báo cáo cần nêu A hoàn thành 3/3, B 2/3, kết quả đường trên hai sân chung và các số mở rộng nếu có. Mỗi chỉ số trả lời một câu hỏi riêng.",
+            "why": "Kết luận có giới hạn rõ: đây là kết quả trên ba sân đã thử, không chứng minh A luôn thắng trên mọi sân. Tiếp theo cần thêm cấu trúc sân khác và bộ kiểm thử chưa dùng khi chỉnh thuật toán."
+          },
+          "checkpoints": [
+            {
+              "question": "Chạy lại cùng một sân xác định 20 lần có tương đương thử 20 sân khác nhau không?",
+              "answer": "Không. Các lần lặp có thể giúp phát hiện lỗi thao tác nhưng thường cho cùng kết quả đầu ra. Muốn đánh giá phạm vi hoạt động cần thêm tình huống khác nhau."
+            },
+            {
+              "question": "Vì sao phải chốt tiêu chí trước khi chạy?",
+              "answer": "Để tránh chỉ chọn chỉ số có lợi sau khi thấy kết quả. Cần định nghĩa trước thế nào là thành công, cách tính timeout và phạm vi tính trung bình."
+            }
+          ],
+          "levelSupport": {
+            "beginner": {
+              "title": "Dùng một bảng ngắn, ghi cả thất bại",
+              "body": "Mỗi dòng là một sân; điền đạt/chưa đạt trước, rồi số bước và lý do lỗi. Bạn có thể bắt đầu bằng hai hoặc ba sân nhỏ thay vì bảng thống kê dài.",
+              "task": "Giải thích vì sao 2 thành công trên 3 lượt phải là 2/3, không phải 2/2."
+            },
+            "intermediate": {
+              "title": "So thuật toán với cùng đầu vào",
+              "body": "Khi so BFS và DFS trong bàn thí nghiệm, giữ cùng bản đồ đầy đủ, đầu/đích, thứ tự xét láng giềng và giới hạn mở rộng. Theo dõi cả đường tìm được lẫn số ô mở rộng.",
+              "task": "Tạo một sân có nhánh cụt rồi dự đoán vì sao độ dài lời giải và số ô mở rộng có thể xếp hạng hai thuật toán khác nhau."
+            },
+            "advanced": {
+              "title": "Tách chỉnh thuật toán và đánh giá cuối",
+              "body": "Dùng một nhóm sân để phát triển, giữ một nhóm khác để đánh giá. Với yếu tố ngẫu nhiên cần ghi seed hoặc quy tắc sinh cùng số lần thử. Báo cả phân bố chi phí và độ tin cậy, không chỉ một trung bình che thất bại.",
+              "task": "Viết một tiêu chí chọn phương án gồm yêu cầu tối thiểu về hoàn thành, rồi cách so chi phí giữa các phương án đáp ứng yêu cầu ấy."
+            }
+          }
+        }
       }
     ],
     "lab": "gears"

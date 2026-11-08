@@ -60,6 +60,119 @@ def open_quiz_progress(page):
         details.locator(':scope > summary').click()
 
 
+def active_platform_guide(page):
+    return page.evaluate('''() => window.STROBOT_PLATFORM_GUIDE({
+        course, lesson: lesson(), platformKey: frameKey || defaultLabKey(),
+        level: document.getElementById('learningLevel').value
+    })''')
+
+
+def check_platform_guide(page, copy_examples=False):
+    """A platform change must update the actual task and runnable code together."""
+    guide = active_platform_guide(page)
+    key = guide['id']
+    expect(page.locator('#practiceTitle')).to_have_text(guide['title'])
+    expect(page.locator('#exercise')).to_have_text(guide['goal'])
+    expect(page.locator('#platformCapability')).to_have_text(guide['capability'])
+    label = 'Hoạt động bổ trợ' if guide['activityType'] == 'related' else 'Thực hành bài học'
+    expect(page.locator('#activePlatformLabel')).to_contain_text(label)
+    require(guide['activityType'] in ['primary', 'related'], 'Unlabelled platform activity: ' + key)
+    for field, selector in [('setupSteps', '#platformSetupSteps'), ('steps', '#practiceSteps'),
+                            ('expected', '#platformExpected'), ('troubleshooting', '#platformTroubleshooting')]:
+        require(guide[field], 'Empty platform guidance: ' + key + '/' + field)
+        expect(page.locator(selector + ' > li')).to_have_text(guide[field])
+    expect(page.locator('#labGuide')).to_have_text(guide['levelChallenge'])
+    expect(page.locator('#platformEvidencePrompt')).to_have_text(' '.join(guide['evidence']))
+    examples = guide['codeExamples']
+    selector = page.locator('#codeVariantSelect')
+    expect(selector.locator('option')).to_have_count(len(examples))
+    require(selector.locator('option').evaluate_all('(options) => options.map(option => option.value)') ==
+            [example['id'] for example in examples], 'Wrong code environments: ' + key)
+    if not examples:
+        expect(page.locator('#sampleCodeDetails')).to_be_hidden()
+        expect(page.locator('#sampleCodeBox')).to_be_empty()
+        expect(selector).to_be_hidden()
+        return 0
+    expect(page.locator('#sampleCodeDetails')).to_be_visible()
+    if page.locator('#sampleCodeDetails').get_attribute('open') is None:
+        page.locator('#sampleCodeDetails > summary').click()
+    expect(page.locator('#sampleCodeBox')).to_have_attribute('translate', 'no')
+    expect(selector).to_have_value(examples[0]['id'])
+    if len(examples) > 1:
+        expect(selector).to_be_visible()
+    else:
+        expect(selector).to_be_hidden()
+    copied = 0
+    for example in examples:
+        if len(examples) > 1:
+            selector.select_option(example['id'])
+        require(page.locator('#sampleCodeBox').text_content() == example['code'], 'Wrong selected platform code: ' + key + '/' + example['id'])
+        expect(page.locator('#codeLangLabel')).to_have_text(example['lang'])
+        if guide['platformKey'] == 'python':
+            require('MicroPython' in example['lang'] and 'from microbit import' in example['code'],
+                    'Python Editor received a different dialect: ' + key)
+            require(not re.search(r'\bbasic\.|\binput\.onButtonPressed', example['code']), 'MakeCode JavaScript appeared under MicroPython: ' + key)
+        if copy_examples:
+            page.evaluate('''() => {
+                window.__copiedSample = null;
+                Object.defineProperty(navigator, 'clipboard', {
+                    configurable: true,
+                    value: { writeText: async text => { window.__copiedSample = text; } }
+                });
+            }''')
+            page.locator('button[onclick="copySampleCode()"]').click()
+            require(page.evaluate('window.__copiedSample') == example['code'], 'Copy used the wrong selected platform code: ' + key)
+            copied += 1
+    return copied
+
+
+def check_learning_guide(page, lesson_data):
+    guide = lesson_data.get('learningGuide')
+    require(guide is not None, 'Missing expanded explanation: ' + lesson_data['id'])
+    host = page.locator('#learningGuideContent')
+    expect(host).to_be_visible()
+    require(readable_text(guide['intro']) in readable_text(host.inner_text()), 'Expanded introduction did not render')
+    for section in ['analogy', 'vocabulary', 'case', 'checkpoints', 'support']:
+        expect(host.locator('[data-guide-section="' + section + '"]')).to_have_count(1)
+    analogy = host.locator('[data-guide-section="analogy"]')
+    for field in ['familiar', 'meaning', 'limit']:
+        require(readable_text(guide['analogy'][field]) in readable_text(analogy.inner_text()), 'Missing analogy or its limit')
+    require(len(guide['vocabulary']) >= 3, 'Expanded explanation needs defined vocabulary')
+    for entry in guide['vocabulary']:
+        require(entry['term'] in host.locator('[data-guide-section="vocabulary"]').inner_text() and
+                entry['definition'] in host.locator('[data-guide-section="vocabulary"]').inner_text(), 'Vocabulary definition did not render')
+    worked = guide['workedCase']
+    require(len(worked['steps']) >= 3, 'Worked explanation needs intermediate reasoning')
+    expect(host.locator('.learning-guide-case-steps > li')).to_have_count(len(worked['steps']))
+    case_text = readable_text(host.locator('[data-guide-section="case"]').inner_text())
+    for value in [worked['title'], worked['input'], worked['output'], worked['why']] + [item for step in worked['steps'] for item in [step['title'], step['explanation']]]:
+        require(readable_text(value) in case_text, 'Worked case lost a reasoning step or conclusion')
+    checkpoints = host.locator('.learning-guide-checkpoint')
+    expect(checkpoints).to_have_count(len(guide['checkpoints']))
+    require(checkpoints.count() >= 2, 'Expanded explanation needs comprehension checks')
+    for index, checkpoint in enumerate(guide['checkpoints']):
+        card = checkpoints.nth(index)
+        expect(card).to_contain_text(checkpoint['question'])
+        reveal = card.locator('details')
+        require(reveal.get_attribute('open') is None, 'Comprehension answer should initially be hidden')
+        reveal.locator('summary').click()
+        expect(reveal).to_contain_text(checkpoint['answer'])
+    bodies = set()
+    for level in ['beginner', 'intermediate', 'advanced']:
+        page.locator('#learningLevel').select_option(level)
+        expect(host).to_have_attribute('data-learning-level', level)
+        expect(page.locator('#labGuide')).to_have_text(active_platform_guide(page)['levelChallenge'])
+        support = guide['levelSupport'][level]
+        bodies.add(support['body'])
+        current = host.locator('.learning-guide-deeper' if level == 'advanced' else '.learning-guide-level')
+        for field in ['title', 'body', 'task']:
+            expect(current).to_contain_text(support[field])
+        require((host.locator('.learning-guide-deeper').get_attribute('open') is not None) == (level == 'advanced'),
+                'Advanced reading disclosure did not follow the selected level')
+    require(len(bodies) == 3, 'Learning levels repeat the same explanation')
+    page.locator('#learningLevel').select_option('beginner')
+
+
 def checked(name, fn):
     previous_errors = len(page_errors)
     try:
@@ -531,7 +644,10 @@ with sync_playwright() as p:
         require([c['id'] for c in data] == expected_ids, 'Original five courses changed')
         require(all(len(c['lessons']) == 6 for c in data), 'Original six lessons per course changed')
         checks = 0
-        code_variants_checked = 0
+        code_examples_checked = 0
+        platform_guides_checked = 0
+        assignments = page.evaluate('window.STROBOT_COURSE_LABS')
+        page.locator('#learningLevel').select_option('beginner')
         for c in data:
             page.locator('#courseSelect').select_option(c['id'])
             expect(page.locator('#lessonList button')).to_have_count(6)
@@ -567,38 +683,20 @@ with sync_playwright() as p:
                     href = source_links.nth(index).get_attribute('href')
                     require(href == source['url'] and urlparse(href).scheme == 'https', 'Invalid reference URL: ' + lesson_key)
                     require(not re.search(r'youtu(?:be|\.be)', href, re.I), 'YouTube is not allowed in teaching references')
+                check_learning_guide(page, lesson_data)
                 page.locator('#tabBtnLab').click()
                 expect(page.locator('#labView')).to_be_visible()
                 require(page.locator('#sampleCodeDetails').get_attribute('open') is None, 'Sample code should start collapsed')
-                page.locator('#sampleCodeDetails > summary').click()
-                require(page.locator('#sampleCodeBox').text_content() == lesson_data['code'], 'Primary sample code did not load/reset: ' + lesson_key)
-                expect(page.locator('#sampleCodeBox')).to_have_attribute('translate', 'no')
-                selector = page.locator('#codeVariantSelect')
-                variants = lesson_data.get('codeVariants', [])
                 if c['id'] == 'microbit':
                     require('micropython' in lesson_data['lang'].casefold(), 'The embedded Python editor needs a MicroPython primary sample: ' + lesson_key)
-                    require(any('makecode' in v['lang'].casefold() for v in variants), 'The MakeCode alternative must remain available: ' + lesson_key)
-                if variants:
-                    expect(selector).to_be_visible()
-                    expect(selector).to_have_value('primary')
-                    for variant in variants:
-                        selector.select_option(variant['id'])
-                        require(page.locator('#sampleCodeBox').text_content() == variant['code'], 'Selected code dialect did not render: ' + lesson_key + '/' + variant['id'])
-                        expect(page.locator('#codeLangLabel')).to_have_text(variant['lang'])
-                        # Intercept the clipboard at its browser API boundary; no OS permissions are needed.
-                        page.evaluate('''() => {
-                            window.__copiedSample = null;
-                            Object.defineProperty(navigator, 'clipboard', {
-                                configurable: true,
-                                value: { writeText: async text => { window.__copiedSample = text; } }
-                            });
-                        }''')
-                        page.locator('button[onclick="copySampleCode()"]').click()
-                        require(page.evaluate('window.__copiedSample') == variant['code'], 'Copy used the wrong selected code: ' + lesson_key)
-                        code_variants_checked += 1
-                    # Keep the variant selected so the next lesson also verifies primary reset.
-                else:
-                    expect(selector).to_be_hidden()
+                    require(any('makecode' in variant['lang'].casefold() for variant in lesson_data.get('codeVariants', [])),
+                            'Original MakeCode curriculum alternative was removed: ' + lesson_key)
+                # Every offered platform needs the current lesson's own task. Platforms
+                # without text code must clear the previous editor's sample completely.
+                for platform_key in assignments[c['id']]:
+                    page.locator('#labButtons button[data-lab-key="' + platform_key + '"]').click()
+                    code_examples_checked += check_platform_guide(page, copy_examples=True)
+                    platform_guides_checked += 1
                 require(page.locator('#quizOptions input').count() >= 2, 'Missing lesson quiz')
                 require('lesson=' + lesson_data['id'] in page.url, 'Lesson deep link lost')
                 checks += 1
@@ -621,8 +719,14 @@ with sync_playwright() as p:
             page.locator('#tabBtnTheory').click()
             expect(page.locator('#theoryView')).to_be_visible()
             expect(page.locator('#labView')).to_be_hidden()
-        require(code_variants_checked >= 6, 'MicroPython alternatives are missing from some micro:bit lessons')
-        return {'original_courses': len(data), 'rendered_lessons': checks, 'structured_theory_lessons': checks, 'code_variants_rendered_and_copied': code_variants_checked, 'official_reference_links': sum(len(l['sources']) for c in data for l in c['lessons']), 'interactive_local_benches': len(data)}
+        require(platform_guides_checked == 126, 'Some course/lesson/platform guides were not exercised')
+        require(code_examples_checked >= 30, 'Runnable platform samples are missing')
+        page.locator('#learningLevel').select_option('advanced')
+        page.reload(wait_until='domcontentloaded')
+        expect(page.locator('#learningLevel')).to_have_value('advanced')
+        expect(page.locator('#learningGuideContent')).to_have_attribute('data-learning-level', 'advanced')
+        page.locator('#learningLevel').select_option('beginner')
+        return {'original_courses': len(data), 'rendered_lessons': checks, 'structured_theory_lessons': checks, 'expanded_explanations': checks, 'explanation_levels_checked': checks * 3, 'explanation_level_persists': True, 'platform_guides_checked': platform_guides_checked, 'platform_code_examples_rendered_and_copied': code_examples_checked, 'official_reference_links': sum(len(l['sources']) for c in data for l in c['lessons']), 'interactive_local_benches': len(data)}
 
     checked('all original learning courses, lesson content, tabs and local lab benches', learning)
 
@@ -679,7 +783,7 @@ with sync_playwright() as p:
             expect(page.locator('#localLab')).to_be_hidden()
             expect(page.locator('#labActivity, #labProviderDocs, #labBoxDesc, #frameNote')).to_have_count(0)
             expect(page.locator('#labView a')).to_have_count(1)
-            require('Hướng dẫn nền tảng' not in page.locator('#labView').inner_text(), 'Platform help returned')
+            check_platform_guide(page)
             expect(page.locator('#labButtons button')).to_have_count(len(keys))
             for key in keys:
                 cfg = registry[key]
@@ -909,20 +1013,35 @@ with sync_playwright() as p:
 
     def tutor_ai():
         goto('course.learning.html?course=microbit')
+        expect(page.locator('#tutorPanel')).to_be_hidden()
+        page.locator('#tutorLauncher').click()
+        expect(page.locator('#tutorPanel')).to_be_visible()
         page.locator('#tutorQuestion').fill('Giải thích lệnh trong bài?')
         page.locator('#tutorSend').click()
         expect(page.locator('#tutorMessages')).to_contain_text('Phản hồi AI kiểm thử')
         reqs = [x['data'] for x in api_requests if x['kind'] == 'tutor']
         require(reqs[-1]['course'] == 'microbit' and reqs[-1]['lesson'], 'Tutor course/lesson context missing')
         require(reqs[-1]['history'] == [], 'New tutor session should have no history')
+        require(reqs[-1]['question'] == 'Giải thích lệnh trong bài?', 'Tutor changed the raw question')
+        require(reqs[-1].get('platformKey') == 'python' and reqs[-1].get('learningLevel') == 'beginner', 'Tutor lost the selected editor or explanation level')
+        require('images' not in reqs[-1], 'Text-only tutor request acquired unexpected attachments')
+        page.locator('#learningLevel').select_option('intermediate')
+        page.locator('#tabBtnLab').click()
+        page.locator('#labButtons button[data-lab-key="scratch"]').click()
         page.locator('#tutorQuestion').fill('Cho ví dụ?')
         page.locator('#tutorSend').click()
         expect(page.locator('#tutorSend')).to_be_enabled()
         expect(page.locator('#tutorMessages .chat-message')).to_have_count(4)
         reqs = [x['data'] for x in api_requests if x['kind'] == 'tutor']
-        require(len(reqs[-1]['history']) == 2, 'Tutor history lost')
+        require(reqs[-1]['question'] == 'Cho ví dụ?' and reqs[-1]['history'] == [
+                    {'role': 'user', 'content': 'Giải thích lệnh trong bài?'},
+                    {'role': 'assistant', 'content': 'Phản hồi AI kiểm thử: mạch điện và thuật toán.'}
+                ], 'Tutor lost raw follow-up question or conversation history')
+        require(reqs[-1].get('platformKey') == 'scratch' and reqs[-1].get('learningLevel') == 'intermediate',
+                'Tutor did not follow the selected platform and explanation level')
         page.locator('#lessonList button').nth(1).click()
         expect(page.locator('#tutorMessages')).to_be_empty()
+        expect(page.locator('#tutorPanel')).to_be_visible()
         page.locator('#tutorQuestion').fill('Câu hỏi bài mới')
         page.locator('#tutorSend').click()
         expect(page.locator('#tutorMessages')).to_contain_text('Phản hồi AI kiểm thử')

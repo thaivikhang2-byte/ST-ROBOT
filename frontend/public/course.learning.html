@@ -11,7 +11,10 @@
   <link rel="stylesheet" href="../src/assets/css/components.css?v=guided-learning-v15">
   <link rel="stylesheet" href="../src/vendor/katex/katex.min.css?v=ai-render-v14">
   <link rel="stylesheet" href="../src/assets/css/ai-message.css?v=ai-render-v14">
-  <link rel="stylesheet" href="../src/assets/css/pages/selfstudy.css?v=guided-learning-v15">
+  <link rel="stylesheet" href="../src/assets/css/pages/selfstudy.css?v=workspace-v16">
+  <link rel="stylesheet" href="../src/assets/css/floating-tutor.css?v=workspace-v16">
+  <link rel="stylesheet" href="../src/assets/css/tutor-attachments.css?v=workspace-v16">
+  <link rel="stylesheet" href="../src/modules/learning/learning-theory.css?v=workspace-v16">
 </head>
 <body class="learning-page">
   <a href="#main" class="skip-link">Chuyển đến nội dung chính</a>
@@ -51,7 +54,9 @@
             <div class="lesson-meta"><span id="lessonBadge"></span><span>Thời lượng gợi ý: 50 phút</span></div>
             <h1 id="lessonTitle"></h1><p id="lessonDesc"></p>
           </div>
+          <div class="learning-level-control"><label for="learningLevel">Cách giải thích phù hợp với bạn</label><select id="learningLevel"><option value="beginner">Mới bắt đầu · từng bước nhỏ</option><option value="intermediate">Đã học cơ bản · nối nguyên lý với thực hành</option><option value="advanced">Muốn tìm hiểu sâu · kiểm chứng và mở rộng</option></select></div>
           <p class="example"><strong>Chuẩn bị:</strong> <span id="prereq"></span></p>
+          <div id="learningGuideContent"></div>
           <div class="ws-grid-2">
             <section class="ws-card glass-panel">
               <h2>Hướng dẫn thực hành nhanh</h2>
@@ -62,16 +67,16 @@
 
         </div>
         <div id="labView" hidden>
+          <div class="platform-intro"><h2>Chọn nền tảng thực hành</h2><p class="small">Hướng dẫn và mã bên dưới sẽ đổi theo lựa chọn của bạn.</p></div>
+          <div id="labButtons" class="toolbar platform-selector" role="group" aria-label="Nền tảng thực hành cho khóa học"></div>
           <section class="ws-card glass-panel" id="practiceMission">
-            <p class="ws-eyebrow">Nhiệm vụ của bạn</p><h2 id="practiceTitle"></h2><p id="exercise"></p>
+            <p class="ws-eyebrow" id="activePlatformLabel">Nhiệm vụ của bạn</p><h2 id="practiceTitle"></h2><p id="exercise"></p><p id="platformCapability" class="small"></p>
             <p class="small">Dự đoán trước khi chạy → quan sát kết quả → giải thích → đổi một đầu vào và thử lại.</p>
             <label for="prediction">1. Bạn dự đoán điều gì? Ghi cả đầu vào sẽ thử.</label>
             <textarea id="prediction" rows="2" maxlength="2000" placeholder="Tôi chọn… Tôi nghĩ kết quả sẽ… vì…"></textarea>
-            <div class="lab-actions practice-navigation"><button type="button" onclick="focusPracticePart(frameKey==='local'?'localLab':'frameHost')">Đến bàn thực hành ↓</button><button type="button" onclick="focusPracticePart('observation')">Ghi kết quả ↓</button></div><details id="practiceHelp" open><summary>Các bước thực hành</summary><ol id="practiceSteps"></ol><p id="labGuide"></p></details>
-            <details id="sampleCodeDetails"><summary>Mã mẫu và môi trường sử dụng</summary><p class="small">Chọn đúng môi trường ghi trên mã. Với nền tảng nhúng, dán mã vào editor rồi chạy; bàn mô hình trong web dùng các điều khiển riêng bên dưới.</p><div class="code-box"><div class="code-box-head"><span id="codeLangLabel">Mã nguồn mẫu</span><select id="codeVariantSelect" aria-label="Môi trường của mã mẫu" hidden></select><button type="button" onclick="copySampleCode()">Sao chép</button><button type="button" onclick="downloadSampleCode()">Tải mã mẫu</button></div><pre id="sampleCodeBox" class="notranslate" translate="no" lang="en"></pre></div></details>
+            <div class="lab-actions practice-navigation"><button type="button" onclick="focusPracticePart(frameKey==='local'?'localLab':'frameHost')">Đến bàn thực hành ↓</button><button type="button" onclick="focusPracticePart('observation')">Ghi kết quả ↓</button></div><details id="practiceHelp" open><summary>Các bước thực hành</summary><h3>Chuẩn bị trong nền tảng này</h3><ol id="platformSetupSteps"></ol><h3>Làm lần lượt</h3><ol id="practiceSteps"></ol><p id="labGuide"></p><h3>Bạn sẽ quan sát được gì?</h3><ul id="platformExpected"></ul><details><summary>Gặp lỗi ở bước này?</summary><ul id="platformTroubleshooting"></ul></details><details><summary>Liên hệ hoạt động này với bài học</summary><p id="platformComparisonMission"></p><ul id="platformComparisonMeasures"></ul><p id="platformComparisonLimit" class="small"></p></details></details>
+            <details id="sampleCodeDetails"><summary>Mã mẫu và môi trường sử dụng</summary><p class="small" id="codeEnvironmentNote"></p><div class="code-box"><div class="code-box-head"><span id="codeLangLabel">Mã nguồn mẫu</span><select id="codeVariantSelect" aria-label="Môi trường của mã mẫu" hidden></select><button type="button" onclick="copySampleCode()">Sao chép</button><button type="button" onclick="downloadSampleCode()">Tải mã mẫu</button></div><pre id="sampleCodeBox" class="notranslate" translate="no" lang="en"></pre></div></details>
           </section>
-          <div class="platform-intro"><h2>Chọn nền tảng thực hành</h2></div>
-          <div id="labButtons" class="toolbar platform-selector" role="group" aria-label="Nền tảng thực hành cho khóa học"></div>
           <div class="lab-heading">
             <h2 id="labBoxTitle"></h2>
             <div class="lab-actions">
@@ -91,7 +96,7 @@
           <section class="ws-card glass-panel" id="assessment">
             <h2>Ghi nhận điều bạn đã làm</h2>
             <label for="practiceSource">Bạn thực hành bằng</label><select id="practiceSource"><option value="">Chọn nơi bạn vừa thực hành</option><option value="local-model">Bàn mô hình trong web</option><option value="external">Editor / lab nhúng hoặc mở riêng</option><option value="hardware">Bộ kit thật</option></select>
-            <p id="modelEvidenceStatus" class="small" role="status"></p>
+            <p id="platformEvidencePrompt" class="small"></p><p id="modelEvidenceStatus" class="small" role="status"></p>
             <label for="observation">2. Kết quả quan sát được</label><textarea id="observation" rows="2" maxlength="3000" placeholder="Với đầu vào… tôi thấy… (số đo, trạng thái hoặc đường đi)"></textarea>
             <label for="explanation">3. Vì sao kết quả đó xảy ra? So với dự đoán của bạn thế nào?</label><textarea id="explanation" rows="2" maxlength="3000" placeholder="Kết quả khớp/khác dự đoán vì…"></textarea>
             <label for="transfer">4. Thay đổi một đầu vào rồi thử lại</label><textarea id="transfer" rows="2" maxlength="2000" placeholder="Tôi đổi… từ… thành… Kết quả mới là… Tôi rút ra…"></textarea>
@@ -106,13 +111,16 @@
           </section>
         </div>
       </section>
-      <aside class="ws-ai glass-panel" aria-label="Trợ lý học tập">
-        <div class="ai-head"><span class="ai-avatar"><svg class="icon" aria-hidden="true"><use href="../src/assets/icons.svg#message"></use></svg></span><div><h2>Trợ lý AI STEM Robotics</h2><p>Hỏi về bài học và thực hành</p></div></div>
-        <div class="tutor-prompts" aria-label="Gợi ý hỏi trợ lý"><button type="button" onclick="prepareTutorQuestion('simple')">Giải thích dễ hiểu</button><button type="button" onclick="prepareTutorQuestion('hint')">Gợi ý bước tiếp theo</button><button type="button" onclick="prepareTutorQuestion('result')">Trao đổi về kết quả</button></div><div id="tutorMessages" aria-live="polite"></div>
-        <form id="tutorForm"><label for="tutorQuestion">Câu hỏi của bạn</label><textarea id="tutorQuestion" rows="3" maxlength="3000" required placeholder="Bạn cần giải thích phần nào?"></textarea><div class="tutor-actions"><button id="tutorSend" type="submit" class="btn--primary">Gửi câu hỏi</button><button id="tutorReset" type="button">Trao đổi mới</button></div><p id="tutorStatus" class="small" role="status"></p><p class="small">Câu hỏi và nội dung bài học được gửi đến dịch vụ AI. Không nhập thông tin cá nhân. Hãy đối chiếu câu trả lời với giáo trình.</p></form>
-      </aside>
+
     </main>
+  <button id="tutorLauncher" class="floating-tutor-launcher" type="button" aria-label="Mở trợ lý AI, có thể kéo để di chuyển" aria-controls="tutorPanel" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="../src/assets/icons.svg#message"></use></svg><span>AI</span></button>
+      <aside id="tutorPanel" class="ws-ai glass-panel floating-tutor" aria-label="Trợ lý học tập" hidden>
+        <div class="ai-head"><button type="button" id="tutorDragHandle" class="floating-tutor-handle"><span class="ai-avatar"><svg class="icon" aria-hidden="true"><use href="../src/assets/icons.svg#message"></use></svg></span><span><strong id="tutorTitle">Trợ lý AI STEM Robotics</strong><small>Kéo để di chuyển · hỏi về bài và Lab đang chọn</small></span></button><button type="button" id="tutorClose" class="floating-tutor-close" aria-label="Thu gọn trợ lý AI">×</button></div>
+        <div class="tutor-prompts" aria-label="Gợi ý hỏi trợ lý"><button type="button" onclick="prepareTutorQuestion('simple')">Giải thích dễ hiểu</button><button type="button" onclick="prepareTutorQuestion('hint')">Gợi ý bước tiếp theo</button><button type="button" onclick="prepareTutorQuestion('result')">Trao đổi về kết quả</button></div><div id="tutorMessages" aria-live="polite"></div>
+        <form id="tutorForm"><label for="tutorQuestion">Câu hỏi của bạn</label><textarea id="tutorQuestion" rows="3" maxlength="3000" placeholder="Bạn cần giải thích phần nào? Có thể gửi ảnh lỗi kèm câu hỏi."></textarea><div id="tutorAttachments" class="tutor-attachments" aria-label="Ảnh đính kèm"></div><div class="tutor-image-actions"><label for="tutorImageInput" class="tutor-image-picker">Thêm ảnh<input id="tutorImageInput" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><button id="tutorPaste" type="button">Dán ảnh</button><button id="tutorCapture" type="button">Chụp màn hình</button></div><p id="tutorAttachmentStatus" class="small" role="status" aria-live="polite"></p><div class="tutor-actions"><button id="tutorSend" type="submit" class="btn--primary">Gửi câu hỏi</button><button id="tutorReset" type="button">Trao đổi mới</button></div><p id="tutorStatus" class="small" role="status"></p><p class="small">Xem lại ảnh trước khi gửi. Khi bấm Gửi, câu hỏi, ảnh đính kèm và ngữ cảnh bài/Lab được gửi đến dịch vụ AI. Hãy đối chiếu lời giải với kết quả thực hành.</p></form>
+      </aside>
   </div>
+
   <div role="dialog" aria-modal="true" aria-label="Giáo trình PDF" aria-hidden="true" id="pdfModal" class="hidden">
     <div class="pdf-panel"><div class="pdf-head"><span id="modalPdfTitle">Tài liệu giáo trình ST-Robot</span><div class="pdf-actions"><button type="button" id="downloadPdf" class="btn--primary">Tải giáo trình PDF · 6 bài</button><button type="button" onclick="closePdfModal()">Đóng</button></div></div><div class="pdf-body"><div id="printablePdfArea"><h2 id="pdfDocHeading">Tiêu đề bài học</h2><p class="small">Tài liệu tự học có bài tập và đáp án đối chiếu</p><div id="pdfDocBody"></div></div></div></div>
   </div>
@@ -121,8 +129,9 @@
   <script type="module" src="../src/app.js?v=guided-learning-v15"></script>
   <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=lesson-code-v5'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
 <script type="module">import { mountLessonBench } from '../src/modules/learning/LessonBench.js?v=guided-learning-v15'; import * as portfolio from '../src/modules/learning/PracticePortfolio.js?v=guided-learning-v15'; window.STROBOT_MOUNT_LESSON_BENCH=mountLessonBench; window.STROBOT_PRACTICE_PORTFOLIO=portfolio;</script>
-<script src="../src/data/curriculum.js?v=guided-learning-v15"></script>
-<script src="../src/data/lesson-pdfs.js?v=guided-learning-v15"></script>
+<script type="module">import { getPlatformGuide } from '../src/modules/learning/PlatformGuides.js?v=workspace-v16'; window.STROBOT_PLATFORM_GUIDE=getPlatformGuide;</script>
+<script src="../src/data/curriculum.js?v=workspace-v16"></script>
+<script src="../src/data/lesson-pdfs.js?v=workspace-v16"></script>
 <script id="lab-platform-data" data-lab-version="76d59149ba2b">
 // Platform URLs use provider-supported embed modes.
 // The micro:bit editor uses the official controller protocol for editable projects.
@@ -250,7 +259,7 @@ window.STROBOT_COURSE_LABS = {
     ]
 };
 </script>
-<script src="../src/modules/learning/LessonView.js"></script>
+<script src="../src/modules/learning/LessonView.js?v=workspace-v16"></script>
 <script>
 const COURSES=window.STROBOT_CURRICULUM;
 const PDFS=window.STROBOT_PDFS;
@@ -259,12 +268,15 @@ const STORAGE='strobot.original.course.v3';let state={};try{state=JSON.parse(loc
 const qs=new URLSearchParams(location.search),aliases={vex:'vex-iq',vexiq:'vex-iq',vexcode:'vex-vr',vexvr:'vex-vr',spike:'lego-spike',lego:'lego-spike','micro:bit':'microbit',arduino_uno:'arduino'};
 let requested=(qs.get('course')||qs.get('courseId')||qs.get('khoa')||location.hash.slice(1)||'').toLowerCase();requested=aliases[requested]||requested;
 let course=COURSES.find(c=>c.id===requested)||COURSES.find(c=>c.id===state.last)||COURSES[0],currentLessonIndex=0,pdfURL=null,frameKey='',busy=false;
-let microbitEditor=null,localBench=null,pendingImport=null,labNeedsStart=true;
+let microbitEditor=null,localBench=null,pendingImport=null,labNeedsStart=true,activePlatformGuide=null;
+let learningLevel='beginner';try{const level=localStorage.getItem('strobot.learning.level.v1');if(['beginner','intermediate','advanced'].includes(level))learningLevel=level}catch{}
 const labs=window.STROBOT_LAB_PLATFORMS;
 function lesson(){return course.lessons[currentLessonIndex]}function record(){state[course.id]??={};const id=lesson().id;state[course.id][id]??={note:'',choice:null,done:false};return state[course.id][id]}
 function save(){try{state.last=course.id;localStorage.setItem(STORAGE,JSON.stringify(state));$('saveNotice').textContent='Đã lưu trên trình duyệt này.';return true}catch{$('saveNotice').textContent='Không lưu được: hãy tải nhật ký để tránh mất dữ liệu.';return false}}
 function toast(t){$('notice').textContent=t}
 function initPage(){
+ $('learningLevel').value=learningLevel;
+ $('learningLevel').onchange=()=>{learningLevel=$('learningLevel').value;try{localStorage.setItem('strobot.learning.level.v1',learningLevel)}catch{}renderLearningExplanation();renderPlatformGuide(frameKey||defaultLabKey())};
  $('courseSelect').innerHTML=COURSES.map(c=>'<option value="'+c.id+'">'+esc(c.name)+' · 6 bài</option>').join('');$('courseSelect').value=course.id;
  $('courseSelect').onchange=e=>{course=COURSES.find(c=>c.id===e.target.value);currentLessonIndex=0;state.last=course.id;save();updateURL();loadLesson(0)};
  let li=course.lessons.findIndex(l=>l.id===qs.get('lesson'));loadLesson(li>=0?li:0);
@@ -295,12 +307,9 @@ function loadLesson(i) {
  $('lessonTitle').textContent=l.title;
  $('lessonDesc').textContent=l.goal;$('practiceTitle').textContent=l.title;
  $('videoTitle').textContent='Dự đoán → Thực hành → Kiểm chứng';
- window.STROBOT_LESSON_VIEW.renderTheory($('theoryContent'),l);$('starterConceptTitle').textContent=l.concepts?.[0]?.title||'Ý chính';$('starterConcept').textContent=l.concepts?.[0]?.body||l.theory;
- $('practiceSteps').innerHTML=l.steps.map(s=>'<li>'+esc(s)+'</li>').join('');
- renderCodeExamples(l);
+ renderLearningExplanation();window.STROBOT_LESSON_VIEW.renderTheory($('theoryContent'),l);$('starterConceptTitle').textContent=l.concepts?.[0]?.title||'Ý chính';$('starterConcept').textContent=l.concepts?.[0]?.body||l.theory;
+ renderPlatformGuide(defaultLabKey());
  $('prereq').textContent=l.prereq;
- $('labGuide').textContent=l.labGuide;
- $('exercise').textContent=l.exercise;
  $('solution').textContent=l.solution;
  $('solution').parentElement.open=false;
  $('quizQuestion').textContent=l.q;
@@ -322,18 +331,22 @@ function loadLesson(i) {
  renderLocal();renderLessons();updateURL();switchMainTab('theory');
  $('theoryView').scrollTop=0;
 }
-function renderCodeExamples(l) {
- const selector=$('codeVariantSelect');
- const examples=[{id:'primary',label:l.lang,lang:l.lang,code:l.code},...(l.codeVariants||[])];
- selector.replaceChildren(...examples.map(example=>{
-  const option=document.createElement('option');option.value=example.id;option.textContent=example.label||example.lang;return option;
- }));
- selector.hidden=examples.length===1;selector.value='primary';
- const update=()=>{
-  const selected=examples.find(example=>example.id===selector.value)||examples[0];
-  $('sampleCodeBox').textContent=selected.code;$('codeLangLabel').textContent=selected.lang;
- };
- selector.onchange=update;update();
+function renderLearningExplanation(){window.STROBOT_LESSON_VIEW.renderLearningGuide($('learningGuideContent'),lesson(),{level:learningLevel})}
+function renderPlatformGuide(key){
+ const guide=window.STROBOT_PLATFORM_GUIDE({course,lesson:lesson(),platformKey:key,level:learningLevel});activePlatformGuide=guide;
+ $('activePlatformLabel').textContent=labs[key].name+(guide.activityType==='related'?' · Hoạt động bổ trợ':' · Thực hành bài học');
+ $('practiceTitle').textContent=guide.title;$('exercise').textContent=guide.goal;
+ $('platformCapability').textContent=guide.capability;
+ const list=(id,items)=>{$(id).replaceChildren(...items.map(text=>{const li=document.createElement('li');li.textContent=text;return li}))};
+ list('platformSetupSteps',guide.setupSteps);list('practiceSteps',guide.steps);list('platformExpected',guide.expected);list('platformTroubleshooting',guide.troubleshooting);list('platformComparisonMeasures',guide.comparison.measurements);$('platformComparisonMission').textContent=guide.comparison.mission;$('platformComparisonLimit').textContent=guide.comparison.limit;
+ $('labGuide').textContent=guide.levelChallenge||'';
+ $('platformEvidencePrompt').textContent=guide.evidence.join(' ');
+ const examples=guide.codeExamples,selector=$('codeVariantSelect');
+ $('sampleCodeDetails').hidden=examples.length===0;
+ selector.replaceChildren(...examples.map(example=>{const option=document.createElement('option');option.value=example.id;option.textContent=example.label||example.lang;return option}));
+ selector.hidden=examples.length<2;
+ const update=()=>{const selected=examples.find(example=>example.id===selector.value)||examples[0];$('sampleCodeBox').textContent=selected?.code||'';$('codeLangLabel').textContent=selected?.lang||'';$('codeEnvironmentNote').textContent='Mã này dành cho '+labs[key].name+'. Làm theo phần chuẩn bị và chạy thử trên đúng nền tảng trước khi thay đổi.'};
+ selector.onchange=update;if(examples[0])selector.value=examples[0].id;update();
 }
 function courseLabKeys() { return (window.STROBOT_COURSE_LABS[course.id] || ['local']).filter(key=>key==='local'||canEmbedPlatform(labs[key])); }
 function renderLabButtons() {
@@ -367,7 +380,7 @@ function selectLabPlatform(key) {
  $('microbitEditorTools').hidden=true;
  if(!courseLabKeys().includes(key)||!labs[key])key='local';
  frameKey=key;
- const cfg=labs[key];
+ const cfg=labs[key];renderPlatformGuide(key);
  $('frameHost').replaceChildren();
  $('localLab').hidden=key!=='local';
  document.querySelectorAll('#labButtons button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.labKey===key)));
@@ -428,12 +441,12 @@ async function previewPortfolioImport(){
  const file=$('importNotes').files[0];$('importNotes').value='';if(!file)return;
  try{if(file.size>window.STROBOT_PRACTICE_PORTFOLIO.limits.backupBytes)throw Error('Tệp vượt dung lượng cho phép.');pendingImport=window.STROBOT_PRACTICE_PORTFOLIO.parseCourseBackup(await file.text(),course);$('portfolioImportPreview').textContent=course.name+' · '+Object.keys(pendingImport.records).length+' bài có trong tệp.';$('portfolioImportDialog').showModal()}catch(e){pendingImport=null;toast('Tệp chưa được khôi phục: '+e.message)}
 }
-function downloadSampleCode(){const lang=$('codeLangLabel').textContent,ext=/MicroPython|Python/i.test(lang)?'py':/JavaScript|MakeCode/i.test(lang)?'js':'ino';downloadBlob(new Blob([$ ('sampleCodeBox').textContent],{type:'text/plain;charset=utf-8'}),course.id+'-'+lesson().id+'-mau.'+ext)}
+function downloadSampleCode(){const selected=activePlatformGuide?.codeExamples.find(e=>e.id===$('codeVariantSelect').value);if(selected)downloadBlob(new Blob([selected.code],{type:'text/plain;charset=utf-8'}),course.id+'-'+lesson().id+'-'+activePlatformGuide.platformKey+'.'+selected.extension)}
 function focusPracticePart(id){const target=$(id);target.tabIndex=-1;target.scrollIntoView({block:'start'});target.focus({preventScroll:true})}
 function prepareTutorQuestion(kind){
  const r=record(),title=lesson().title;
  const prompts={simple:'Giải thích bài “'+title+'” bằng lời dễ hiểu cho người mới, kèm một ví dụ nhỏ.',hint:'Tôi đang làm bài “'+title+'”. Hãy gợi ý bước tiếp theo và hỏi tôi một câu để tự suy nghĩ, chưa đưa toàn bộ lời giải.',result:'Tôi đang làm bài “'+title+'”.\nDự đoán: '+(r.prediction||'(tôi sẽ bổ sung)')+'\nQuan sát: '+(r.observation||'(tôi sẽ bổ sung)')+'\nGiải thích của tôi: '+(r.explanation||'(tôi sẽ bổ sung)')+'\nHãy giúp tôi đối chiếu lập luận và đề xuất một lần thử tiếp theo.'};
- $('tutorQuestion').value=(prompts[kind]||prompts.simple).slice(0,3000);$('tutorQuestion').focus();
+ window.STROBOT_FLOATING_TUTOR?.open();$('tutorQuestion').value=(prompts[kind]||prompts.simple).slice(0,3000);$('tutorQuestion').focus();
 }
 function downloadBlob(blob,name){let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),30000)}
 function pdfBlob(){const b=atob(PDFS[course.id]);return new Blob([Uint8Array.from(b,c=>c.charCodeAt(0))],{type:'application/pdf'})}
@@ -454,7 +467,9 @@ window.addEventListener('DOMContentLoaded',initPage);
 </script>
 
 <script type="module">
-import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../src/services/AiService.js?v=catalog-selection-v13';
+import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../src/services/AiService.js?v=workspace-v16';
+import { createFloatingTutor } from '../src/modules/learning/FloatingTutor.js?v=workspace-v16';
+import { createTutorAttachments } from '../src/modules/learning/TutorAttachments.js?v=workspace-v16';
 import { renderAiMessage } from '../src/services/AiMessageRenderer.js?v=ai-render-v14';
 window.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('tutorForm');
@@ -467,7 +482,12 @@ window.addEventListener('DOMContentLoaded', () => {
   diagnosticHost.id = 'tutorErrorDetails'; diagnosticHost.hidden = true;
   status.after(diagnosticHost);
   let history = [], active = null, generation = 0;
-  function add(text, user) {
+  const panel=document.getElementById('tutorPanel'),launcher=document.getElementById('tutorLauncher');
+  const floating=createFloatingTutor({panel,launcher,handle:document.getElementById('tutorDragHandle'),closeButton:document.getElementById('tutorClose')});
+  window.STROBOT_FLOATING_TUTOR=floating;
+  const attachments=createTutorAttachments({form,input,fileInput:document.getElementById('tutorImageInput'),pasteButton:document.getElementById('tutorPaste'),captureButton:document.getElementById('tutorCapture'),previewHost:document.getElementById('tutorAttachments'),statusHost:document.getElementById('tutorAttachmentStatus'),panel,launcher,onChange:({busy})=>{send.disabled=Boolean(active)||busy}});
+  window.STROBOT_TUTOR_ATTACHMENTS=attachments;
+  function add(text, user, images=[]) {
     const item = document.createElement('div');
     item.className = 'chat-message' + (user ? ' user' : '');
     if (user) item.textContent = 'Bạn: ' + text;
@@ -476,6 +496,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const content = document.createElement('div'); renderAiMessage(content, text);
       item.append(label, content);
     }
+    if(user&&images.length){const thumbnails=document.createElement('div');thumbnails.className='tutor-sent-images';for(const {dataUrl} of images){const img=document.createElement('img');img.src=dataUrl;img.alt='Ảnh đã gửi kèm câu hỏi';thumbnails.append(img)}item.append(thumbnails)}
     messages.append(item); messages.scrollTop = messages.scrollHeight;
   }
   function clearDiagnostics() { diagnosticHost.replaceChildren(); diagnosticHost.hidden = true; }
@@ -509,7 +530,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   function clear() {
     generation++; active?.abort(); active = null; history = [];
-    messages.replaceChildren(); status.textContent = ''; input.value = ''; clearDiagnostics();
+    messages.replaceChildren(); status.textContent = ''; input.value = ''; clearDiagnostics();attachments.clear();attachments.setDisabled(false);
     send.disabled = false;
   }
   const originalLoadLesson = loadLesson;
@@ -517,19 +538,20 @@ window.addEventListener('DOMContentLoaded', () => {
   reset.onclick = clear;
   form.addEventListener('submit', async event => {
     event.preventDefault();
-    const question = input.value.trim();
-    if (!question || active) return;
+    const images=attachments.getImages();
+    const question = input.value.trim()||(images.length?'Hãy xem ảnh thực hành này, chỉ ra lỗi nhìn thấy được và hướng dẫn tôi kiểm tra từng bước.':'');
+    if (!question || active || attachments.busy) return;
     const ticket = generation;
     const controller = new AbortController(); active = controller;
-    send.disabled = true; add(question, true); input.value = ''; clearDiagnostics();
+    send.disabled = true;attachments.setDisabled(true); add(question, true,images); input.value = ''; clearDiagnostics();
     status.textContent = 'Đang kết nối trợ lý…';
     try {
-      const reply = await aiClient.requestReply('/api/tutor', { course:course.id, lesson:lesson().id, question, history }, {
+      const reply = await aiClient.requestReply('/api/tutor', { course:course.id, lesson:lesson().id, question, history, platformKey:frameKey||defaultLabKey(), learningLevel,...(images.length?{images}:{}) }, {
         signal: controller.signal,
         onStatus: phase => { if (ticket === generation) status.textContent = phase === 'starting' ? 'Đang khởi động trợ lý…' : 'AI đang trả lời…'; }
       });
       if (ticket !== generation) return;
-      add(reply, false);
+      add(reply, false);attachments.clear();
       history.push({role:'user',content:question},{role:'assistant',content:reply.slice(0,4000)});
       history = history.slice(-6); status.textContent = '';
     } catch (error) {
@@ -539,7 +561,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!input.value) input.value = question;
       }
     } finally {
-      if (ticket === generation) { active = null; send.disabled = false; }
+      if (ticket === generation) { active = null;attachments.setDisabled(false); send.disabled = attachments.busy; }
     }
   });
 });

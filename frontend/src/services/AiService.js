@@ -1,7 +1,7 @@
 export const AI_SERVICE_ORIGIN = 'https://st-robot-1.onrender.com';
 const paths = new Set(['/api/home-chat', '/api/tutor']);
 const codes = new Set(['AI_AUTH', 'AI_MODEL', 'AI_QUOTA', 'AI_BUSY', 'AI_UNAVAILABLE', 'AI_NETWORK',
-    'AI_TIMEOUT', 'AI_RESPONSE', 'AI_REQUEST', 'AI_STARTUP_TIMEOUT', 'AI_STARTUP_RESPONSE', 'AI_REPLY_TIMEOUT']);
+    'AI_TIMEOUT', 'AI_RESPONSE', 'AI_REQUEST', 'AI_IMAGE_INVALID', 'AI_IMAGE_TOO_LARGE', 'AI_IMAGE_UNSUPPORTED', 'AI_STARTUP_TIMEOUT', 'AI_STARTUP_RESPONSE', 'AI_REPLY_TIMEOUT']);
 const stages = new Set(['startup', 'reply', 'provider', 'transport', 'server']);
 export const AI_PROVIDER_CODES = Object.freeze(['invalid_api_key', 'invalid_authentication', 'authentication_error',
     'access_denied', 'permission_denied', 'model_not_found', 'model_not_supported', 'invalid_model',

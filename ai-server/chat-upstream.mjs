@@ -35,7 +35,8 @@ const messages = {
   AI_NETWORK: 'Máy chủ chưa kết nối được dịch vụ AI. Bạn có thể thử lại câu hỏi này.',
   AI_TIMEOUT: 'Dịch vụ AI phản hồi quá lâu. Bạn có thể thử lại câu hỏi này.',
   AI_RESPONSE: 'Dịch vụ AI trả về phản hồi chưa đầy đủ. Bạn có thể thử lại câu hỏi này.',
-  AI_REQUEST: 'Dịch vụ AI chưa xử lý được yêu cầu này. Người quản trị hãy kiểm tra cấu hình kết nối.'
+  AI_REQUEST: 'Dịch vụ AI chưa xử lý được yêu cầu này. Người quản trị hãy kiểm tra cấu hình kết nối.',
+  AI_IMAGE_UNSUPPORTED: 'Dịch vụ AI chưa xử lý được ảnh này. Bạn có thể bỏ ảnh để hỏi bằng chữ; người quản trị cần kiểm tra mô hình hỗ trợ ảnh.'
 };
 
 export class ChatUpstreamError extends Error {
@@ -52,7 +53,7 @@ export class ChatUpstreamError extends Error {
   }
 }
 
-function classifyResponse(status, payload) {
+function classifyResponse(status, payload, hasImages = false) {
   const error = payload?.error;
   const code = typeof error?.code === 'string' ? error.code.toLowerCase() : '';
   const type = typeof error?.type === 'string' ? error.type.toLowerCase() : '';
@@ -63,6 +64,18 @@ function classifyResponse(status, payload) {
   if (status === 401 || status === 403 || authenticationCodes.has(code) || authenticationCodes.has(type)) return failure(503, 'AI_AUTH', false);
   if (status === 402 || /insufficient_quota|quota_exceeded|billing|insufficient_balance|credit/.test(`${code} ${type}`)
     || (status === 429 && /insufficient.{0,20}(quota|credit|balance)|billing|quota.{0,15}exhaust/.test(text))) return failure(503, 'AI_QUOTA', false);
+  // A missing model may itself contain "vision" or "image" in its name. Keep
+  // catalog recovery available for that failure without mistaking it for a
+  // rejection of the attached image modality.
+  if (hasImages && [400, 404, 422].includes(status)
+    && (/\bmodel\b.{0,120}(?:does not exist|not found|not available|unavailable|not exist)/.test(text)
+      || /(?:unknown|invalid|missing)\s+model\b/.test(text))) return failure(503, 'AI_MODEL', false);
+  if (hasImages && !invalidModelCodes.has(code) && !invalidModelCodes.has(type) && [400, 404, 415, 422].includes(status)
+    && (/image|vision|multimodal|inline_data/.test(`${code} ${type}`)
+      || /(?:images?|image_url|vision|multimodal|inline_data).{0,80}(?:input|unsupported|not supported|not enabled|invalid|cannot|disabled|format)/.test(text)
+      || /(?:does not support|not supported|unsupported|invalid|cannot process|unable to process|cannot parse|failed to parse).{0,80}(?:images?|image_url|vision|multimodal|inline_data)/.test(text)
+      || code === 'unsupported_parameter' || type === 'unsupported_parameter'
+      || /(?:messages?|content).{0,50}(?:string|array)/.test(text))) return failure(400, 'AI_IMAGE_UNSUPPORTED', false);
   if (invalidModelCodes.has(code) || invalidModelCodes.has(type)
     || ([400, 404, 422].includes(status) && (/model/.test(code) || /model|mô hình/.test(text)))) return failure(503, 'AI_MODEL', false);
   if (status === 429) return failure(429, 'AI_BUSY', true, 60);
@@ -95,6 +108,8 @@ export async function requestChatCompletion({ upstream = fetch, apiKey, model, m
   const key = typeof apiKey === 'string' ? apiKey.trim() : '';
   if (!key) throw new ChatUpstreamError(503, 'AI_AUTH', false, undefined, { stage: 'server' });
   const controller = new AbortController();
+  const hasImages = conversation.some(message => Array.isArray(message.content)
+    && message.content.some(part => part?.type === 'image_url'));
   let activeModel = model;
   let recoveryDetails = {};
   let timer;
@@ -120,7 +135,7 @@ export async function requestChatCompletion({ upstream = fetch, apiKey, model, m
         try { payload = await response.json(); }
         catch { if (response.ok) throw new ChatUpstreamError(502, 'AI_RESPONSE', true, undefined, { stage: 'provider' }); }
         if (controller.signal.aborted) throw timeoutError();
-        if (!response.ok) throw classifyResponse(status, payload);
+        if (!response.ok) throw classifyResponse(status, payload, hasImages);
         const content = payload?.choices?.[0]?.message?.content;
         if (typeof content !== 'string' || !content.trim()) throw new ChatUpstreamError(502, 'AI_RESPONSE', true, undefined, { stage: 'provider' });
         return content.slice(0, 12000);

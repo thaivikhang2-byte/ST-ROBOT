@@ -77,6 +77,8 @@ def validate_courses(courses: list[dict]) -> None:
             for concept in concepts:
                 if not isinstance(concept, dict) or any(not isinstance(concept.get(field), str) or not concept[field].strip() for field in ("title", "body")):
                     raise ValueError(f"{key}: concepts require nonempty title and body")
+            if "learningGuide" in lesson:
+                validate_learning_guide(lesson["learningGuide"], key)
             variants = lesson.get("codeVariants", [])
             if not isinstance(variants, list):
                 raise ValueError(f"{key}: codeVariants must be a list")
@@ -98,6 +100,32 @@ def validate_courses(courses: list[dict]) -> None:
             for source in lesson["sources"]:
                 if not isinstance(source, dict) or not source.get("title") or not str(source.get("url", "")).startswith("https://"):
                     raise ValueError(f"{key}: sources require a title and HTTPS URL")
+
+
+
+def validate_learning_guide(guide: dict, key: str) -> None:
+    def fields(value: object, names: tuple[str, ...]) -> None:
+        if not isinstance(value, dict) or any(not isinstance(value.get(name), str) or not value[name].strip() for name in names):
+            raise ValueError(f"{key}: learningGuide requires {names}")
+    fields(guide, ("intro",))
+    fields(guide.get("analogy"), ("familiar", "meaning", "limit"))
+    for values, names, minimum in [(guide.get("vocabulary"), ("term", "definition"), 3),
+                                    (guide.get("checkpoints"), ("question", "answer"), 2)]:
+        if not isinstance(values, list) or len(values) < minimum:
+            raise ValueError(f"{key}: missing learningGuide examples or definitions")
+        for value in values:
+            fields(value, names)
+    case = guide.get("workedCase")
+    fields(case, ("title", "input", "output", "why"))
+    if not isinstance(case.get("steps"), list) or len(case["steps"]) < 3:
+        raise ValueError(f"{key}: worked case needs at least three explained steps")
+    for step in case["steps"]:
+        fields(step, ("title", "explanation"))
+    support = guide.get("levelSupport")
+    if not isinstance(support, dict):
+        raise ValueError(f"{key}: learningGuide needs support for three levels")
+    for level in ("beginner", "intermediate", "advanced"):
+        fields(support.get(level), ("title", "body", "task"))
 
 
 def register_fonts(symbol_font: Path = SYMBOL_FONT) -> None:
@@ -204,6 +232,31 @@ def render_pdf(course: dict) -> bytes:
         if lesson.get("objectives"):
             section("Sau bài học, bạn có thể")
             listing(lesson["objectives"])
+        guide = lesson.get("learningGuide")
+        if guide:
+            section("Cùng hiểu bài từ đầu", guide["intro"])
+            para(guide["analogy"]["familiar"], "Concept")
+            para(guide["analogy"]["meaning"])
+            para("Giới hạn của ví von: " + guide["analogy"]["limit"], "SmallST")
+            section("Những từ cần hiểu")
+            listing([item["term"] + ": " + item["definition"] for item in guide["vocabulary"]])
+            case = guide["workedCase"]
+            section(case["title"], "Bắt đầu với: " + case["input"])
+            for step in case["steps"]:
+                para(step["title"], "Concept")
+                para(step["explanation"])
+            para("Kết quả: " + case["output"])
+            para(case["why"])
+            section("Tự giải thích rồi đối chiếu")
+            for checkpoint in guide["checkpoints"]:
+                para(checkpoint["question"], "Concept")
+                para(checkpoint["answer"])
+            section("Chọn độ sâu phù hợp")
+            for label, level in [("Mới bắt đầu", "beginner"), ("Đã học cơ bản", "intermediate"), ("Muốn tìm hiểu sâu", "advanced")]:
+                support = guide["levelSupport"][level]
+                para(label + " · " + support["title"], "Concept")
+                para(support["body"])
+                para(support["task"])
         section("Kiến thức trọng tâm")
         concepts = lesson.get("concepts", [])
         if concepts:

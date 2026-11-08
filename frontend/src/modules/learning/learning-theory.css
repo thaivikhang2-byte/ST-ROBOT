@@ -1,0 +1,46 @@
+.learning-guide {
+    --guide-border: var(--color-border, #dbe7e6);
+    --guide-accent: var(--color-link, #136e69);
+    color: var(--color-text, #203b43);
+    line-height: 1.8;
+    overflow-wrap: anywhere;
+}
+.learning-guide p { max-width: 80ch; margin: .55rem 0; }
+.learning-guide-heading { font-size: 1.45rem; margin: 0 0 .6rem; }
+.learning-guide-intro { font-size: 1.08rem; color: var(--color-text-muted, #294b53); }
+.learning-guide-section { margin-top: 1.7rem; }
+.learning-guide-section > h4 { margin: 0 0 .65rem; font-size: 1.1rem; color: var(--color-text, #173e47); }
+.learning-guide h5 { margin: 0 0 .25rem; font-size: 1rem; line-height: 1.55; }
+.learning-guide-analogy { padding: 1.1rem 1.25rem; background: var(--color-primary-soft, #f1f8f7); border: 1px solid var(--guide-border); border-radius: 16px; }
+.learning-guide-familiar { font-weight: 600; }
+.learning-guide-limit { margin-top: .8rem; padding-top: .75rem; border-top: 1px dashed var(--guide-border); color: var(--color-text-muted, #496269); font-size: .94rem; }
+.learning-guide-limit p { margin: .25rem 0 0; }
+.learning-guide-vocabulary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: .75rem; margin: 0; }
+.learning-guide-vocabulary > div { border: 1px solid var(--guide-border); border-radius: 12px; padding: .85rem 1rem; background: var(--color-surface, #fff); }
+.learning-guide-vocabulary dt { font-weight: 700; color: var(--guide-accent); line-height: 1.45; margin-bottom: .35rem; }
+.learning-guide-vocabulary dd { margin: 0; font-size: .96rem; }
+.learning-guide-case { border: 1px solid var(--guide-border); border-radius: 16px; padding: 1.15rem 1.25rem; background: var(--color-surface, #fbfdff); }
+.learning-guide-eyebrow { display: block; color: var(--color-text-subtle, #586e7a); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.learning-guide-case-input, .learning-guide-case-output { padding: .85rem 1rem; border-radius: 10px; background: var(--color-info-soft, #eef4fa); }
+.learning-guide-case-input p, .learning-guide-case-output p { margin: .3rem 0 0; }
+.learning-guide-case-output { background: var(--color-success-soft, #edf7ef); border: 1px solid var(--guide-border); }
+.learning-guide-case-steps { padding-left: 1.9rem; margin: 1rem 0; }
+.learning-guide-case-steps > li { padding: .3rem 0 .7rem .25rem; }
+.learning-guide-case-steps > li::marker { color: var(--guide-accent); font-weight: 800; }
+.learning-guide-case-steps p { margin: .2rem 0 0; }
+.learning-guide-checkpoint { border-top: 1px solid var(--guide-border); padding: .65rem 0; }
+.learning-guide-checkpoint > p { font-weight: 600; }
+.learning-guide summary { cursor: pointer; color: var(--guide-accent); font-weight: 650; padding: .4rem .1rem; line-height: 1.55; }
+.learning-guide summary:focus-visible { outline: 3px solid var(--color-focus, #4a9cdd); outline-offset: 4px; border-radius: 4px; }
+.learning-guide details[open] > summary { margin-bottom: .5rem; }
+.learning-guide-level, .learning-guide-deeper { margin-top: .8rem; padding: 1rem 1.1rem; border: 1px solid var(--guide-border); border-radius: 12px; }
+.learning-guide-level { background: var(--color-surface-muted, #f8fbfa); }
+.learning-guide-level > .learning-guide-eyebrow { margin-bottom: .4rem; }
+.learning-guide-try { border-left: 3px solid var(--color-primary, #72a99f); padding-left: .8rem; font-weight: 550; }
+@media (max-width: 620px) {
+    .learning-guide { line-height: 1.75; }
+    .learning-guide-heading { font-size: 1.25rem; }
+    .learning-guide-analogy, .learning-guide-case { padding: .95rem; }
+    .learning-guide-vocabulary { grid-template-columns: 1fr; }
+    .learning-guide-case-input, .learning-guide-case-output { padding: .7rem .8rem; }
+}

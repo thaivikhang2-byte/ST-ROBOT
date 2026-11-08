@@ -192,3 +192,13 @@ body.learning-page { height:100dvh; overflow:hidden; }
 @media(max-width:700px) { #labView { padding:12px; } #practiceFrame { height:640px; } }
 .practice-navigation { margin-top:12px; }
 #starterConcept { white-space:pre-line; }
+
+/* The tutor floats independently; the lesson uses the full remaining workspace. */
+.learning-level-control { display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:16px 20px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface); }
+.learning-level-control label { font-weight:600;margin:0; }
+.learning-level-control select { flex:1 1 280px;max-width:580px; }
+#learningGuideContent { min-width:0; }
+#theoryView { padding:24px; }
+#theoryView>.lesson-hero,#theoryView>.learning-level-control,#theoryView>.example,#theoryView>.ws-grid-2,#learningGuideContent { max-width:1280px;margin-left:auto;margin-right:auto; }
+@media(min-width:1250px) { .learning-page .ws-grid-2 { grid-template-columns:minmax(250px,.8fr) minmax(0,1.8fr); } }
+@media(max-width:700px) { #theoryView { padding:12px; } .learning-level-control { padding:14px; } }
