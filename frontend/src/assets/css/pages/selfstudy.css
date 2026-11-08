@@ -169,3 +169,26 @@ body.learning-page { height:100dvh; overflow:hidden; }
  #benchControls input { display:block; width:100%; margin:5px 0; }
  .ws-ai { max-height:650px; height:68vh; min-height:440px; }
 }
+
+/* Keep the current task, prediction and code beside the practical workspace. */
+#labView { gap:14px; padding:16px; overflow-anchor:none; scroll-behavior:auto; }
+#labView .platform-intro,#labView .lab-heading { padding:4px 2px; background:transparent; }
+#labView .toolbar { padding:0 0 12px; background:transparent; }
+#practiceMission { border-left:4px solid var(--color-primary); }
+#practiceMission>h2 { margin-top:8px; }
+#practiceMission>label,#assessment>label { margin-top:18px; font-weight:600; }
+#practiceHelp li { margin:10px 0; }
+#labGuide { white-space:pre-line; padding:12px; background:var(--color-primary-soft); border-radius:var(--radius-sm); }
+.lab-platform-help { padding:12px; margin:0; background:var(--color-info-soft); border-radius:var(--radius-sm); font-size:.75rem; line-height:1.7; }
+#assessment { margin-bottom:16px; }
+#assessment>input { width:100%; }
+#assessment details { padding:0 2px; }
+.portfolio-import { display:flex!important; flex-direction:column; gap:6px; font-size:.75rem; }
+.portfolio-import input { width:100%; }
+#completionStatus { padding:12px; background:var(--color-primary-soft); border-radius:var(--radius-sm); }
+.tutor-prompts { display:flex; flex-wrap:wrap; gap:6px; padding:10px 12px; border-bottom:1px solid var(--color-border); }
+.tutor-prompts button { min-height:34px; font-size:.6875rem; padding:6px 8px; }
+#portfolioImportDialog { max-width:min(560px,calc(100vw - 24px)); }
+@media(max-width:700px) { #labView { padding:12px; } #practiceFrame { height:640px; } }
+.practice-navigation { margin-top:12px; }
+#starterConcept { white-space:pre-line; }

@@ -9,14 +9,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bắt đầu học STEM Robotics — ST-Robot</title>
-  <meta name="description" content="Chọn chương trình đào tạo STEM Robotics và vào không gian tự học, thực hành cùng AI.">
+  <meta name="description" content="Chọn bài học STEM Robotics đầu tiên theo sở thích. Khám phá 5 khóa tự học mà không cần tài khoản hay thông tin liên hệ.">
   <link rel="stylesheet" href="../src/assets/css/variables.css">
   <link rel="stylesheet" href="../src/assets/css/base.css">
   <link rel="stylesheet" href="../src/assets/css/layout.css">
-  <link rel="stylesheet" href="../src/assets/css/components.css">
+  <link rel="stylesheet" href="../src/assets/css/components.css?v=guided-learning-v15">
   <link rel="stylesheet" href="../src/vendor/katex/katex.min.css?v=ai-render-v14">
   <link rel="stylesheet" href="../src/assets/css/ai-message.css?v=ai-render-v14">
-  <link rel="stylesheet" href="../src/assets/css/pages/dangky.css">
+  <link rel="stylesheet" href="../src/assets/css/pages/dangky.css?v=guided-learning-v15">
 </head>
 <body class="legacy-registration">
   <a href="#main" class="skip-link">Chuyển đến nội dung chính</a>
@@ -26,96 +26,97 @@
   <main id="main" tabindex="-1">
     <section class="section registration-intro" aria-labelledby="registration-title">
       <div class="container">
-        <div class="section-head text-center">
-          <h1 id="registration-title">Bắt đầu học STEM Robotics</h1>
-          <p>Chọn khóa phù hợp và mở ngay bài học, tài liệu cùng phòng lab thực hành.</p>
+        <div class="section-head">
+          <span class="eyebrow">Bài học đầu tiên của bạn</span>
+          <h1 id="registration-title">Bắt đầu từ điều bạn tò mò</h1>
+          <p>Chưa từng lập trình cũng có thể bắt đầu. Chọn một chủ đề, đọc hướng dẫn và thử từng bước.</p>
+          <p class="start-reassurance">Không cần tạo tài khoản, nhập họ tên hay số điện thoại để học.</p>
         </div>
         <div class="registration-grid">
-          <section class="contact-box" aria-labelledby="admissions-title">
-            <h2 id="admissions-title">Học theo mục tiêu của bạn</h2>
-            <p>Kết hợp lý thuyết, phòng lab tương tác và trợ lý AI trong từng bài học.</p>
-            <ul>
-              <li>Hình thức: tự học trực tuyến với hướng dẫn và bài thực hành theo từng bước.</li>
-              <li>Phù hợp với học sinh muốn tìm hiểu lập trình, điện tử và Robotics từ cơ bản.</li>
-            </ul>
-          </section>
-          <!-- CỘT 2: CHỌN NHANH KHÓA HỌC / TƯ VẤN (TƯƠNG THÍCH MERGE-BUILD) -->
-          <div class="contact-box">
-            <h2 class="fw-bold mb-3">Chọn khóa để bắt đầu</h2>
-            <p class="text-muted small mb-4">Thông tin nhập trong phiếu ở lại trên trang này. Để ghi danh lớp có giáo viên, liên hệ qua Fanpage ở cuối trang.</p>
-
-            <form id="registerForm">
+          <section class="start-panel" aria-labelledby="start-choice-title">
+            <h2 id="start-choice-title">Bạn muốn thử điều gì?</h2>
+            <p>Chọn để xem gợi ý. Bạn có thể đổi khóa học bất cứ lúc nào.</p>
+            <div id="startChooser">
               <div class="field">
-                <label class="label" for="quickStudentName">Họ và tên học viên</label>
-                <input type="text" id="quickStudentName" class="input" required placeholder="Nhập đầy đủ họ tên học viên">
-              </div>
-              <div class="field">
-                <label class="label" for="quickContact">Số điện thoại hoặc email</label>
-                <input type="text" id="quickContact" class="input" required placeholder="Nhập số điện thoại hoặc email">
-              </div>
-              <div class="field">
-                <label class="label" for="quickCourseSelect">Khóa học bạn muốn tìm hiểu</label>
-                <select id="quickCourseSelect" class="select" required aria-label="Khóa học bạn muốn tìm hiểu">
-                  <option value="">— Chọn khóa học —</option>
-                  <option value="arduino">Lớp chuyên sâu lập trình mạch vi điều khiển Arduino Uno</option>
-                  <option value="vex-iq">Lớp rèn luyện thuật toán điều khiển sa bàn thi đấu VEX IQ</option>
-                  <option value="lego-spike">Lớp sáng tạo kiến trúc mô hình kỹ thuật LEGO SPIKE Prime</option>
+                <label class="label" for="quickCourseSelect">Chủ đề bạn quan tâm</label>
+                <select id="quickCourseSelect" class="select" aria-describedby="courseChoiceHint">
+                  <option value="microbit" selected>Vẽ hình bằng đèn LED — Micro:bit</option>
+                  <option value="arduino">Tìm hiểu mạch điện — Arduino Uno</option>
+                  <option value="vex-vr">Điều khiển robot ảo — VEXcode VR</option>
+                  <option value="lego-spike">Khám phá cơ cấu chuyển động — LEGO SPIKE Prime</option>
+                  <option value="vex-iq">Tìm hiểu robot thi đấu — VEX IQ</option>
                 </select>
+                <p id="courseChoiceHint" class="field-hint">Nếu chưa biết chọn gì, thử vẽ một hình trên ma trận LED của Micro:bit.</p>
               </div>
-              <button type="submit" class="btn btn--primary btn--block">Chọn khóa học &amp; xem học liệu</button>
-            </form>
-
-            <div id="submissionSuccessMsg" class="alert alert--success mt-3" style="display:none;" role="status">
-              Đã chọn khóa học. Nhấn “Vào khóa học” để bắt đầu tự học; việc ghi danh lớp có giáo viên thực hiện qua Fanpage.
+              <fieldset class="readiness-options">
+                <legend>Bạn đã thử lập trình chưa?</legend>
+                <label class="check"><input type="radio" name="readiness" value="beginner" checked><span>Mình mới bắt đầu</span></label>
+                <label class="check"><input type="radio" name="readiness" value="practiced"><span>Mình đã thử một chút</span></label>
+              </fieldset>
             </div>
-            <a id="enterCourseLink" class="btn btn--accent btn--block mt-3" href="course.learning.html" hidden>Vào khóa học →</a>
-
-          </div>
-
+            <p id="readinessAdvice" class="start-advice" role="status">Bắt đầu bằng mục tiêu và ví dụ của bài 1. Chưa cần hiểu hết mã mẫu; thử thay một chi tiết nhỏ rồi quan sát kết quả.</p>
+            <a id="enterCourseLink" class="btn btn--primary btn--lg btn--block" href="course.learning.html?course=microbit&amp;lesson=matrix">Mở bài 1: Micro:bit →</a>
+            <p class="start-storage-note">Tiến độ và nhật ký được lưu trên trình duyệt bạn đang dùng.</p>
+            <noscript><p>Để chọn khóa khác, dùng các liên kết “Mở bài 1” bên dưới.</p></noscript>
+          </section>
+          <section class="start-panel first-session" aria-labelledby="first-session-title">
+            <span class="eyebrow">Gợi ý một buổi học · 15–20 phút</span>
+            <h2 id="first-session-title">Thử một việc nhỏ, hiểu một điều mới</h2>
+            <div class="start-preview" aria-live="polite" aria-atomic="true">
+              <p id="startCourseName" class="start-course-name">Micro:bit · Bài 1 / 6</p>
+              <h3 id="startLessonTitle">Vẽ ý tưởng trên 25 LED</h3>
+              <p id="startLessonGoal">Tạo một hình trên ma trận 5 × 5 và giải thích vị trí các điểm sáng.</p>
+              <p id="startEquipment" class="start-equipment">Có thể bắt đầu với mô phỏng trong trình soạn thảo Python; chưa cần bo Micro:bit.</p>
+            </div>
+            <ol class="first-session-steps">
+              <li><strong>Đọc mục tiêu và ví dụ.</strong> Chọn một điều bạn muốn hiểu.</li>
+              <li><strong>Thử trong phòng lab.</strong> Đổi một giá trị trong mã mẫu và quan sát.</li>
+              <li><strong>Tự kiểm tra.</strong> Làm câu hỏi của bài, xem giải thích rồi ghi điều đã học.</li>
+            </ol>
+          </section>
         </div>
+      </div>
+    </section>
+    <section class="section start-all-courses" aria-labelledby="all-start-courses-title">
+      <div class="container">
+        <div class="section-head">
+          <h2 id="all-start-courses-title">Hoặc khám phá cả 5 khóa học</h2>
+          <p>Mỗi khóa có 6 bài. Bạn có thể đọc lý thuyết trước khi có bộ kit; mô phỏng và thiết bị thật có thể dùng mã khác nhau.</p>
+        </div>
+        <div class="start-course-grid">
+          <article class="start-course-card">
+            <span class="eyebrow">Lập trình sáng tạo</span><h3>Micro:bit</h3>
+            <p>Vẽ hình bằng LED, xử lý nút bấm và khám phá cảm biến.</p>
+            <a class="start-course-link" href="course.learning.html?course=microbit&amp;lesson=matrix">Mở bài 1: Vẽ ý tưởng trên 25 LED →</a>
+          </article>
+          <article class="start-course-card">
+            <span class="eyebrow">Mạch điện &amp; cảm biến</span><h3>Arduino Uno</h3>
+            <p>Bắt đầu từ mạch kín và LED, rồi tìm hiểu cách đo khoảng cách.</p>
+            <a class="start-course-link" href="course.learning.html?course=arduino&amp;lesson=led">Mở bài 1: Mạch kín và LED →</a>
+          </article>
+          <article class="start-course-card">
+            <span class="eyebrow">Robot ảo</span><h3>VEXcode VR</h3>
+            <p>Tập suy nghĩ theo từng lệnh và hướng di chuyển, chưa cần robot thật.</p>
+            <a class="start-course-link" href="course.learning.html?course=vex-vr&amp;lesson=sequence">Mở bài 1: Chuỗi lệnh và hướng →</a>
+          </article>
+          <article class="start-course-card">
+            <span class="eyebrow">Cơ cấu chuyển động</span><h3>LEGO SPIKE Prime</h3>
+            <p>Tìm hiểu góc quay, tỉ số truyền và cơ cấu dùng cảm biến.</p>
+            <a class="start-course-link" href="course.learning.html?course=lego-spike&amp;lesson=mechanism">Mở bài 1: Cơ cấu và góc quay →</a>
+          </article>
+          <article class="start-course-card">
+            <span class="eyebrow">Robot thi đấu</span><h3>VEX IQ</h3>
+            <p>Khám phá truyền động và cách chương trình điều khiển robot.</p>
+            <a class="start-course-link" href="course.learning.html?course=vex-iq&amp;lesson=drive">Mở bài 1: Cấu trúc và truyền động →</a>
+          </article>
+        </div>
+        <p class="start-catalog-link"><a href="hoclieu.html">Xem danh mục và tìm khóa học theo công cụ →</a></p>
       </div>
     </section>
   </main>
   <div id="footer-container"></div>
   <div id="backtotop-container"></div>
   <div id="chatbox-container"></div>
-<script>
-(() => {
-  const form = document.getElementById('registerForm');
-  const courseSelect = form.querySelector('select');
-  const enterLink = document.getElementById('enterCourseLink');
-
-  const validCourses = new Set([
-    'arduino',
-    'vex-iq',
-    'lego-spike'
-  ]);
-
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-
-    if (!form.reportValidity()) return;
-
-    const courseId = courseSelect.value;
-    if (!validCourses.has(courseId)) return;
-
-    const url = new URL('course.learning.html', window.location.href);
-    url.searchParams.set('course', courseId);
-
-    enterLink.href = url.href;
-    enterLink.hidden = false;
-  });
-
-  // Nếu sửa thông tin hoặc chọn khóa khác, cần gửi lại biểu mẫu.
-  form.addEventListener('input', () => {
-    enterLink.hidden = true;
-  });
-
-  form.addEventListener('change', () => {
-    enterLink.hidden = true;
-  });
-})();
-</script>
-  <script type="module" src="../src/app.js?v=ai-render-v14"></script>
+  <script type="module" src="../src/app.js?v=guided-learning-v15"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
-import { QuizService } from './QuizService.js?v=simple-quiz-v7';
-import { ReviewService } from './ReviewService.js?v=simple-quiz-v7';
+import { QuizService } from './QuizService.js?v=guided-learning-v15';
+import { ReviewService } from './ReviewService.js?v=guided-learning-v15';
 import { QuizRenderer } from './QuizRenderer.js?v=simple-quiz-v7';
-import { createAutomaticPractice, getDifficultyLevel, listAutomaticTemplates } from './generation/AutomaticPractice.js?v=simple-quiz-v7';
+import { createAutomaticPractice, getDifficultyLevel, listAutomaticTemplates } from './generation/AutomaticPractice.js?v=guided-learning-v15';
 
 const el = id => document.getElementById(id);
 const PRACTICE_PLAN_URL = 'https://st-robot-1.onrender.com/api/practice-plan';

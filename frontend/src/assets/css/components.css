@@ -215,3 +215,9 @@ legend { padding: 0; margin-bottom: var(--space-3); font-weight: var(--weight-se
     .chat-fab span { display: none; }
     .chat-fab { width: 3.25rem; padding: 0; justify-content: center; }
 }
+
+/* Keep theme and menu touch targets usable on narrow phones. */
+@media (max-width: 23rem) {
+    .navbar-inner { gap: var(--space-2); }
+    .navbar-actions > a.btn { display: none; }
+}

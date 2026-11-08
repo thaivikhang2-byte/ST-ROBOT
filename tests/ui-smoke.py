@@ -455,27 +455,45 @@ with sync_playwright() as p:
     def registration():
         goto('dangky.html')
         enter = page.locator('#enterCourseLink')
-        expect(enter).to_be_hidden()
-        page.locator('#registerForm button[type=submit]').click()
-        expect(enter).to_be_hidden()
-        form = page.locator('#registerForm')
-        fields = form.locator('input[required]')
-        require(fields.count() >= 2, 'Original name/contact form fields missing')
-        fields.nth(0).fill('Học viên kiểm thử')
-        fields.nth(1).fill('student@example.invalid')
-        for course in ['arduino', 'vex-iq', 'lego-spike']:
-            form.locator('select').select_option(course)
-            expect(enter).to_be_hidden()
-            form.locator('button[type=submit]').click()
+        expect(enter).to_be_visible()
+        expect(page.locator('#registerForm, main input[required], main input[type="email"], main input[type="tel"]')).to_have_count(0)
+        selector = page.locator('#quickCourseSelect')
+        expect(selector).to_have_value('microbit')
+        expected_lessons = {'microbit': 'matrix', 'arduino': 'led', 'vex-vr': 'sequence', 'lego-spike': 'mechanism', 'vex-iq': 'drive'}
+        expect(selector.locator('option')).to_have_count(len(expected_lessons))
+        expect(page.locator('#readinessAdvice')).to_contain_text('Chưa cần hiểu hết')
+        for course_id, lesson_id in expected_lessons.items():
+            selector.select_option(course_id)
             expect(enter).to_be_visible()
-            expect(page.locator('#submissionSuccessMsg')).to_be_visible()
-            require('course=' + course in enter.get_attribute('href'), 'Wrong course entry link')
-        fields.nth(0).fill('Học viên đã sửa')
-        expect(enter).to_be_hidden()
-        no_overflow()
-        return {'original_course_entries': 3, 'native_validation': True, 'edit_hides_entry': True}
+            query = parse_qs(urlparse(enter.get_attribute('href')).query)
+            require(query.get('course') == [course_id] and query.get('lesson') == [lesson_id], 'Beginner entry must open the selected first lesson')
+            require(page.locator('#startLessonTitle').text_content().strip(), 'First lesson preview missing')
+            expect(page.locator('#startCourseName')).to_contain_text('Bài 1 / 6')
+        page.locator('input[name="readiness"][value="practiced"]').check()
+        expect(page.locator('#readinessAdvice')).to_contain_text('dự đoán')
+        expect(enter).to_be_visible()
+        page.locator('input[name="readiness"][value="beginner"]').check()
+        expect(page.locator('#readinessAdvice')).to_contain_text('Chưa cần hiểu hết')
+        links = page.locator('.start-course-link').evaluate_all('(items) => items.map(item => item.getAttribute("href"))')
+        require(len(links) == len(expected_lessons), 'Static first-lesson links must work without the chooser')
+        for href in links:
+            query = parse_qs(urlparse(href).query)
+            course_id = query.get('course', [''])[0]
+            require(course_id in expected_lessons and query.get('lesson') == [expected_lessons[course_id]], 'Static first-lesson link has wrong scope')
+        layouts = {}
+        try:
+            for width in [320, 390]:
+                page.set_viewport_size({'width': width, 'height': 900})
+                layouts[str(width)] = no_overflow()
+        finally:
+            page.set_viewport_size({'width': 1440, 'height': 1000})
+        selector.select_option('arduino')
+        enter.click()
+        expect(page.locator('#courseSelect')).to_have_value('arduino')
+        require(parse_qs(urlparse(page.url).query).get('lesson') == ['led'], 'Entry did not reach the first Arduino lesson')
+        return {'direct_course_entries': 5, 'no_registration_required': True, 'readiness_advice': True, 'static_first_lesson_links': 5, 'entry_to_first_lesson': True, 'mobile_layouts': layouts}
 
-    checked('registration validation and course entry links', registration)
+    checked('beginner entry, optional readiness guidance and direct first-lesson links', registration)
 
     def home_ai():
         goto('index.html')
@@ -520,7 +538,9 @@ with sync_playwright() as p:
             for i, lesson_data in enumerate(c['lessons']):
                 page.locator('#lessonList button').nth(i).click()
                 expect(page.locator('#lessonTitle')).to_have_text(lesson_data['title'])
-                require(page.locator('#theoryContent').inner_text().strip(), 'Missing lesson theory')
+                require(page.locator('#theoryContent').text_content().strip(), 'Missing lesson theory')
+                require(page.locator('#theoryDetails').get_attribute('open') is None, 'Extended theory should start collapsed')
+                expect(page.locator('#starterConcept')).to_be_visible()
                 lesson_key = c['id'] + '/' + lesson_data['id']
                 required_sections = ['objectives', 'concepts', 'example', 'misconceptions', 'self-check', 'sources']
                 for name in required_sections:
@@ -547,6 +567,10 @@ with sync_playwright() as p:
                     href = source_links.nth(index).get_attribute('href')
                     require(href == source['url'] and urlparse(href).scheme == 'https', 'Invalid reference URL: ' + lesson_key)
                     require(not re.search(r'youtu(?:be|\.be)', href, re.I), 'YouTube is not allowed in teaching references')
+                page.locator('#tabBtnLab').click()
+                expect(page.locator('#labView')).to_be_visible()
+                require(page.locator('#sampleCodeDetails').get_attribute('open') is None, 'Sample code should start collapsed')
+                page.locator('#sampleCodeDetails > summary').click()
                 require(page.locator('#sampleCodeBox').text_content() == lesson_data['code'], 'Primary sample code did not load/reset: ' + lesson_key)
                 expect(page.locator('#sampleCodeBox')).to_have_attribute('translate', 'no')
                 selector = page.locator('#codeVariantSelect')
@@ -583,11 +607,17 @@ with sync_playwright() as p:
             expect(page.locator('#theoryView')).to_be_hidden()
             page.locator('#labButtons button').last.click()
             expect(page.locator('#localLab')).to_be_visible()
-            require(page.locator('#benchCanvas').count() == 1, 'Local bench canvas missing')
-            require(page.locator('#benchResult').inner_text().strip(), 'Local bench did not execute')
-            require('Lỗi' not in page.locator('#benchResult').inner_text(), 'Initial local bench error')
-            page.locator('#localLab button').last.click()
-            require(page.locator('#benchResult').inner_text().strip(), 'Local bench run result missing')
+            bench = page.locator('#localLab .lesson-bench')
+            expect(bench).to_have_attribute('data-bench-course', c['id'])
+            expect(bench).to_have_attribute('data-bench-lesson', c['lessons'][-1]['id'])
+            expect(bench.locator('h3')).to_contain_text('Mô hình:')
+            output = bench.locator('.lesson-bench-output')
+            require(output.inner_text().strip(), 'Local model guidance missing')
+            action_buttons = bench.locator('.lesson-bench-actions button')
+            (action_buttons if action_buttons.count() else bench.locator('.lesson-bench-body button')).first.click()
+            require(output.inner_text().strip(), 'Local model result missing')
+            evidence = page.evaluate('record().modelEvidence')
+            require(evidence and evidence['lessonId'] == c['lessons'][-1]['id'] and evidence['actions'], 'Meaningful model action did not record lesson evidence')
             page.locator('#tabBtnTheory').click()
             expect(page.locator('#theoryView')).to_be_visible()
             expect(page.locator('#labView')).to_be_hidden()
@@ -670,7 +700,7 @@ with sync_playwright() as p:
                 if key == 'local':
                     expect(page.locator('#localLab')).to_be_visible()
                     expect(page.locator('#practiceFrame')).to_have_count(0)
-                    require(page.locator('#benchResult').inner_text().strip(), 'In-page bench did not run')
+                    require(page.locator('#localLab .lesson-bench-output').inner_text().strip(), 'In-page lesson model did not mount')
                 else:
                     frame = page.locator('#practiceFrame')
                     expect(frame).to_have_attribute('src', cfg.get('embedUrl') or cfg['url'])
@@ -701,9 +731,18 @@ with sync_playwright() as p:
         page.evaluate('(cfg)=>{labs.wokwi=cfg;renderLabButtons()}', original)
         page.locator('#labButtons button[data-lab-key="wokwi"]').click()
         page.locator('#practiceFrame').dispatch_event('error')
-        expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_count(0)
-        expect(page.locator('#practiceFrame')).to_have_attribute('src', original_urls['avr'])
-        page.evaluate('(cfg)=>{labs.wokwi=cfg;renderLabButtons()}', original)
+        expect(page.locator('#platformHelp')).to_contain_text('Khung lab tải chưa thành công')
+        expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_count(1)
+        expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_attribute('aria-pressed', 'true')
+        expect(page.locator('#practiceFrame')).to_have_attribute('src', original.get('embedUrl') or original['url'])
+        require(page.evaluate('labs.wokwi.mode') == original['mode'], 'A transient frame error permanently changed the provider registry')
+        page.locator('#labReloadBtn').click()
+        expect(page.locator('#practiceFrame')).to_have_attribute('src', original.get('embedUrl') or original['url'])
+        page.locator('#labButtons button[data-lab-key="local"]').click()
+        expect(page.locator('#localLab .lesson-bench')).to_be_visible()
+        expect(page.locator('#practiceFrame')).to_have_count(0)
+        page.locator('#labButtons button[data-lab-key="wokwi"]').click()
+        expect(page.locator('#practiceFrame')).to_have_attribute('src', original.get('embedUrl') or original['url'])
         require(len(popups) == 0, 'A lab choice opened a separate tab')
         page.remove_listener('popup', on_popup)
         page.set_viewport_size({'width': 390, 'height': 844})
@@ -714,7 +753,7 @@ with sync_playwright() as p:
             mobile_layouts[course_id] = no_overflow()
         page.set_viewport_size({'width': 1440, 'height': 1000})
         fixtures['frame_urls'] = set()
-        return {'original_platforms_restored': 4, 'course_defaults_checked': 5, 'official_embed_additions': 5, 'selections_checked': checks, 'optional_new_tab_links_checked': checks, 'popups': 0, 'failed_addition_returns_to_original_lab': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; iframe integration uses local fixtures'}
+        return {'original_platforms_restored': 4, 'course_defaults_checked': 5, 'official_embed_additions': 5, 'selections_checked': checks, 'optional_new_tab_links_checked': checks, 'popups': 0, 'transient_frame_error_preserves_provider_and_retry': True, 'manual_model_fallback_available': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; iframe integration uses local fixtures'}
 
     checked('lab embeds, editable micro:bit configuration and optional new-tab links', lab_platforms)
 
@@ -764,22 +803,46 @@ with sync_playwright() as p:
         goto('course.learning.html?course=arduino')
         page.evaluate('localStorage.removeItem("strobot.original.course.v3")')
         page.reload(wait_until='domcontentloaded')
+        expect(page.locator('#progressText')).to_contain_text('0/6')
         page.locator('button[onclick="markLessonComplete()"]').first.click()
-        expect(page.locator('#notice')).to_contain_text('Cần trả lời đúng')
+        expect(page.locator('#labView')).to_be_visible()
+        expect(page.locator('#notice')).to_contain_text('Trả lời đúng')
+        expect(page.locator('#notice')).to_contain_text('Ghi dự đoán')
         answer = page.evaluate('lesson().answer')
         page.locator('#quizOptions input[value="' + str(answer) + '"]').check()
         page.locator('#quizForm button[type=submit]').click()
         expect(page.locator('#quizFeedback')).to_contain_text('Đúng.')
-        page.locator('button[onclick="markLessonComplete()"]').first.click()
-        expect(page.locator('#notice')).to_contain_text('60 ký tự')
         note = 'Đầu vào: điện trở 330 ohm. Dự đoán: dòng nhỏ. Kết quả: LED sáng. Giải thích: điện trở giới hạn dòng điện.'
+        note_details = page.locator('#journal').locator('xpath=ancestor::details[1]')
+        note_details.locator(':scope > summary').click()
         page.locator('#journal').fill(note)
         expect(page.locator('#saveNotice')).to_contain_text('Đã lưu')
+        page.locator('button[onclick="markLessonComplete()"]').first.click()
+        expect(page.locator('#progressText')).to_contain_text('0/6')
+        expect(page.locator('#notice')).to_contain_text('Ghi dự đoán')
+        expect(page.locator('#notice')).to_contain_text('Chọn nơi')
+        evidence = {
+            'prediction': 'Với điện trở 330 ohm, tôi dự đoán LED sáng và dòng điện được giới hạn.',
+            'observation': 'Mạch nối kín với điện trở 330 ohm: LED sáng; đây là bản ghi kiểm thử của editor.',
+            'explanation': 'Điện trở giới hạn dòng trong mạch nối kín, phù hợp dự đoán đã ghi.',
+            'transfer': 'Đổi điện trở từ 330 lên 1000 ohm rồi chạy lại: LED mờ hơn vì dòng điện giảm.',
+        }
+        page.locator('#practiceSource').select_option('external')
+        for field in ['prediction', 'observation', 'explanation']:
+            page.locator('#' + field).fill(evidence[field])
+        page.locator('button[onclick="markLessonComplete()"]').first.click()
+        expect(page.locator('#progressText')).to_contain_text('0/6')
+        expect(page.locator('#notice')).to_contain_text('Đổi một đầu vào')
+        page.locator('#transfer').fill(evidence['transfer'])
         page.reload(wait_until='domcontentloaded')
         expect(page.locator('#journal')).to_have_value(note)
         expect(page.locator('#quizOptions input[value="' + str(answer) + '"]')).to_be_checked()
+        for field, value in evidence.items():
+            expect(page.locator('#' + field)).to_have_value(value)
+        expect(page.locator('#practiceSource')).to_have_value('external')
         page.locator('button[onclick="markLessonComplete()"]').first.click()
         expect(page.locator('#progressText')).to_contain_text('1/6')
+        expect(page.locator('#completionStatus')).to_contain_text('tự xác nhận')
         page.reload(wait_until='domcontentloaded')
         expect(page.locator('#progressText')).to_contain_text('1/6')
         page.locator('button[onclick="openPdfModal()"]').first.click()
@@ -793,13 +856,18 @@ with sync_playwright() as p:
         require(pdf.startswith(b'%PDF-') and len(pdf) > 10000, 'PDF is not a real populated document')
         page.keyboard.press('Escape')
         expect(page.locator('#pdfModal')).to_be_hidden()
+        page.locator('#tabBtnLab').click()
         with page.expect_download() as info:
             page.locator('#exportNotes').click()
         notes = json.loads(pathlib.Path(info.value.path()).read_text())
         require(notes['course'] == 'arduino' and any(r.get('note') == note for r in notes['records'].values()), 'Journal export lost original note')
-        return {'quiz_and_note_gates': True, 'reload_persistence': True, 'pdf_bytes': len(pdf), 'notes_export': True}
+        require(notes['schemaVersion'] == 2, 'Portfolio export must identify its validated schema')
+        saved = notes['records'][page.evaluate('lesson().id')]
+        require(all(saved.get(field) == value for field, value in evidence.items()), 'Portfolio export lost practice evidence')
+        require(saved.get('done') is True and saved.get('source') == 'external' and saved.get('completedAt'), 'Portfolio export lost self-reported completion metadata')
+        return {'quiz_alone_insufficient': True, 'journal_alone_insufficient': True, 'prediction_observation_explanation_and_changed_input_required': True, 'practice_source_required': True, 'completion_is_self_reported': True, 'reload_persistence': True, 'pdf_bytes': len(pdf), 'notes_export': True}
 
-    checked('learning completion gates, persisted journal, actual PDF and notes export', persistence_pdf)
+    checked('learning evidence gates, persisted practice records, actual PDF and portfolio export', persistence_pdf)
 
     def curriculum_pdfs():
         goto('course.learning.html?course=arduino')

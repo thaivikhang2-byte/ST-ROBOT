@@ -1,4 +1,4 @@
-import { quizCourses, quizQuestions } from '../../data/quiz.js?v=copy-v4';
+import { quizCourses, quizQuestions } from '../../data/quiz.js?v=guided-learning-v15';
 import { resolveGeneratedQuestion, getGenerationCapacity } from './generation/QuestionEngine.js?v=generated-v6';
 
 export const REVIEW_STORAGE_KEY = 'strobot.review.evidence.v1';

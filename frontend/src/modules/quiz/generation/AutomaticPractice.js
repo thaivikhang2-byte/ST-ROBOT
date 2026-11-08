@@ -1,4 +1,4 @@
-import { quizCourses, quizQuestions } from '../../../data/quiz.js?v=simple-quiz-v7';
+import { quizCourses, quizQuestions } from '../../../data/quiz.js?v=guided-learning-v15';
 import { createGeneratedQuiz } from './QuestionEngine.js?v=simple-quiz-v7';
 import { listAutomaticTemplates, getDifficultyLevel } from './DifficultyPolicy.js?v=simple-quiz-v7';
 import { hashString } from './helpers.js';

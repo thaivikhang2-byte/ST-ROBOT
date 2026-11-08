@@ -1,4 +1,4 @@
-import { quizCourses, quizQuestions } from '../../data/quiz.js?v=copy-v4';
+import { quizCourses, quizQuestions } from '../../data/quiz.js?v=guided-learning-v15';
 
 export const QUIZ_HISTORY_KEY = 'strobot.quiz.history.v1';
 const clone = question => ({ ...question, opts: [...question.opts] });

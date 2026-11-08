@@ -8,10 +8,10 @@
   <link rel="stylesheet" href="../src/assets/css/variables.css">
   <link rel="stylesheet" href="../src/assets/css/base.css">
   <link rel="stylesheet" href="../src/assets/css/layout.css">
-  <link rel="stylesheet" href="../src/assets/css/components.css">
+  <link rel="stylesheet" href="../src/assets/css/components.css?v=guided-learning-v15">
   <link rel="stylesheet" href="../src/vendor/katex/katex.min.css?v=ai-render-v14">
   <link rel="stylesheet" href="../src/assets/css/ai-message.css?v=ai-render-v14">
-  <link rel="stylesheet" href="../src/assets/css/pages/selfstudy.css">
+  <link rel="stylesheet" href="../src/assets/css/pages/selfstudy.css?v=guided-learning-v15">
 </head>
 <body class="learning-page">
   <a href="#main" class="skip-link">Chuyển đến nội dung chính</a>
@@ -41,10 +41,10 @@
       <section class="ws-content" aria-label="Nội dung bài học và thực hành">
         <div class="ws-toolbar">
           <div class="ws-tabs" aria-label="Chế độ học">
-            <button type="button" onclick="switchMainTab('theory')" id="tabBtnTheory" class="lab-active-tab">1. Lý thuyết &amp; hướng dẫn</button>
-            <button type="button" onclick="switchMainTab('lab')" id="tabBtnLab">2. Phòng lab mini</button>
+            <button type="button" onclick="switchMainTab('theory')" id="tabBtnTheory" class="lab-active-tab">1. Hiểu bài</button>
+            <button type="button" onclick="switchMainTab('lab')" id="tabBtnLab">2. Thực hành</button>
           </div>
-          <button type="button" class="btn--primary" onclick="markLessonComplete()">✓ Hoàn thành bài</button>
+          <button type="button" class="btn--primary" onclick="markLessonComplete()">✓ Tự xác nhận hoàn thành</button>
         </div>
         <div id="theoryView">
           <div class="lesson-hero">
@@ -57,31 +57,25 @@
               <h2>Hướng dẫn thực hành nhanh</h2>
               <div class="lab-teaser"><svg class="icon" aria-hidden="true"><use href="../src/assets/icons.svg#cpu"></use></svg><p id="videoTitle"></p><button type="button" class="btn--primary" onclick="switchMainTab('lab')">Mở phòng lab</button></div>
             </section>
-            <section class="ws-card glass-panel"><h2>Kiến thức lý thuyết trọng tâm</h2><div id="theoryContent"></div></section>
+            <section class="ws-card glass-panel"><h2>Bắt đầu từ đây</h2><h3 id="starterConceptTitle"></h3><p id="starterConcept"></p><details id="theoryDetails"><summary>Đọc giải thích, ví dụ và kiến thức mở rộng</summary><div id="theoryContent"></div></details></section>
           </div>
-          <section class="ws-card glass-panel">
-            <h2>Các bước thực hành &amp; code mẫu</h2>
-            <div class="ws-grid-2"><ol id="practiceSteps"></ol><div class="code-box"><div class="code-box-head"><span id="codeLangLabel">Mã nguồn mẫu</span><select id="codeVariantSelect" aria-label="Môi trường của mã mẫu" hidden></select><button type="button" onclick="copySampleCode()">Sao chép</button></div><pre id="sampleCodeBox" class="notranslate" translate="no" lang="en"></pre></div></div>
-          </section>
-          <section class="ws-card glass-panel"><h2>Hướng dẫn sử dụng phòng lab</h2><p id="labGuide"></p></section>
-          <section class="ws-card glass-panel" id="assessment">
-            <h2>Bài tập &amp; kiểm tra</h2><p id="exercise"></p>
-            <details><summary>Đối chiếu sau khi tự làm</summary><p id="solution"></p></details>
-            <form id="quizForm"><h3 id="quizQuestion"></h3><div id="quizOptions"></div><button type="submit" class="btn--primary">Kiểm tra đáp án</button><p id="quizFeedback" role="status"></p></form>
-            <h3>Nhật ký thực hành</h3><label for="journal">Ghi đầu vào, dự đoán, kết quả, lỗi và giải thích (ít nhất 60 ký tự)</label>
-            <textarea id="journal" maxlength="15000" rows="6" placeholder="Lượt 1: đầu vào…; dự đoán…; quan sát…; giải thích…"></textarea>
-            <p id="saveNotice" role="status"></p><button type="button" id="exportNotes">Tải nhật ký khóa này</button>
-            <h3>Rubric giáo viên đối chiếu · 100 điểm</h3><ul id="rubric"></ul>
-            <p class="small">Giáo viên đối chiếu nhật ký và kết quả thực hành theo từng tiêu chí: đầy đủ minh chứng nhận toàn điểm, đáp ứng một phần nhận nửa điểm, cần bổ sung minh chứng nhận 0 điểm.</p>
-            <button type="button" class="btn--primary" onclick="markLessonComplete()">Đánh dấu hoàn thành tự học</button>
-          </section>
+
         </div>
         <div id="labView" hidden>
+          <section class="ws-card glass-panel" id="practiceMission">
+            <p class="ws-eyebrow">Nhiệm vụ của bạn</p><h2 id="practiceTitle"></h2><p id="exercise"></p>
+            <p class="small">Dự đoán trước khi chạy → quan sát kết quả → giải thích → đổi một đầu vào và thử lại.</p>
+            <label for="prediction">1. Bạn dự đoán điều gì? Ghi cả đầu vào sẽ thử.</label>
+            <textarea id="prediction" rows="2" maxlength="2000" placeholder="Tôi chọn… Tôi nghĩ kết quả sẽ… vì…"></textarea>
+            <div class="lab-actions practice-navigation"><button type="button" onclick="focusPracticePart(frameKey==='local'?'localLab':'frameHost')">Đến bàn thực hành ↓</button><button type="button" onclick="focusPracticePart('observation')">Ghi kết quả ↓</button></div><details id="practiceHelp" open><summary>Các bước thực hành</summary><ol id="practiceSteps"></ol><p id="labGuide"></p></details>
+            <details id="sampleCodeDetails"><summary>Mã mẫu và môi trường sử dụng</summary><p class="small">Chọn đúng môi trường ghi trên mã. Với nền tảng nhúng, dán mã vào editor rồi chạy; bàn mô hình trong web dùng các điều khiển riêng bên dưới.</p><div class="code-box"><div class="code-box-head"><span id="codeLangLabel">Mã nguồn mẫu</span><select id="codeVariantSelect" aria-label="Môi trường của mã mẫu" hidden></select><button type="button" onclick="copySampleCode()">Sao chép</button><button type="button" onclick="downloadSampleCode()">Tải mã mẫu</button></div><pre id="sampleCodeBox" class="notranslate" translate="no" lang="en"></pre></div></details>
+          </section>
           <div class="platform-intro"><h2>Chọn nền tảng thực hành</h2></div>
           <div id="labButtons" class="toolbar platform-selector" role="group" aria-label="Nền tảng thực hành cho khóa học"></div>
           <div class="lab-heading">
             <h2 id="labBoxTitle"></h2>
             <div class="lab-actions">
+              <button type="button" onclick="focusPracticePart('practiceMission')">Xem nhiệm vụ ↑</button>
               <a id="labExternalBtn" class="btn btn--primary btn--sm" target="_blank" rel="noopener noreferrer">Mở riêng ở tab ngoài ↗</a>
               <button id="labReloadBtn" type="button" onclick="reloadLabFrame()" hidden>Tải lại khung</button>
               <button id="labFullscreenBtn" type="button" onclick="fullscreenLabFrame()" hidden>Toàn màn hình</button>
@@ -92,12 +86,29 @@
             <p class="small">Sửa mã và chạy mô phỏng ngay trong khung. Chờ thông báo “Đã lưu” trước khi đổi bài; mỗi bài giữ một dự án riêng trên trình duyệt này.</p>
             <div class="lab-actions"><button id="microbitDownloadBtn" type="button" disabled onclick="downloadMicrobitSource()">Tải mã đã lưu (.py)</button><button id="microbitResetBtn" type="button" onclick="document.getElementById('microbitResetDialog').showModal()">Nạp lại mã bài học</button></div>
           </div>
+          <p id="platformHelp" class="lab-platform-help" role="status" aria-live="polite"></p>
           <div id="frameHost"></div><div id="localLab" hidden></div>
+          <section class="ws-card glass-panel" id="assessment">
+            <h2>Ghi nhận điều bạn đã làm</h2>
+            <label for="practiceSource">Bạn thực hành bằng</label><select id="practiceSource"><option value="">Chọn nơi bạn vừa thực hành</option><option value="local-model">Bàn mô hình trong web</option><option value="external">Editor / lab nhúng hoặc mở riêng</option><option value="hardware">Bộ kit thật</option></select>
+            <p id="modelEvidenceStatus" class="small" role="status"></p>
+            <label for="observation">2. Kết quả quan sát được</label><textarea id="observation" rows="2" maxlength="3000" placeholder="Với đầu vào… tôi thấy… (số đo, trạng thái hoặc đường đi)"></textarea>
+            <label for="explanation">3. Vì sao kết quả đó xảy ra? So với dự đoán của bạn thế nào?</label><textarea id="explanation" rows="2" maxlength="3000" placeholder="Kết quả khớp/khác dự đoán vì…"></textarea>
+            <label for="transfer">4. Thay đổi một đầu vào rồi thử lại</label><textarea id="transfer" rows="2" maxlength="2000" placeholder="Tôi đổi… từ… thành… Kết quả mới là… Tôi rút ra…"></textarea>
+            <details><summary>Lưu thêm ghi chú và đường dẫn dự án</summary><label for="projectUrl">Đường dẫn dự án đã lưu ở nền tảng thực hành (nếu có)</label><input id="projectUrl" type="url" maxlength="2000" placeholder="https://…"><p class="small">Tài khoản của nền tảng thực hành được quản lý riêng. Hãy lưu hoặc tải dự án ở editor trước khi đóng khung.</p><label for="journal">Ghi chú của bạn</label><textarea id="journal" maxlength="15000" rows="4" placeholder="Lỗi đã gặp, cách sửa, mã thay đổi…"></textarea></details>
+            <p id="saveNotice" role="status"></p>
+            <div class="lab-actions"><button type="button" id="exportNotes">Tải hồ sơ thực hành khóa này</button><label class="portfolio-import" for="importNotes">Khôi phục từ tệp JSON<input id="importNotes" type="file" accept="application/json,.json"></label></div>
+            <details><summary>Kiểm tra lại kiến thức</summary><form id="quizForm"><h3 id="quizQuestion"></h3><div id="quizOptions"></div><button type="submit" class="btn--primary">Kiểm tra đáp án</button><p id="quizFeedback" role="status"></p></form></details>
+            <details><summary>Đối chiếu sau khi tự làm</summary><p id="solution"></p><h3>Tiêu chí đối chiếu · 100 điểm</h3><ul id="rubric"></ul><p class="small">Dùng kết quả quan sát và lời giải thích để tự đối chiếu hoặc nhờ giáo viên góp ý theo các tiêu chí này.</p></details>
+            <p id="completionStatus" class="small" role="status"></p>
+            <button type="button" class="btn--primary" onclick="markLessonComplete()">Tự xác nhận hoàn thành bài</button>
+            <p class="small">Tiến độ ghi nhận việc bạn tự báo cáo và làm kiểm tra. Kết quả từ editor hoặc kit do bạn ghi lại; bàn mô hình ghi thao tác theo quy tắc của từng bài.</p>
+          </section>
         </div>
       </section>
       <aside class="ws-ai glass-panel" aria-label="Trợ lý học tập">
         <div class="ai-head"><span class="ai-avatar"><svg class="icon" aria-hidden="true"><use href="../src/assets/icons.svg#message"></use></svg></span><div><h2>Trợ lý AI STEM Robotics</h2><p>Hỏi về bài học và thực hành</p></div></div>
-        <div id="tutorMessages" aria-live="polite"></div>
+        <div class="tutor-prompts" aria-label="Gợi ý hỏi trợ lý"><button type="button" onclick="prepareTutorQuestion('simple')">Giải thích dễ hiểu</button><button type="button" onclick="prepareTutorQuestion('hint')">Gợi ý bước tiếp theo</button><button type="button" onclick="prepareTutorQuestion('result')">Trao đổi về kết quả</button></div><div id="tutorMessages" aria-live="polite"></div>
         <form id="tutorForm"><label for="tutorQuestion">Câu hỏi của bạn</label><textarea id="tutorQuestion" rows="3" maxlength="3000" required placeholder="Bạn cần giải thích phần nào?"></textarea><div class="tutor-actions"><button id="tutorSend" type="submit" class="btn--primary">Gửi câu hỏi</button><button id="tutorReset" type="button">Trao đổi mới</button></div><p id="tutorStatus" class="small" role="status"></p><p class="small">Câu hỏi và nội dung bài học được gửi đến dịch vụ AI. Không nhập thông tin cá nhân. Hãy đối chiếu câu trả lời với giáo trình.</p></form>
       </aside>
     </main>
@@ -105,11 +116,13 @@
   <div role="dialog" aria-modal="true" aria-label="Giáo trình PDF" aria-hidden="true" id="pdfModal" class="hidden">
     <div class="pdf-panel"><div class="pdf-head"><span id="modalPdfTitle">Tài liệu giáo trình ST-Robot</span><div class="pdf-actions"><button type="button" id="downloadPdf" class="btn--primary">Tải giáo trình PDF · 6 bài</button><button type="button" onclick="closePdfModal()">Đóng</button></div></div><div class="pdf-body"><div id="printablePdfArea"><h2 id="pdfDocHeading">Tiêu đề bài học</h2><p class="small">Tài liệu tự học có bài tập và đáp án đối chiếu</p><div id="pdfDocBody"></div></div></div></div>
   </div>
+  <dialog id="portfolioImportDialog" class="dialog" aria-labelledby="portfolioImportTitle"><div class="dialog-body"><h2 id="portfolioImportTitle">Khôi phục hồ sơ thực hành</h2><p id="portfolioImportPreview"></p><p>Các bài có trong tệp sẽ thay thế bản trên trình duyệt. Các bài khác và các khóa khác được giữ lại. Bạn có thể tải hồ sơ hiện tại trước khi khôi phục.</p></div><div class="dialog-foot"><button type="button" class="btn" onclick="document.getElementById('portfolioImportDialog').close()">Giữ bản hiện tại</button><button id="confirmImportNotes" type="button" class="btn btn--primary">Khôi phục các bài trong tệp</button></div></dialog>
   <dialog id="microbitResetDialog" class="dialog" aria-labelledby="microbitResetTitle"><div class="dialog-body"><h2 id="microbitResetTitle">Nạp lại mã mẫu của bài này?</h2><p>Mã đã chỉnh sửa của bài đang mở sẽ được thay bằng mã mẫu. Hãy tải bản cần giữ trước khi tiếp tục. Dự án của các bài khác được giữ nguyên.</p></div><div class="dialog-foot"><button id="microbitCancelReset" type="button" class="btn" onclick="document.getElementById('microbitResetDialog').close()">Giữ mã hiện tại</button><button id="microbitConfirmReset" type="button" class="btn btn--primary" onclick="resetMicrobitSource()">Nạp mã mẫu</button></div></dialog>
-  <script type="module" src="../src/app.js?v=ai-render-v14"></script>
+  <script type="module" src="../src/app.js?v=guided-learning-v15"></script>
   <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=lesson-code-v5'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
-<script src="../src/data/curriculum.js?v=lesson-code-v5"></script>
-<script src="../src/data/lesson-pdfs.js?v=lesson-code-v5"></script>
+<script type="module">import { mountLessonBench } from '../src/modules/learning/LessonBench.js?v=guided-learning-v15'; import * as portfolio from '../src/modules/learning/PracticePortfolio.js?v=guided-learning-v15'; window.STROBOT_MOUNT_LESSON_BENCH=mountLessonBench; window.STROBOT_PRACTICE_PORTFOLIO=portfolio;</script>
+<script src="../src/data/curriculum.js?v=guided-learning-v15"></script>
+<script src="../src/data/lesson-pdfs.js?v=guided-learning-v15"></script>
 <script id="lab-platform-data" data-lab-version="76d59149ba2b">
 // Platform URLs use provider-supported embed modes.
 // The micro:bit editor uses the official controller protocol for editable projects.
@@ -246,7 +259,7 @@ const STORAGE='strobot.original.course.v3';let state={};try{state=JSON.parse(loc
 const qs=new URLSearchParams(location.search),aliases={vex:'vex-iq',vexiq:'vex-iq',vexcode:'vex-vr',vexvr:'vex-vr',spike:'lego-spike',lego:'lego-spike','micro:bit':'microbit',arduino_uno:'arduino'};
 let requested=(qs.get('course')||qs.get('courseId')||qs.get('khoa')||location.hash.slice(1)||'').toLowerCase();requested=aliases[requested]||requested;
 let course=COURSES.find(c=>c.id===requested)||COURSES.find(c=>c.id===state.last)||COURSES[0],currentLessonIndex=0,pdfURL=null,frameKey='',busy=false;
-let microbitEditor=null;
+let microbitEditor=null,localBench=null,pendingImport=null,labNeedsStart=true;
 const labs=window.STROBOT_LAB_PLATFORMS;
 function lesson(){return course.lessons[currentLessonIndex]}function record(){state[course.id]??={};const id=lesson().id;state[course.id][id]??={note:'',choice:null,done:false};return state[course.id][id]}
 function save(){try{state.last=course.id;localStorage.setItem(STORAGE,JSON.stringify(state));$('saveNotice').textContent='Đã lưu trên trình duyệt này.';return true}catch{$('saveNotice').textContent='Không lưu được: hãy tải nhật ký để tránh mất dữ liệu.';return false}}
@@ -255,9 +268,14 @@ function initPage(){
  $('courseSelect').innerHTML=COURSES.map(c=>'<option value="'+c.id+'">'+esc(c.name)+' · 6 bài</option>').join('');$('courseSelect').value=course.id;
  $('courseSelect').onchange=e=>{course=COURSES.find(c=>c.id===e.target.value);currentLessonIndex=0;state.last=course.id;save();updateURL();loadLesson(0)};
  let li=course.lessons.findIndex(l=>l.id===qs.get('lesson'));loadLesson(li>=0?li:0);
- $('journal').oninput=()=>{record().note=$('journal').value;record().done=false;save();renderLessons()};
- $('quizForm').onsubmit=e=>{e.preventDefault();const v=document.querySelector('[name=answer]:checked');if(!v){toast('Chọn một đáp án trước.');return}const r=record();r.choice=Number(v.value);r.done=false;save();$('quizFeedback').textContent=(r.choice===lesson().answer?'Đúng. ':'Chưa đúng. ')+lesson().why;renderLessons()};
- $('downloadPdf').onclick=downloadPdf;$('exportNotes').onclick=()=>downloadBlob(new Blob([JSON.stringify({course:course.id,records:state[course.id],exportedAt:new Date().toISOString()},null,2)],{type:'application/json'}),course.id+'-nhat-ky.json');
+ const evidenceFields=['prediction','observation','explanation','transfer','projectUrl'];
+ for(const id of evidenceFields)$(id).oninput=()=>{record()[id]=$(id).value;record().done=false;save();renderEvidenceStatus();renderLessons()};
+ $('practiceSource').onchange=()=>{record().source=$('practiceSource').value;record().done=false;save();renderEvidenceStatus();renderLessons()};
+ $('journal').oninput=()=>{record().note=$('journal').value;save()};
+ $('importNotes').onchange=previewPortfolioImport;
+ $('confirmImportNotes').onclick=()=>{if(!pendingImport||pendingImport.course!==course.id)return;Object.assign(state[course.id],pendingImport.records);pendingImport=null;save();$('portfolioImportDialog').close();loadLesson(currentLessonIndex);toast('Đã khôi phục hồ sơ khóa '+course.name+'.')};
+ $('quizForm').onsubmit=e=>{e.preventDefault();const v=document.querySelector('[name=answer]:checked');if(!v){toast('Chọn một đáp án trước.');return}const r=record();r.choice=Number(v.value);r.done=false;save();$('quizFeedback').textContent=(r.choice===lesson().answer?'Đúng. ':'Chưa đúng. ')+lesson().why;renderEvidenceStatus();renderLessons()};
+ $('downloadPdf').onclick=downloadPdf;$('exportNotes').onclick=()=>{try{const backup=window.STROBOT_PRACTICE_PORTFOLIO.createCourseBackup(course,state[course.id]||{});downloadBlob(new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}),course.id+'-nhat-ky.json')}catch(e){toast(e.message)}};
  $('copyLink').onclick=async()=>{try{await navigator.clipboard.writeText(new URL('course.learning.html?course='+course.id,location.href).href);toast('Đã sao chép đường dẫn khóa học.')}catch{toast('Đường dẫn khóa: course.learning.html?course='+course.id)}};
  document.addEventListener('keydown',e=>{if(e.key==='Escape')closePdfModal()});
  if(qs.get('view')==='lab'||qs.has('lab')) {
@@ -269,15 +287,15 @@ function initPage(){
 function updateURL(){try{const u=new URL(location.href);u.searchParams.set('course',course.id);u.searchParams.set('lesson',lesson().id);history.replaceState(null,'',u)}catch{}}
 function renderLessons(){const records=state[course.id]||{};let n=course.lessons.filter(l=>records[l.id]?.done).length;$('progressText').textContent=n+'/6 bài tự học';$('lessonList').innerHTML=course.lessons.map((l,i)=>'<button class="lesson-item '+(i===currentLessonIndex?'selected':'')+'" aria-current="'+(i===currentLessonIndex?'step':'false')+'" onclick="loadLesson('+i+')"><span class="lesson-number">'+(records[l.id]?.done?'✓':i+1)+'</span><span>'+esc(l.title)+'<small>50 phút · Lý thuyết + thực hành</small></span></button>').join('')}
 function loadLesson(i) {
- microbitEditor?.destroy();microbitEditor=null;
- currentLessonIndex=Number.isInteger(i)&&course.lessons[i]?i:0;
+ microbitEditor?.destroy();microbitEditor=null;localBench?.destroy();localBench=null;
+ currentLessonIndex=Number.isInteger(i)&&course.lessons[i]?i:0;labNeedsStart=true;
  const l=lesson(),r=record();
  $('courseName').textContent='Khóa học: '+course.name;
  $('lessonBadge').textContent=course.tag+' · BÀI '+(currentLessonIndex+1)+'/6';
  $('lessonTitle').textContent=l.title;
- $('lessonDesc').textContent=l.goal;
+ $('lessonDesc').textContent=l.goal;$('practiceTitle').textContent=l.title;
  $('videoTitle').textContent='Dự đoán → Thực hành → Kiểm chứng';
- window.STROBOT_LESSON_VIEW.renderTheory($('theoryContent'),l);
+ window.STROBOT_LESSON_VIEW.renderTheory($('theoryContent'),l);$('starterConceptTitle').textContent=l.concepts?.[0]?.title||'Ý chính';$('starterConcept').textContent=l.concepts?.[0]?.body||l.theory;
  $('practiceSteps').innerHTML=l.steps.map(s=>'<li>'+esc(s)+'</li>').join('');
  renderCodeExamples(l);
  $('prereq').textContent=l.prereq;
@@ -289,10 +307,14 @@ function loadLesson(i) {
  $('quizOptions').innerHTML=l.opts.map((o,j)=>'<label class="answer"><input name="answer" type="radio" value="'+j+'" '+(r.choice===j?'checked':'')+'> '+esc(o)+'</label>').join('');
  $('quizFeedback').textContent=r.choice===null?'':(r.choice===l.answer?'Đúng. ':'Chưa đúng. ')+l.why;
  $('journal').value=r.note||'';
+ for(const id of ['prediction','observation','explanation','transfer','projectUrl'])$(id).value=r[id]||'';
+ $('practiceSource').value=r.source||'';
+ renderEvidenceStatus();
+ $('theoryDetails').open=false;$('sampleCodeDetails').open=false;
  $('rubric').innerHTML=l.rubric.map(x=>'<li>'+esc(x[0])+': '+x[1]+' điểm</li>').join('');
  $('pdfFileNameLabel').textContent=course.id+'-giao-trinh-6-bai.pdf';
  $('pdfDocHeading').textContent=course.name;
- $('notice').textContent='';
+ $('notice').textContent='';$('saveNotice').textContent='';
  renderLabButtons();
  frameKey='';
  $('frameHost').replaceChildren();
@@ -333,6 +355,7 @@ function switchMainTab(t) {
  $('tabBtnTheory').setAttribute('aria-pressed',String(t==='theory'));
  $('tabBtnLab').setAttribute('aria-pressed',String(t==='lab'));
  if(t==='lab'&&!frameKey)selectLabPlatform(defaultLabKey());
+ if(t==='lab'&&labNeedsStart){$('labView').scrollTop=0;labNeedsStart=false}
 }
 function defaultLabKey() { return course.lab==='circuit'?'avr':course.lab; }
 function canEmbedPlatform(cfg) {
@@ -359,6 +382,7 @@ function selectLabPlatform(key) {
  external.setAttribute('aria-label','Mở '+cfg.name+' ở tab ngoài');
  $('labReloadBtn').hidden=!canEmbedPlatform(cfg);
  $('labFullscreenBtn').hidden=!canEmbedPlatform(cfg);
+ $('platformHelp').textContent=key==='local'?'Bàn mô hình hoạt động ngay trong web: thay đầu vào để kiểm tra quy tắc của bài. Mã Python/C++ được chạy ở editor tương ứng.':'Lưu hoặc tải dự án trong editor của nền tảng này. Hồ sơ bên dưới giữ dự đoán, kết quả và đường dẫn bạn nhập trên trình duyệt. Nếu khung tải chậm, dùng “Tải lại khung”, “Mở riêng” hoặc chọn bàn mô hình để tiếp tục kiểm tra kiến thức.';
  if(cfg.mode==='local')return;
  if(!canEmbedPlatform(cfg))return;
  const f=document.createElement('iframe');
@@ -366,7 +390,7 @@ function selectLabPlatform(key) {
  f.allow=cfg.controller==='microbit-python'?'fullscreen; clipboard-write; autoplay; microphone; usb':'fullscreen; clipboard-write';
  if(cfg.embedSupport!=='existing')f.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-pointer-lock');
  f.referrerPolicy='strict-origin-when-cross-origin';f.loading='lazy';f.allowFullscreen=true;f.id='practiceFrame';
- f.addEventListener('error',()=>{if(cfg.embedSupport!=='existing'){cfg.mode='blocked';renderLabButtons();selectLabPlatform(defaultLabKey());}});
+ f.addEventListener('error',()=>{if(frameKey===key)$('platformHelp').textContent='Khung lab tải chưa thành công. Dùng nút tải lại, mở riêng hoặc chọn bàn mô hình để tiếp tục.';});
  $('frameHost').append(f);
  if(cfg.controller==='microbit-python') {
   $('microbitEditorTools').hidden=false;
@@ -390,26 +414,41 @@ function fullscreenLabFrame() {
  else toast('Dùng nút mở lab ở tab riêng để xem trên cửa sổ rộng hơn.');
 }
 
-function markLessonComplete(){let r=record();if(r.choice!==lesson().answer){toast('Cần trả lời đúng câu kiểm tra trước.');return}if((r.note||'').trim().length<60){toast('Ghi nhật ký ít nhất 60 ký tự: đầu vào, kết quả và giải thích.');$('journal').focus();return}r.done=true;save();renderLessons();toast('Đã đánh dấu hoàn thành bài tự học. Bạn có thể tiếp tục bài kế tiếp.')}
+function markLessonComplete(){
+ const r=record(),check=window.STROBOT_PRACTICE_PORTFOLIO.assessPracticeRecord(r,{lesson:lesson(),course});
+ if(!check.ready){switchMainTab('lab');toast(check.missing.join(' · '));if(r.choice!==lesson().answer)$('quizForm').parentElement.open=true;return}
+ r.done=true;r.completionSource='self-report';r.completedAt=new Date().toISOString();const persisted=save();renderEvidenceStatus();renderLessons();toast(persisted?'Đã ghi nhận bạn tự xác nhận hoàn thành. Tiếp tục bài kế tiếp khi sẵn sàng.':'Đã ghi nhận trong phiên này. Hãy tải hồ sơ để giữ kết quả.');
+}
+function renderEvidenceStatus(){
+ const r=record(),e=r.modelEvidence;
+ $('modelEvidenceStatus').textContent=e?'Lần thao tác mô hình đã ghi gần nhất: '+e.summary:'Sau khi ghi dự đoán, chạy mô hình hoặc dùng editor/kit rồi ghi lại kết quả quan sát.';
+ $('completionStatus').textContent=r.done?'Bạn đã tự xác nhận hoàn thành bài này.':'Hoàn thành phần dự đoán, kết quả, giải thích, thử lại và câu kiểm tra để tự xác nhận.';
+}
+async function previewPortfolioImport(){
+ const file=$('importNotes').files[0];$('importNotes').value='';if(!file)return;
+ try{if(file.size>window.STROBOT_PRACTICE_PORTFOLIO.limits.backupBytes)throw Error('Tệp vượt dung lượng cho phép.');pendingImport=window.STROBOT_PRACTICE_PORTFOLIO.parseCourseBackup(await file.text(),course);$('portfolioImportPreview').textContent=course.name+' · '+Object.keys(pendingImport.records).length+' bài có trong tệp.';$('portfolioImportDialog').showModal()}catch(e){pendingImport=null;toast('Tệp chưa được khôi phục: '+e.message)}
+}
+function downloadSampleCode(){const lang=$('codeLangLabel').textContent,ext=/MicroPython|Python/i.test(lang)?'py':/JavaScript|MakeCode/i.test(lang)?'js':'ino';downloadBlob(new Blob([$ ('sampleCodeBox').textContent],{type:'text/plain;charset=utf-8'}),course.id+'-'+lesson().id+'-mau.'+ext)}
+function focusPracticePart(id){const target=$(id);target.tabIndex=-1;target.scrollIntoView({block:'start'});target.focus({preventScroll:true})}
+function prepareTutorQuestion(kind){
+ const r=record(),title=lesson().title;
+ const prompts={simple:'Giải thích bài “'+title+'” bằng lời dễ hiểu cho người mới, kèm một ví dụ nhỏ.',hint:'Tôi đang làm bài “'+title+'”. Hãy gợi ý bước tiếp theo và hỏi tôi một câu để tự suy nghĩ, chưa đưa toàn bộ lời giải.',result:'Tôi đang làm bài “'+title+'”.\nDự đoán: '+(r.prediction||'(tôi sẽ bổ sung)')+'\nQuan sát: '+(r.observation||'(tôi sẽ bổ sung)')+'\nGiải thích của tôi: '+(r.explanation||'(tôi sẽ bổ sung)')+'\nHãy giúp tôi đối chiếu lập luận và đề xuất một lần thử tiếp theo.'};
+ $('tutorQuestion').value=(prompts[kind]||prompts.simple).slice(0,3000);$('tutorQuestion').focus();
+}
 function downloadBlob(blob,name){let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),30000)}
 function pdfBlob(){const b=atob(PDFS[course.id]);return new Blob([Uint8Array.from(b,c=>c.charCodeAt(0))],{type:'application/pdf'})}
 function downloadPdf(){downloadBlob(pdfBlob(),course.id+'-giao-trinh-6-bai.pdf')}
 function openPdfModal(){if(pdfURL)URL.revokeObjectURL(pdfURL);pdfURL=URL.createObjectURL(pdfBlob());$('pdfDocHeading').textContent=course.name+' · Giáo trình 6 bài';$('pdfDocBody').innerHTML='<p>PDF có lý thuyết, ví dụ, mã mẫu, bài tập, đáp án và rubric. Nếu thiết bị không xem được PDF trong khung, dùng nút tải.</p><iframe title="Giáo trình PDF" style="width:100%;height:62vh;border:0" src="'+pdfURL+'"></iframe>';$('pdfModal').classList.remove('hidden');$('pdfModal').style.display='flex';$('pdfModal').setAttribute('aria-hidden','false');$('downloadPdf').focus()}
 function closePdfModal(){$('pdfModal').style.display='none';$('pdfModal').setAttribute('aria-hidden','true')}
 async function copySampleCode(){try{await navigator.clipboard.writeText($('sampleCodeBox').textContent);toast('Đã sao chép mã mẫu đang chọn.')}catch{toast('Hãy chọn mã và nhấn Ctrl+C để sao chép.')}}
-// Local numerical/logic benches: explicit models, never execute arbitrary user code.
-function renderLocal(){const id=course.id;$('localLab').innerHTML='<h3>Bàn thí nghiệm tương tác</h3><div id="benchControls"></div><canvas id="benchCanvas" width="600" height="260" style="max-width:100%;width:100%;background:#0b172a;border-radius:12px"></canvas><pre id="benchResult" role="status"></pre>';
- if(id==='arduino'){$('benchControls').innerHTML='<label>Điện trở Ω <input id="resistance" type="number" min="1" max="1000000" value="330"></label><label>Echo µs (0 = timeout) <input id="echo" type="number" min="0" max="30000" value="1000"></label><label>Chuỗi khoảng cách cm <input id="distances" value="30,19,22,24,26"></label><button onclick="runBench()">Tính & chạy cảnh báo</button>'}
- else if(id==='microbit'){$('benchControls').innerHTML='<label>Chuỗi sự kiện (A tăng, B đặt lại) <input id="events" value="A,A,B,A" maxlength="200"></label><label>Ánh sáng 0–255 <input id="light" type="range" min="0" max="255" value="49"></label><button onclick="runBench()">Chạy mô hình</button>'}
- else if(id==='lego-spike'){$('benchControls').innerHTML='<label>Chuỗi màu: red, blue, empty, other <input id="colors" value="red,red,empty,blue,empty" maxlength="300"></label><label>Bánh chủ động / bị động <input id="gearIn" type="number" min="1" value="12"><input id="gearOut" type="number" min="1" value="36"></label><button onclick="runBench()">Chạy phân loại & tỉ số</button>'}
- else{$('benchControls').innerHTML='<p>Lưới 5×4, đầu (0,0) hướng đông, đích (3,2). F tiến, R phải, L trái. Nhập chuỗi lệnh F/R/L cho bàn lưới này, tối đa 100 lệnh. Mã Python/VEX dùng trong nền tảng tương ứng.</p><label>Chương trình <input id="commands" value="F F F R F F" maxlength="300"></label><button onclick="runBench()">Chạy từ đầu</button>'}runBench()}
-function runBench(){const canvas=$('benchCanvas'),ctx=canvas.getContext('2d');ctx.clearRect(0,0,600,260);ctx.font='18px sans-serif';ctx.fillStyle='#9ee8db';let out='';try{
- if(course.id==='arduino'){let r=Number($('resistance').value),t=Number($('echo').value),ds=$('distances').value.split(',').map(Number);if(!(r>0&&r<=1e6&&t>=0&&t<=30000)||ds.length>50||ds.some(x=>!Number.isFinite(x)||x<0))throw Error('Nhập giá trị hợp lệ trong miền đã ghi.');let alarm=false,trace=ds.map(d=>{if(d<20)alarm=true;else if(d>25)alarm=false;return d+' cm → '+(alarm?'BẬT':'tắt')});out='Mô hình LED: Vs=5 V, Vf=2 V; I = '+(3000/r).toFixed(2)+' mA\nEcho: '+(t===0?'TIMEOUT — không phải 0 cm':(t*.034/2).toFixed(2)+' cm')+'\nHysteresis <20 bật, >25 tắt; đầu tắt:\n'+trace.join('\n');ctx.strokeStyle='#7bdcc9';ctx.lineWidth=4;ctx.strokeRect(90,70,400,100);ctx.fillStyle='#0b172a';ctx.fillRect(220,55,80,30);ctx.fillStyle='#7bdcc9';ctx.fillText(r+' Ω',220,78);ctx.beginPath();ctx.arc(380,170,18,0,7);ctx.fillStyle='#ffcc66';ctx.fill();ctx.fillText('5 V',35,125);ctx.fillText('Vf = 2 V',330,220)}
- else if(course.id==='microbit'){const ev=$('events').value.toUpperCase().split(/[ ,]+/).filter(Boolean);if(ev.length>100||ev.some(e=>!['A','B'].includes(e)))throw Error('Chỉ dùng A và B, tối đa 100 sự kiện.');let n=0,trace=ev.map(e=>{n=e==='A'?n+1:0;return e+' → '+n});const light=Number($('light').value);out=trace.join('\n')+'\nKết quả: '+n+'\nÁnh sáng tương đối '+light+' → '+(light<50?'TỐI':'SÁNG')+' (ngưỡng <50, không phải lux)';ctx.font='70px sans-serif';ctx.fillText(String(n),270,140);ctx.font='18px sans-serif';ctx.fillText('Trạng thái bộ đếm',210,205)}
- else if(course.id==='lego-spike'){let list=$('colors').value.toLowerCase().split(/[ ,]+/).filter(Boolean),a=Number($('gearIn').value),b=Number($('gearOut').value);if(list.length>100||list.some(v=>!['red','blue','empty','other'].includes(v))||!(a>0&&a<=1000&&b>0&&b<=1000))throw Error('Dùng red, blue, empty, other; số răng 1–1000.');let armed=true,A=0,B=0,U=0;out=list.map(v=>{if(v==='empty'){armed=true;return 'trống → sẵn sàng'}if(!armed)return v+' → chờ lấy vật ra';armed=false;if(v==='red')A++;else if(v==='blue')B++;else U++;return v+' → '+(v==='red'?'A':v==='blue'?'B':'kiểm tra')}).join('\n')+'\nA='+A+', B='+B+', kiểm tra='+U+'\nTốc độ ra/vào = '+(a/b).toFixed(3)+'; quay ngược chiều (cặp bánh ngoài).';[['#ef7777',A,70],['#70baff',B,240],['#ffcc66',U,410]].forEach(([color,n,x])=>{ctx.fillStyle=color;ctx.fillRect(x,90,110,100);ctx.fillStyle='#0b172a';ctx.fillText(String(n),x+45,145)})}
- else{const cmds=$('commands').value.toUpperCase().split(/[ ,\n]+/).filter(Boolean);if(cmds.length>100||cmds.some(c=>!['F','R','L'].includes(c)))throw Error('Chỉ F, R, L, tối đa 100 lệnh.');let x=0,y=0,d=0,trail=[[x,y]],error='';for(const c of cmds){if(c==='R')d=(d+1)%4;else if(c==='L')d=(d+3)%4;else{const nx=x+[1,0,-1,0][d],ny=y+[0,1,0,-1][d];if(nx<0||nx>4||ny<0||ny>3){error='Dừng: lệnh tiến vượt biên.';break}x=nx;y=ny;trail.push([x,y])}}for(let j=0;j<4;j++)for(let i=0;i<5;i++){ctx.fillStyle=i===3&&j===2?'#735f26':'#243c54';ctx.fillRect(120+i*65,10+j*55,60,50)}ctx.strokeStyle='#7bdcc9';ctx.beginPath();trail.forEach(([a,b],i)=>i?ctx.lineTo(150+a*65,35+b*55):ctx.moveTo(150+a*65,35+b*55));ctx.stroke();ctx.fillStyle='#fff';ctx.fillText(['→','↓','←','↑'][d],140+x*65,42+y*55);out='Vị trí ('+x+','+y+'), hướng '+['đông','nam','tây','bắc'][d]+'\n'+(error||(x===3&&y===2?'Đã tới đích.':'Tiếp tục điều chỉnh lệnh để đến đích (3,2). '))+'\n'+cmds.length+' lệnh trong chương trình; '+(trail.length-1)+' bước tiến đã thực hiện.'}
- $('benchResult').textContent=out;
- }catch(e){$('benchResult').textContent=e.message}}
+// Local models expose lesson-specific controls; student code runs in the editor.
+function renderLocal(){
+ localBench?.destroy();
+ localBench=window.STROBOT_MOUNT_LESSON_BENCH($('localLab'),{course,lesson:lesson(),onEvidence:e=>{
+  const r=record();r.modelEvidence={...e,prediction:r.prediction||''};r.done=false;
+  if(!r.source){r.source='local-model';$('practiceSource').value=r.source}save();renderEvidenceStatus();renderLessons();
+ }});
+}
 window.addEventListener('DOMContentLoaded',initPage);
 
 </script>

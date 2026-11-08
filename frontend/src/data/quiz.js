@@ -664,14 +664,14 @@ export const quizQuestions = [
     "id": "microbit:buttons:core",
     "courseId": "microbit",
     "lessonId": "buttons",
-    "q": "Đoạn trong sự kiện nút A chạy khi nào?",
+    "q": "Với if button_a.was_pressed(), lệnh hiện trái tim chạy khi nào?",
     "opts": [
       "Chỉ khi tắt nguồn",
-      "Khi xảy ra sự kiện bấm A",
+      "Khi lần đọc ghi nhận A đã được bấm kể từ lần đọc trước",
       "Mỗi giây mặc định"
     ],
     "ans": 1,
-    "exp": "Phần thân được gọi khi MakeCode phát sự kiện bấm nút A, không phải tự chạy mỗi giây hay khi tắt nguồn."
+    "exp": "was_pressed() trả True nếu A đã được bấm kể từ lần gọi trước (hoặc từ lúc khởi động), rồi xóa dấu đã bấm. Nhánh if hiện trái tim khi giá trị đó là True; nó không tự chạy mỗi giây."
   },
   {
     "id": "microbit:buttons:apply",
@@ -703,7 +703,7 @@ export const quizQuestions = [
     "id": "microbit:light:core",
     "courseId": "microbit",
     "lessonId": "light",
-    "q": "Giá trị lightLevel 0–255 được hiểu là…",
+    "q": "Giá trị display.read_light_level() từ 0 đến 255 được hiểu là…",
     "opts": [
       "Lux đã hiệu chuẩn",
       "Mức sáng tương đối",

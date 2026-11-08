@@ -12,15 +12,16 @@
       {
         "id": "led",
         "title": "Mạch kín và LED",
-        "goal": "Giải thích dòng điện trong mạch kín, tính điện trở hạn dòng và kiểm tra LED tích hợp an toàn.",
-        "theory": "1. Đường đi của dòng điện\nDòng điện chỉ duy trì khi có nguồn và đường dẫn kín qua tải trở về nguồn. Điện áp là chênh lệch điện thế giữa hai điểm; dòng điện là lượng điện tích dịch chuyển qua một tiết diện trong một giây. Không dùng hai khái niệm này thay cho nhau.\n\n2. LED cần hạn dòng\nLED có cực tính và đặc tuyến không tuyến tính. Khi ước lượng sơ bộ, coi điện áp rơi trên LED là Vf rồi dùng I = (Vs − Vf)/R cho điện trở nối tiếp: Vs, Vf tính bằng V; R bằng Ω; I thu được bằng A. Đây là mô hình gần đúng, không thay datasheet. Với mạch giả định 5 V, Vf = 2 V, điện trở quyết định dòng; không suy ra dòng chỉ từ màu LED.\n\n3. Từ mô phỏng tới Uno\nLED_BUILTIN dùng LED có sẵn trên bo mạch theo thiết kế của bo. LED rời phải có điện trở riêng và đúng cực. Ngắt nguồn trước khi đổi dây; không nối chân OUTPUT trực tiếp với GND hay 5 V. Dòng tối đa của chân là giới hạn kỹ thuật, không phải dòng thiết kế mục tiêu. Không dùng chân Uno để cấp trực tiếp cho động cơ.",
+        "goal": "So sánh hai điện trở để thấy dòng qua LED thay đổi, rồi giải thích bằng một câu vì sao LED rời cần điện trở.",
+        "theory": "1. Việc đầu tiên: thay một giá trị, đọc một kết quả\nLED là đèn nhỏ chỉ sáng đúng cách khi dòng đi theo chiều phù hợp. Bàn thí nghiệm cho sẵn một mạch có nguồn, LED và điện trở. Điện trở hạn chế dòng qua LED: với cùng nguồn và cùng mô hình LED, tăng điện trở làm dòng nhỏ đi. Trước hết hãy kiểm tra điều đó bằng hai lần chạy; công thức ở phần đọc thêm giúp tính lại kết quả.\n\n2. Đọc thêm · Đường đi của dòng điện\nDòng điện chỉ duy trì khi có nguồn và đường dẫn kín qua tải trở về nguồn. Điện áp là chênh lệch điện thế giữa hai điểm; dòng điện là lượng điện tích dịch chuyển qua một tiết diện trong một giây. Không dùng hai khái niệm này thay cho nhau.\n\n3. Đọc thêm · LED cần hạn dòng\nLED có cực tính và đặc tuyến không tuyến tính. Khi ước lượng sơ bộ, coi điện áp rơi trên LED là Vf rồi dùng I = (Vs − Vf)/R cho điện trở nối tiếp: Vs, Vf tính bằng V; R bằng Ω; I thu được bằng A. Đây là mô hình gần đúng, không thay datasheet. Với mạch giả định 5 V, Vf = 2 V, điện trở quyết định dòng; không suy ra dòng chỉ từ màu LED.\n\n4. Đọc thêm · Từ mô phỏng tới Uno\nLED_BUILTIN dùng LED có sẵn trên bo mạch theo thiết kế của bo. LED rời phải có điện trở riêng và đúng cực. Ngắt nguồn trước khi đổi dây; không nối chân OUTPUT trực tiếp với GND hay 5 V. Dòng tối đa của chân là giới hạn kỹ thuật, không phải dòng thiết kế mục tiêu. Không dùng chân Uno để cấp trực tiếp cho động cơ.",
         "example": "Với Vs = 5 V, Vf giả định = 2 V và R = 330 Ω: I = 3/330 A = 0,00909 A ≈ 9,1 mA. Công suất trên điện trở P = I²R ≈ 0,027 W. Nếu muốn I ≤ 10 mA trong đúng mô hình này thì R ≥ 300 Ω; 330 Ω là một giá trị thông dụng đáp ứng điều kiện. Phần cứng thật còn phải xét sai số và điện áp rơi thực.",
         "steps": [
-          "Vẽ mạch nguồn → điện trở → LED → đường về nguồn, đánh dấu cực tính.",
-          "Tính trước dòng cho 220 Ω, 330 Ω và 1 kΩ; ghi cả phép đổi A sang mA.",
-          "Dùng bàn thí nghiệm trong trang để đối chiếu kết quả; dùng CircuitJS khi cần khảo sát mạch.",
-          "Chạy ví dụ Blink bằng LED tích hợp trong editor Arduino phù hợp. Code mẫu này không yêu cầu LED rời.",
-          "Nếu có kit thật, nhờ giáo viên kiểm tra mạch đã ngắt nguồn trước khi cấp lại; ghi khác biệt giữa mô hình và quan sát."
+          "Dự đoán: khi đổi điện trở từ 330 Ω lên 1 000 Ω, dòng qua LED sẽ lớn hơn hay nhỏ hơn? Ghi lựa chọn trước khi mở kết quả.",
+          "Thao tác: vào Lab → Bàn thí nghiệm, nhập 330 Ω và chạy mô hình LED. Ghi giá trị dòng điện có đơn vị mA.",
+          "Quan sát: đổi riêng điện trở thành 1 000 Ω, chạy lại và ghi dòng điện. Giữ nguyên giả định nguồn 5 V và LED 2 V.",
+          "Giải thích: đối chiếu hai số với dự đoán, viết “Điện trở lớn hơn làm dòng ... khi giữ nguyên mô hình”. Dùng sơ đồ nguồn → điện trở → LED → đường về nguồn để chỉ đường kín.",
+          "Thử tiếp: nhập 220 Ω, dự đoán trước rồi đối chiếu. Nếu muốn chạy Blink, dùng editor Arduino ở Lab và LED tích hợp; bàn mô hình LED chỉ tính dòng theo đầu vào, không thực thi đoạn C++.",
+          "Mở rộng khi đã làm được: đọc công thức hạn dòng và tự tính lại một hàng. Nếu dùng LED rời thật, ngắt nguồn trước khi đổi dây và nhờ người hướng dẫn kiểm tra điện trở, cực tính."
         ],
         "code": "void setup() { pinMode(LED_BUILTIN, OUTPUT); }\nvoid loop() {\n  digitalWrite(LED_BUILTIN, HIGH); delay(500);\n  digitalWrite(LED_BUILTIN, LOW); delay(500);\n}",
         "q": "Giữ nguyên điện áp, tăng điện trở làm dòng điện…",
@@ -34,13 +35,13 @@
         "sim": "led",
         "lang": "Arduino C++ · LED tích hợp",
         "time": 50,
-        "exercise": "Tính dòng với 220 Ω, 330 Ω và 1 kΩ khi Vs = 5 V, Vf = 2 V. Chọn các phương án không quá 10 mA và giải thích vì sao không áp dụng kết luận này cho mọi LED.",
-        "solution": "I lần lượt xấp xỉ 13,64 mA; 9,09 mA; 3 mA. 330 Ω và 1 kΩ thỏa điều kiện ≤ 10 mA trong mô hình đã cho. Vf, dòng định mức, nguồn và sai số linh kiện có thể khác; phải xem datasheet trước khi lắp thật.",
+        "exercise": "Lập bảng cho 330 Ω, 1 000 Ω và 220 Ω: dự đoán dòng tăng/giảm, dòng mô hình hiển thị và một câu giải thích. Trong mô hình 5 V, LED 2 V, chọn giá trị có dòng không quá 10 mA. Phần thêm: tự tính một hàng bằng công thức trong mục đọc thêm.",
+        "solution": "Mô hình cho 330 Ω → khoảng 9,09 mA; 1 000 Ω → 3 mA; 220 Ω → khoảng 13,64 mA. Điện trở tăng làm dòng giảm trong cùng mô hình. 330 Ω và 1 000 Ω đáp ứng không quá 10 mA. Phép tính thêm: I = (5 − 2)/330 A ≈ 0,00909 A = 9,09 mA. Linh kiện thật có điện áp rơi, dòng định mức và sai số riêng.",
         "checks": [
-          "Phân biệt điện áp V (vôn), dòng điện I (ampe) và điện trở R (ôm).",
-          "Tính dòng qua LED với mô hình sụt áp cho trước và chọn điện trở hạn dòng.",
-          "Phân biệt LED tích hợp với LED rời phải mắc điện trở nối tiếp.",
-          "Có bảng dự đoán – quan sát – giải thích, gồm ca bình thường và ca biên hoặc lỗi."
+          "So sánh hai giá trị dòng hiển thị khi chỉ thay điện trở.",
+          "Chỉ được đường kín và nêu vai trò hạn dòng của điện trở cho LED rời.",
+          "Phân biệt kết quả mô hình tính dòng với việc chạy chương trình Blink.",
+          "Có bảng dự đoán, hai kết quả quan sát có đơn vị và một câu giải thích."
         ],
         "rubric": [
           [
@@ -60,24 +61,28 @@
             15
           ]
         ],
-        "prereq": "Biết xác định cực dương/âm và đọc đơn vị V, mA, Ω. Chưa cần có kit thật; thực hành mô phỏng trước.",
-        "labGuide": "Dùng bàn thí nghiệm để kiểm tra phép tính I = (5 − 2)/R. CircuitJS giúp quan sát mạch; editor Arduino chạy code LED_BUILTIN. Không coi hình minh họa sáng/tắt là kiểm chứng an toàn điện của mạch thật.",
+        "prereq": "Chưa cần biết lập trình hoặc công thức điện. Chuẩn bị giấy ghi hai cột “dự đoán” và “quan sát”; Ω là đơn vị điện trở, mA là đơn vị dòng điện. Bắt đầu bằng mô hình trong Lab, chưa cần kit thật.",
+        "labGuide": "Bắt đầu ở Bàn thí nghiệm của bài LED: dự đoán, nhập lần lượt 330 Ω và 1 000 Ω, chạy rồi ghi số mA. Mô hình dùng I = (5 − 2)/R, chỉ tính từ các giá trị đầu vào. Muốn thử chương trình Blink, chuyển sang editor Arduino phù hợp trong Lab, dán mẫu C++ và chạy LED_BUILTIN: sáng 500 ms, tắt 500 ms. CircuitJS dùng để khảo sát mạch; LED tích hợp và LED rời có cách mắc khác nhau.",
         "objectives": [
-          "Phân biệt điện áp V (vôn), dòng điện I (ampe) và điện trở R (ôm).",
-          "Tính dòng qua LED với mô hình sụt áp cho trước và chọn điện trở hạn dòng.",
-          "Phân biệt LED tích hợp với LED rời phải mắc điện trở nối tiếp."
+          "So sánh hai giá trị dòng hiển thị khi chỉ thay điện trở.",
+          "Chỉ được đường kín và nêu vai trò hạn dòng của điện trở cho LED rời.",
+          "Phân biệt kết quả mô hình tính dòng với việc chạy chương trình Blink."
         ],
         "concepts": [
           {
-            "title": "Đường đi của dòng điện",
+            "title": "Việc đầu tiên: thay một giá trị, đọc một kết quả",
+            "body": "LED là đèn nhỏ chỉ sáng đúng cách khi dòng đi theo chiều phù hợp. Bàn thí nghiệm cho sẵn một mạch có nguồn, LED và điện trở. Điện trở hạn chế dòng qua LED: với cùng nguồn và cùng mô hình LED, tăng điện trở làm dòng nhỏ đi. Trước hết hãy kiểm tra điều đó bằng hai lần chạy; công thức ở phần đọc thêm giúp tính lại kết quả."
+          },
+          {
+            "title": "Đọc thêm · Đường đi của dòng điện",
             "body": "Dòng điện chỉ duy trì khi có nguồn và đường dẫn kín qua tải trở về nguồn. Điện áp là chênh lệch điện thế giữa hai điểm; dòng điện là lượng điện tích dịch chuyển qua một tiết diện trong một giây. Không dùng hai khái niệm này thay cho nhau."
           },
           {
-            "title": "LED cần hạn dòng",
+            "title": "Đọc thêm · LED cần hạn dòng",
             "body": "LED có cực tính và đặc tuyến không tuyến tính. Khi ước lượng sơ bộ, coi điện áp rơi trên LED là Vf rồi dùng I = (Vs − Vf)/R cho điện trở nối tiếp: Vs, Vf tính bằng V; R bằng Ω; I thu được bằng A. Đây là mô hình gần đúng, không thay datasheet. Với mạch giả định 5 V, Vf = 2 V, điện trở quyết định dòng; không suy ra dòng chỉ từ màu LED."
           },
           {
-            "title": "Từ mô phỏng tới Uno",
+            "title": "Đọc thêm · Từ mô phỏng tới Uno",
             "body": "LED_BUILTIN dùng LED có sẵn trên bo mạch theo thiết kế của bo. LED rời phải có điện trở riêng và đúng cực. Ngắt nguồn trước khi đổi dây; không nối chân OUTPUT trực tiếp với GND hay 5 V. Dòng tối đa của chân là giới hạn kỹ thuật, không phải dòng thiết kế mục tiêu. Không dùng chân Uno để cấp trực tiếp cho động cơ."
           }
         ],
@@ -86,8 +91,8 @@
           "0,009 A là 9 mA, không phải 0,009 mA; LED tích hợp không chứng minh mọi LED rời đều có điện trở."
         ],
         "selfCheck": [
-          "Vì sao R = 1 kΩ cho dòng nhỏ hơn R = 330 Ω khi giữ nguyên mô hình?",
-          "Nếu đổi sang LED có Vf khác, đại lượng nào trong phép tính phải thay?"
+          "Khi đổi 330 Ω thành 1 000 Ω, em dự đoán gì và mô hình hiển thị gì?",
+          "Vì sao không dùng kết quả của LED tích hợp để bỏ điện trở của LED rời?"
         ],
         "sources": [
           {
@@ -571,14 +576,16 @@
       {
         "id": "drive",
         "title": "Cấu trúc và truyền động",
-        "goal": "Mô tả đường đi của thông tin từ chương trình trên Brain đến động cơ và chuyển động robot.",
-        "theory": "Ba phần của hệ điều khiển: Brain lưu và thực thi chương trình. Cảm biến biến đại lượng như khoảng cách hoặc góc thành dữ liệu đầu vào. Động cơ nhận lệnh để tạo chuyển động; bánh xe và khung truyền chuyển động ra môi trường. Chương trình không tự biết robot đã đi bao xa nếu không có số đo hoặc mô hình phù hợp.\n\nRobot hai bánh điều khiển vi sai: Xét vận tốc tiếp tuyến của bánh trái vL và bánh phải vR, cùng quy ước dương là đẩy robot tiến. Trong mô hình lăn không trượt, vận tốc tâm v = (vL + vR)/2. Khi vL = vR, robot lý tưởng đi thẳng. Hai động cơ lắp đối xứng có thể cần đảo chiều cấu hình để cùng tạo chuyển động tiến; không suy chiều tiến chỉ từ dấu lệnh motor.\n\nLưới và phần cứng là hai mô hình khác nhau: Trong bàn thí nghiệm, x tăng sang phải, y tăng xuống, hướng đầu là đông; một lệnh tiến đổi đúng một ô. Ô lưới không tự tương ứng với 100 mm trên VEX IQ. Với robot thật phải cấu hình Drivetrain theo cổng, bánh xe và cơ cấu thực tế, rồi đo để hiệu chuẩn. VEXcode IQ dành cho IQ; GearsBot chỉ bổ trợ thuật toán trên robot của chính nền tảng đó.",
+        "goal": "Dự đoán và điều khiển robot tiến ba ô, rồi nối được chương trình → bộ điều khiển → động cơ → bánh xe.",
+        "theory": "1. Việc đầu tiên: robot làm theo thứ tự\nMột chương trình là danh sách yêu cầu robot thực hiện. Trên bàn lưới, F đưa robot tiến một ô theo hướng đang nhìn; R và L đổi hướng tại chỗ. Bắt đầu bằng F,F,F để dễ theo dõi. Trong robot VEX IQ, Brain là bộ điều khiển chạy chương trình, còn động cơ và bánh xe tạo chuyển động. Python/GearsBot là hoạt động mở rộng sau khi đã hiểu chuỗi lệnh.\n\n2. Đọc thêm · Ba phần của hệ điều khiển\nBrain lưu và thực thi chương trình. Cảm biến biến đại lượng như khoảng cách hoặc góc thành dữ liệu đầu vào. Động cơ nhận lệnh để tạo chuyển động; bánh xe và khung truyền chuyển động ra môi trường. Chương trình không tự biết robot đã đi bao xa nếu không có số đo hoặc mô hình phù hợp.\n\n3. Đọc thêm · Robot hai bánh điều khiển vi sai\nXét vận tốc tiếp tuyến của bánh trái vL và bánh phải vR, cùng quy ước dương là đẩy robot tiến. Trong mô hình lăn không trượt, vận tốc tâm v = (vL + vR)/2. Khi vL = vR, robot lý tưởng đi thẳng. Hai động cơ lắp đối xứng có thể cần đảo chiều cấu hình để cùng tạo chuyển động tiến; không suy chiều tiến chỉ từ dấu lệnh motor.\n\n4. Đọc thêm · Lưới và phần cứng là hai mô hình khác nhau\nTrong bàn thí nghiệm, x tăng sang phải, y tăng xuống, hướng đầu là đông; một lệnh tiến đổi đúng một ô. Ô lưới không tự tương ứng với 100 mm trên VEX IQ. Với robot thật phải cấu hình Drivetrain theo cổng, bánh xe và cơ cấu thực tế, rồi đo để hiệu chuẩn. VEXcode IQ dành cho IQ; GearsBot chỉ bổ trợ thuật toán trên robot của chính nền tảng đó.",
         "example": "Nếu cả hai bánh có vận tốc tiếp tuyến 100 mm/s trong 2 s, mô hình lý tưởng cho s = v × t = 200 mm. Trên lưới, từ (0,0) hướng đông, ba lệnh tiến cho (3,0); không được lấy kết quả này làm bằng chứng robot thật đã đi 300 mm.",
         "steps": [
-          "Vẽ sơ đồ Brain → lệnh động cơ → bánh xe; thêm đường cảm biến → Brain. Ghi mỗi phần là đầu vào, xử lý hay đầu ra.",
-          "Trong lưới nội bộ, đặt lại robot rồi chạy F,F,F. Trước khi chạy, dự đoán vị trí và hướng cuối; đối chiếu sau từng lệnh.",
-          "Trong nền tảng robot đã chọn, kiểm tra hai chiều motor ở tốc độ thấp; chỉ cho robot chạy thẳng khi hai bên đều tạo chiều tiến.",
-          "Nếu có VEX IQ thật: tắt nguồn khi kiểm tra cơ khí/cổng, đặt robot ở vùng trống, chạy 200 mm chậm ba lượt và đo độ lệch. Luôn có cách dừng thủ công."
+          "Dự đoán: vẽ ba ô trước mặt robot, viết đích của F,F,F từ vị trí (0,0), đầu quay sang phải (hướng đông). Quy ước x tăng sang phải, y tăng xuống.",
+          "Thao tác: vào Lab → Bàn thí nghiệm, đặt lại robot và chạy F,F,F. Đây là chuỗi lệnh của mô hình lưới.",
+          "Quan sát: ghi vị trí và hướng cuối; kiểm tra robot đã tiến ba ô nhưng vẫn nhìn cùng hướng. So sánh với hình vẽ trước khi chạy.",
+          "Giải thích: vẽ chương trình → Brain (bộ điều khiển) → động cơ → bánh xe; thêm cảm biến → Brain. Chỉ phần nào ra lệnh và phần nào tạo chuyển động.",
+          "Thử tiếp: dự đoán F,F,F,R,F,F, đặt lại rồi chạy. Ghi riêng thời điểm rẽ: vị trí giữ nguyên, hướng thay đổi.",
+          "Mở rộng: nếu dùng mã Python dài trong Lab, chọn đúng robot GearsBot theo hướng dẫn và thử chạy thẳng 200 mm. Ghi kết quả ở bảng riêng; số ô trên lưới chưa đo quãng đường của robot VEX IQ thật."
         ],
         "code": "from math import pi, sqrt\nfrom time import time, sleep\nfrom ev3dev2.motor import MoveTank, OUTPUT_A, OUTPUT_B\nfrom ev3dev2.sensor import INPUT_4\nfrom ev3dev2.sensor.virtual import GPSSensor\n\ntank = MoveTank(OUTPUT_A, OUTPUT_B)\ngps = GPSSensor(INPUT_4)\nWHEEL_DIAMETER_MM = 56.0\nTRACK_WIDTH_MM = 152.0\nSPEED = 25\n\ndef move_wheels(left_speed, right_speed, degrees, timeout_s=8.0):\n    start_left = tank.left_motor.position\n    start_right = tank.right_motor.position\n    deadline = time() + timeout_s\n    tank.on_for_degrees(left_speed, right_speed, degrees,\n                        brake=True, block=False)\n    try:\n        sleep(0.05)\n        while time() < deadline:\n            if tank.left_motor.is_stalled or tank.right_motor.is_stalled:\n                raise RuntimeError(\"Motor stalled; check the course\")\n            if not (tank.left_motor.is_running or tank.right_motor.is_running):\n                left_done = abs(tank.left_motor.position - start_left)\n                right_done = abs(tank.right_motor.position - start_right)\n                if min(left_done, right_done) >= degrees - 5:\n                    return\n            sleep(0.02)\n        raise RuntimeError(\"Motion timeout; reset before retrying\")\n    finally:\n        tank.off(brake=True)\n\ndef forward(distance_mm):\n    degrees = 360.0 * distance_mm / (pi * WHEEL_DIAMETER_MM)\n    move_wheels(SPEED, SPEED, degrees)\n\ndef turn_right(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(SPEED, -SPEED, degrees)\n\ndef turn_left(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(-SPEED, SPEED, degrees)\n\nstart = gps.position\ntry:\n    forward(200)\n    end = gps.position\n    displacement_mm = 10 * sqrt((end[0] - start[0]) ** 2\n                                + (end[1] - start[1]) ** 2)\n    print(\"Requested distance (mm):\", 200)\n    print(\"GPS displacement (mm):\", round(displacement_mm, 1))\n    print(\"Wheel angles (deg):\", tank.left_motor.position,\n          tank.right_motor.position)\nfinally:\n    tank.off(brake=True)\n",
         "q": "Bộ phận nào thực thi chương trình điều khiển?",
@@ -592,12 +599,13 @@
         "sim": "grid",
         "lang": "Python · GearsBot (ev3dev2)",
         "time": 50,
-        "exercise": "Trên lưới, robot từ (0,0) hướng đông: tiến 3 ô, rẽ phải, tiến 2 ô. Ghi đủ trạng thái (x,y,hướng) sau mỗi nhóm lệnh. Giải thích vì sao kết quả lưới không xác nhận quãng đường thật của VEX IQ.",
-        "solution": "Sau ba ô: (3,0,đông). Rẽ phải: (3,0,nam). Tiến hai ô: (3,2,nam). Lệnh rẽ tại chỗ chỉ đổi hướng. Muốn đổi ô thành mm phải định nghĩa tỷ lệ và kiểm tra kích thước/hiệu chuẩn của robot thật.",
+        "exercise": "Từ (0,0,đông), dự đoán đích của F,F,F,R,F,F bằng một hình mũi tên hoặc bảng (x,y,hướng). Đặt lại, chạy chuỗi trên bàn lưới và đối chiếu sau ba lệnh tiến, sau lần rẽ và tại đích. Viết một câu giải thích vai trò của Brain; phần thêm: nêu điều phải đo trước khi đổi ô thành mm.",
+        "solution": "F,F,F → (3,0,đông); R → (3,0,nam); F,F → (3,2,nam). Brain thực thi chương trình và gửi lệnh đến động cơ; bánh xe truyền chuyển động ra mặt sân. Muốn đổi ô thành mm phải định nghĩa tỷ lệ và đo/hiệu chuẩn robot; lưới không tự xác nhận quãng đường thật.",
         "checks": [
-          "Gọi đúng vai trò của Brain, một cảm biến và một động cơ trong sơ đồ điều khiển.",
-          "Tự tính được đích (3,2,nam) với quy ước x sang phải, y xuống dưới.",
-          "Ghi được ít nhất một nguyên nhân robot thật lệch đường dù hai lệnh tốc độ giống nhau."
+          "Dự đoán rồi kiểm tra đích của một chuỗi lệnh tiến ngắn trên lưới.",
+          "Chỉ đúng vai trò của Brain, động cơ, bánh xe và cảm biến trong sơ đồ.",
+          "Ghi được vị trí, hướng và phân biệt ô lưới với khoảng cách mm.",
+          "Có dự đoán trước khi chạy và đối chiếu kết quả ở từng mốc."
         ],
         "rubric": [
           [
@@ -617,24 +625,28 @@
             15
           ]
         ],
-        "prereq": "Biết chiều trái/phải theo robot, thao tác chạy–dừng và đọc đơn vị mm, cm. Chưa cần có robot thật để làm bài trên lưới.",
+        "prereq": "Chưa cần có robot hoặc biết Python. Biết trái/phải theo hướng robot đang nhìn. Trên bàn lưới, F nghĩa là tiến một ô, R rẽ phải tại chỗ, L rẽ trái tại chỗ; dùng Reset để về trạng thái đầu.",
         "labGuide": "Trong GearsBot, chọn robot Single Sensor Line Follower (singleFollower), mở Python và dán toàn bộ chương trình. Robot dùng bánh trái A, bánh phải B; đường kính bánh 56 mm, khoảng cách hai bánh 152 mm. Chọn sân rộng, phẳng; Reset trước mỗi lượt rồi Run. Chương trình chạy thẳng 200 mm ở tốc độ 25%, ghi độ dời GPS và góc motor. GPS của GearsBot trả về cm nên code nhân 10 để đổi sang mm. So sánh yêu cầu với kết quả đo, lặp ba lượt để quan sát sai số; đây là phép thử trên robot GearsBot.",
         "objectives": [
-          "Mô tả đường đi của thông tin từ chương trình trên Brain đến động cơ và chuyển động robot.",
-          "Phân biệt bộ điều khiển, cơ cấu chấp hành và cảm biến; cấu hình đúng cổng và chiều động cơ.",
-          "Dự đoán vị trí sau một chuỗi lệnh tiến và kiểm tra sai lệch khi chuyển sang robot thật."
+          "Dự đoán rồi kiểm tra đích của một chuỗi lệnh tiến ngắn trên lưới.",
+          "Chỉ đúng vai trò của Brain, động cơ, bánh xe và cảm biến trong sơ đồ.",
+          "Ghi được vị trí, hướng và phân biệt ô lưới với khoảng cách mm."
         ],
         "concepts": [
           {
-            "title": "Ba phần của hệ điều khiển",
+            "title": "Việc đầu tiên: robot làm theo thứ tự",
+            "body": "Một chương trình là danh sách yêu cầu robot thực hiện. Trên bàn lưới, F đưa robot tiến một ô theo hướng đang nhìn; R và L đổi hướng tại chỗ. Bắt đầu bằng F,F,F để dễ theo dõi. Trong robot VEX IQ, Brain là bộ điều khiển chạy chương trình, còn động cơ và bánh xe tạo chuyển động. Python/GearsBot là hoạt động mở rộng sau khi đã hiểu chuỗi lệnh."
+          },
+          {
+            "title": "Đọc thêm · Ba phần của hệ điều khiển",
             "body": "Brain lưu và thực thi chương trình. Cảm biến biến đại lượng như khoảng cách hoặc góc thành dữ liệu đầu vào. Động cơ nhận lệnh để tạo chuyển động; bánh xe và khung truyền chuyển động ra môi trường. Chương trình không tự biết robot đã đi bao xa nếu không có số đo hoặc mô hình phù hợp."
           },
           {
-            "title": "Robot hai bánh điều khiển vi sai",
+            "title": "Đọc thêm · Robot hai bánh điều khiển vi sai",
             "body": "Xét vận tốc tiếp tuyến của bánh trái vL và bánh phải vR, cùng quy ước dương là đẩy robot tiến. Trong mô hình lăn không trượt, vận tốc tâm v = (vL + vR)/2. Khi vL = vR, robot lý tưởng đi thẳng. Hai động cơ lắp đối xứng có thể cần đảo chiều cấu hình để cùng tạo chuyển động tiến; không suy chiều tiến chỉ từ dấu lệnh motor."
           },
           {
-            "title": "Lưới và phần cứng là hai mô hình khác nhau",
+            "title": "Đọc thêm · Lưới và phần cứng là hai mô hình khác nhau",
             "body": "Trong bàn thí nghiệm, x tăng sang phải, y tăng xuống, hướng đầu là đông; một lệnh tiến đổi đúng một ô. Ô lưới không tự tương ứng với 100 mm trên VEX IQ. Với robot thật phải cấu hình Drivetrain theo cổng, bánh xe và cơ cấu thực tế, rồi đo để hiệu chuẩn. VEXcode IQ dành cho IQ; GearsBot chỉ bổ trợ thuật toán trên robot của chính nền tảng đó."
           }
         ],
@@ -643,9 +655,8 @@
           "Một chuỗi lệnh đúng trong mô hình lưới chưa chứng minh robot thật đi đúng quãng đường hoặc không trượt."
         ],
         "selfCheck": [
-          "Gọi đúng vai trò của Brain, một cảm biến và một động cơ trong sơ đồ điều khiển.",
-          "Tự tính được đích (3,2,nam) với quy ước x sang phải, y xuống dưới.",
-          "Ghi được ít nhất một nguyên nhân robot thật lệch đường dù hai lệnh tốc độ giống nhau."
+          "Sau F,F,F, vị trí nào đổi và hướng có đổi không?",
+          "Khi robot quay phải tại chỗ, vì sao chưa cộng thêm một ô đã đi?"
         ],
         "sources": [
           {
@@ -1181,15 +1192,16 @@
       {
         "id": "matrix",
         "title": "Vẽ ý tưởng trên 25 LED",
-        "goal": "Đọc hệ tọa độ ma trận 5×5 và tạo hình bằng các điểm LED có chủ đích.",
-        "theory": "1. Chỉ số không phải số lượng\nMa trận có 5 cột và 5 hàng, tổng cộng 25 LED. Trong MakeCode, x tăng từ trái sang phải, y tăng từ trên xuống dưới. Gốc (0,0) ở góc trên trái; tọa độ hợp lệ từ 0 đến 4. Vì đếm chỉ số từ 0 nên cột thứ năm là x = 4, không phải x = 5.\n\n2. Lệnh vẽ thay đổi trạng thái\nled.plot(x,y) bật một điểm; led.unplot(x,y) tắt điểm; basic.clearScreen() xóa toàn bộ. Bật thêm một điểm không tự xóa các điểm trước. Để chuyển hai hình rõ ràng, xóa hoặc chủ động cập nhật các điểm cần đổi. Hình hiển thị là một trạng thái của 25 ô, không phải một ảnh tự có độ phân giải tùy ý.\n\n3. Một ý tưởng, nhiều cách biểu diễn\nCó thể vẽ bằng các lệnh tọa độ hoặc một khối hình 5×5. Hai chương trình khác cách viết có thể tạo cùng một hình. Bài này dùng MakeCode JavaScript; Python trong MakeCode và MicroPython ở editor micro:bit là những môi trường khác, không dán nguyên API led.plot sang MicroPython.",
+        "goal": "Chạy hình chữ thập trên 25 LED rồi tự đổi thành chữ L bằng tọa độ trong micro:bit Python Editor.",
+        "theory": "1. Việc đầu tiên: vẽ bằng một danh sách điểm\nmicro:bit có 25 đèn LED xếp thành 5 hàng và 5 cột. Một cặp (x,y) chọn một đèn: x là cột từ trái sang phải, y là hàng từ trên xuống. Gốc (0,0) ở góc trên trái; mỗi chỉ số nhận 0,1,2,3,4. Hãy vẽ hình trên giấy trước rồi đối chiếu hình mô phỏng.\n\n2. Lệnh MicroPython thay đổi màn hình\ndisplay.clear() tắt toàn bộ LED. display.set_pixel(x,y,b) đặt độ sáng b của một điểm từ 0 (tắt) đến 9 (sáng nhất). Bật thêm một điểm không tự xóa điểm cũ. Danh sách points trong mẫu chứa các cặp tọa độ; vòng for x, y in points lần lượt lấy mỗi cặp để vẽ. Ở lượt đầu chỉ cần đổi danh sách điểm, giữ nguyên khung chương trình.\n\n3. Đọc thêm · Một hình, nhiều cách viết\nCó thể tạo hình bằng nhiều lệnh display.set_pixel hoặc bằng Image của MicroPython. MakeCode JavaScript là lựa chọn khác: led.plot và basic.clearScreen thuộc MakeCode, không dùng trực tiếp trong micro:bit Python Editor. Python của MakeCode và MicroPython cũng là hai môi trường khác nhau.",
         "example": "Chữ thập 5 điểm gồm (2,2), (1,2), (3,2), (2,1), (2,3). Điểm giữa chỉ tính một lần. Chữ L gồm cột x=0 và hàng y=4: 5 + 5 − 1 = 9 LED vì (0,4) nằm trong cả hai nhóm.",
         "steps": [
-          "Vẽ lưới giấy 5×5, ghi nhãn x,y từ 0 đến 4 và đánh dấu gốc.",
-          "Dự đoán 5 điểm của chữ thập; bật đúng các điểm trong bàn thí nghiệm.",
-          "Mở MakeCode, tạo dự án và chuyển sang JavaScript trước khi dán code.",
-          "Thêm basic.clearScreen() rồi vẽ chữ L; đếm số điểm không trùng.",
-          "Đối chiếu hình và bảng tọa độ; lưu link dự án hoặc ảnh kèm giải thích."
+          "Dự đoán: vẽ lưới 5×5, ghi x từ trái sang phải và y từ trên xuống, đều từ 0 đến 4. Đánh dấu năm điểm (2,2),(1,2),(3,2),(2,1),(2,3) rồi đoán hình sẽ hiện.",
+          "Thao tác: vào Lab → micro:bit Python Editor, dùng mã MicroPython của bài và chọn Run. Giữ nguyên mã ở lượt đầu để thấy một kết quả hoàn chỉnh.",
+          "Quan sát: so hình trên micro:bit mô phỏng với giấy; đếm năm LED sáng và chỉ điểm giữa (2,2). Nếu khác, kiểm tra lại thứ tự x,y.",
+          "Thay một việc: thay danh sách points bằng các điểm của chữ L ở bài tập. Giữ display.clear(), Run lại và đối chiếu số LED; chưa cần tự viết vòng for.",
+          "Giải thích: viết một câu về tác dụng của display.clear() và một câu vì sao chỉ số cuối là 4. Lưu mã hoặc ảnh cùng bảng dự đoán–quan sát.",
+          "Mở rộng: thử độ sáng 3 thay cho 9 trong display.set_pixel. Biến thể MakeCode JavaScript chỉ dùng trong MakeCode, có API riêng."
         ],
         "code": "from microbit import *\n\ndisplay.clear()\npoints = [(2, 2), (1, 2), (3, 2), (2, 1), (2, 3)]\nfor x, y in points:\n    display.set_pixel(x, y, 9)  # brightness: 0..9, coordinates: 0..4\n",
         "q": "Tọa độ tâm ma trận 5 × 5 là…",
@@ -1203,8 +1215,8 @@
         "sim": "matrix",
         "lang": "MicroPython · micro:bit Python Editor",
         "time": 50,
-        "exercise": "Viết danh sách tọa độ tạo chữ L bằng cột trái và hàng dưới. Đếm LED không trùng và giải thích vì sao (5,0) nằm ngoài ma trận.",
-        "solution": "Các điểm: (0,0),(0,1),(0,2),(0,3),(0,4),(1,4),(2,4),(3,4),(4,4): 9 điểm. x và y chỉ nhận chỉ số hợp lệ 0..4; x = 5 nằm ngoài cột cuối.",
+        "exercise": "Vẽ chữ L gồm cột trái và hàng dưới trên giấy; dự đoán số LED sáng. Thay danh sách points trong mã Python bằng các tọa độ đó, Run rồi ghi số đếm quan sát và giải thích điểm góc chỉ tính một lần. Phần thêm: giải thích vì sao (5,0) nằm ngoài ma trận.",
+        "solution": "points = [(0,0),(0,1),(0,2),(0,3),(0,4),(1,4),(2,4),(3,4),(4,4)]. Có 9 LED: hai đoạn 5 điểm dùng chung góc (0,4), nên 5 + 5 − 1 = 9. Chỉ số hợp lệ là 0..4 nên x=5 ở ngoài ma trận. Giữ display.clear() trước khi vẽ để xóa hình cũ.",
         "checks": [
           "Xác định đúng gốc tọa độ và phạm vi x,y = 0..4.",
           "Chuyển một hình đơn giản thành danh sách điểm không trùng.",
@@ -1229,8 +1241,8 @@
             15
           ]
         ],
-        "prereq": "Biết đếm từ 0, nhận biết trái/phải và trên/dưới; chưa cần có micro:bit thật.",
-        "labGuide": "Mở micro:bit Python Editor trong khung lab. Mã MicroPython của bài được nạp sẵn; chọn Run để quan sát 25 LED, rồi sửa tọa độ và chạy lại. display.set_pixel dùng tọa độ 0–4 và độ sáng 0–9. Biến thể MakeCode JavaScript dùng trong MakeCode.",
+        "prereq": "Chưa cần học lập trình trước. Biết đếm 0,1,2,3,4 và nhận biết trái/phải, trên/dưới. Chuẩn bị một lưới giấy 5×5; chưa cần micro:bit thật.",
+        "labGuide": "Mở micro:bit Python Editor trong Lab, kiểm tra mã bắt đầu bằng from microbit import * rồi chọn Run. Quan sát chữ thập 5 điểm; thay danh sách points để vẽ chữ L rồi Run lại. display.set_pixel(x,y,9) bật một điểm với tọa độ 0..4; 9 là độ sáng lớn nhất trên thang 0..9. Bàn ma trận trong trang là mô hình theo thao tác, không chạy mã Python. Biến thể MakeCode JavaScript chỉ chạy trong MakeCode.",
         "objectives": [
           "Xác định đúng gốc tọa độ và phạm vi x,y = 0..4.",
           "Chuyển một hình đơn giản thành danh sách điểm không trùng.",
@@ -1238,16 +1250,16 @@
         ],
         "concepts": [
           {
-            "title": "Chỉ số không phải số lượng",
-            "body": "Ma trận có 5 cột và 5 hàng, tổng cộng 25 LED. Trong MakeCode, x tăng từ trái sang phải, y tăng từ trên xuống dưới. Gốc (0,0) ở góc trên trái; tọa độ hợp lệ từ 0 đến 4. Vì đếm chỉ số từ 0 nên cột thứ năm là x = 4, không phải x = 5."
+            "title": "Việc đầu tiên: vẽ bằng một danh sách điểm",
+            "body": "micro:bit có 25 đèn LED xếp thành 5 hàng và 5 cột. Một cặp (x,y) chọn một đèn: x là cột từ trái sang phải, y là hàng từ trên xuống. Gốc (0,0) ở góc trên trái; mỗi chỉ số nhận 0,1,2,3,4. Hãy vẽ hình trên giấy trước rồi đối chiếu hình mô phỏng."
           },
           {
-            "title": "Lệnh vẽ thay đổi trạng thái",
-            "body": "led.plot(x,y) bật một điểm; led.unplot(x,y) tắt điểm; basic.clearScreen() xóa toàn bộ. Bật thêm một điểm không tự xóa các điểm trước. Để chuyển hai hình rõ ràng, xóa hoặc chủ động cập nhật các điểm cần đổi. Hình hiển thị là một trạng thái của 25 ô, không phải một ảnh tự có độ phân giải tùy ý."
+            "title": "Lệnh MicroPython thay đổi màn hình",
+            "body": "display.clear() tắt toàn bộ LED. display.set_pixel(x,y,b) đặt độ sáng b của một điểm từ 0 (tắt) đến 9 (sáng nhất). Bật thêm một điểm không tự xóa điểm cũ. Danh sách points trong mẫu chứa các cặp tọa độ; vòng for x, y in points lần lượt lấy mỗi cặp để vẽ. Ở lượt đầu chỉ cần đổi danh sách điểm, giữ nguyên khung chương trình."
           },
           {
-            "title": "Một ý tưởng, nhiều cách biểu diễn",
-            "body": "Có thể vẽ bằng các lệnh tọa độ hoặc một khối hình 5×5. Hai chương trình khác cách viết có thể tạo cùng một hình. Bài này dùng MakeCode JavaScript; Python trong MakeCode và MicroPython ở editor micro:bit là những môi trường khác, không dán nguyên API led.plot sang MicroPython."
+            "title": "Đọc thêm · Một hình, nhiều cách viết",
+            "body": "Có thể tạo hình bằng nhiều lệnh display.set_pixel hoặc bằng Image của MicroPython. MakeCode JavaScript là lựa chọn khác: led.plot và basic.clearScreen thuộc MakeCode, không dùng trực tiếp trong micro:bit Python Editor. Python của MakeCode và MicroPython cũng là hai môi trường khác nhau."
           }
         ],
         "misconceptions": [
@@ -1255,18 +1267,10 @@
           "Vẽ lại một điểm đang sáng không tăng số LED sáng; chuyển editor không có nghĩa các API tự tương thích."
         ],
         "selfCheck": [
-          "Tọa độ góc dưới phải là gì?",
-          "Vì sao chữ L gồm hai đoạn 5 điểm chỉ sáng 9 LED?"
+          "Điểm giữa (2,2) nằm ở cột và hàng thứ mấy khi đếm từ 1?",
+          "Vì sao hai đoạn 5 điểm tạo chữ L chỉ sáng 9 LED?"
         ],
         "sources": [
-          {
-            "title": "MakeCode micro:bit — tọa độ LED",
-            "url": "https://makecode.microbit.org/reference/led/plot"
-          },
-          {
-            "title": "MakeCode micro:bit — xóa màn hình",
-            "url": "https://makecode.microbit.org/reference/basic/clear-screen"
-          },
           {
             "title": "MicroPython micro:bit — API chính thức",
             "url": "https://microbit-micropython.readthedocs.io/en/v2-docs/"
@@ -1278,12 +1282,20 @@
           {
             "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
             "url": "https://python.microbit.org/v/3/"
+          },
+          {
+            "title": "Thay thế · MakeCode micro:bit — tọa độ LED",
+            "url": "https://makecode.microbit.org/reference/led/plot"
+          },
+          {
+            "title": "Thay thế · MakeCode micro:bit — xóa màn hình",
+            "url": "https://makecode.microbit.org/reference/basic/clear-screen"
           }
         ],
         "codeVariants": [
           {
             "id": "makecode-js",
-            "label": "MakeCode JavaScript",
+            "label": "Thay thế · MakeCode JavaScript",
             "lang": "MakeCode JavaScript",
             "code": "basic.clearScreen()\nled.plot(2, 2)\nled.plot(1, 2)\nled.plot(3, 2)\nled.plot(2, 1)\nled.plot(2, 3)\n"
           }
@@ -1292,35 +1304,35 @@
       {
         "id": "buttons",
         "title": "Sự kiện và nút bấm",
-        "goal": "Lập trình hai phản hồi riêng cho sự kiện A/B và phân biệt đăng ký sự kiện với thực thi.",
-        "theory": "1. Đăng ký không phải bấm nút\ninput.onButtonPressed(Button.A, function(){...}) đăng ký một trình xử lý. Phần trong ngoặc nhọn được thực hiện khi môi trường phát sự kiện bấm A; nó không phải vòng lặp tự chạy mỗi giây. Những lệnh ở mức đầu chương trình chạy khi khởi động theo thứ tự.\n\n2. Tách đầu vào và đầu ra\nNút A/B là đầu vào, ma trận LED là đầu ra. Quy tắc của bài: A hiển thị trái tim, B xóa. Cần thử A rồi B và B rồi A vì trạng thái cuối phụ thuộc thao tác cuối. Nếu nhiều trình xử lý cùng ghi màn hình, kết quả có thể phụ thuộc thời điểm và thời gian hiển thị; giữ mỗi trình xử lý ngắn, rõ trách nhiệm.\n\n3. Sự kiện và kiểm tra trạng thái nút\nMột sự kiện pressed không đồng nghĩa tăng hay vẽ lặp lại ở mọi vòng khi giữ nút. Nếu muốn phản hồi trong lúc giữ, cần thiết kế bằng trạng thái nút hoặc kiểu sự kiện phù hợp và kiểm thử riêng. Không suy luận số lần sự kiện từ thời gian giữ nếu chưa kiểm tra cách môi trường xử lý.",
+        "goal": "Dùng vòng lặp MicroPython để A hiện trái tim, B xóa màn hình; kiểm tra kết quả theo thứ tự bấm.",
+        "theory": "1. Một lần khởi động, nhiều lượt kiểm tra\nTrong MicroPython, display.clear() ở đầu chạy một lần khi chương trình bắt đầu. while True lặp các lệnh thụt vào bên dưới. Mỗi lượt, if button_a.was_pressed() hỏi có lần bấm A nào từ lần đọc trước không; nếu có thì hiện trái tim. sleep(20) ở cuối vòng cho biết chương trình nghỉ ngắn trước lượt kiểm tra tiếp theo.\n\n2. Thứ tự đầu vào quyết định màn hình\nA/B là đầu vào, LED là đầu ra. Mẫu xử lý A trước rồi B: A hiện Image.HEART, B gọi display.clear(). Các lần bấm tuần tự cho trạng thái theo nút cuối. Nếu A và B đều có dấu đã bấm trong cùng lượt đọc thì B xóa sau A. sleep(20) cho chương trình nghỉ 20 ms trước lượt kiểm tra tiếp theo.\n\n3. Đọc thêm · Dấu đã bấm và trạng thái đang giữ\nwas_pressed() trả True khi có ít nhất một lần bấm kể từ lần gọi trước và xóa dấu đó; nó không cho biết đã bấm bao nhiêu lần. is_pressed() cho biết nút đang được giữ tại thời điểm đọc. get_presses() trả số lần bấm từ lần gọi trước. Biến thể MakeCode dùng input.onButtonPressed trong MakeCode; không dán API đó vào micro:bit Python Editor.",
         "example": "Ban đầu xóa màn hình. Chuỗi A,A,B kết thúc ở màn hình trống; B,A kết thúc ở trái tim. Hai lần A không tạo “hai trái tim” vì cùng ghi một biểu tượng lên cùng ma trận. Đây là phép kiểm tra trạng thái chứ chưa phải một bộ đếm.",
         "steps": [
-          "Viết hai dòng yêu cầu A → trái tim, B → xóa và bảng trạng thái ban đầu.",
-          "Dán code vào MakeCode JavaScript; quan sát màn hình trước khi bấm.",
-          "Thử A,A,B và B,A, đợi mỗi thao tác hiển thị xong trước thao tác tiếp theo.",
-          "Giữ A rồi thử các lần nhấn rời; mô tả quan sát thay vì giả định giống nhau.",
-          "Giải thích phần code nào đăng ký phản hồi và phần nào thực sự thay đổi màn hình."
+          "Dự đoán: ghi quy tắc A → trái tim, B → trống; dự đoán trạng thái cuối của A,A,B và B,A từ màn hình trống.",
+          "Thao tác: mở Lab → micro:bit Python Editor, chạy mã của bài và kiểm tra màn hình ban đầu trống.",
+          "Quan sát: bấm từng nút theo hai chuỗi, chờ thấy phản hồi rồi bấm tiếp. Ghi trạng thái sau mỗi lần bấm và đối chiếu dự đoán.",
+          "Thử tiếp: giữ A, thả ra rồi bấm rời thêm lần nữa. Đọc chú thích was_pressed(): chương trình đọc dấu đã bấm, không liên tục coi trạng thái đang giữ là một lần bấm mới.",
+          "Giải thích: chỉ display.clear() ở đầu chương trình, while True lặp việc kiểm tra và hai nhánh if thay đổi hình. Nếu cả hai nút cùng được ghi nhận trong một lượt đọc, A xử lý trước rồi B xóa nên B được ưu tiên."
         ],
         "code": "from microbit import *\n\ndisplay.clear()\nwhile True:\n    # Edge-latched presses, not a repeated test of the held state.\n    if button_a.was_pressed():\n        display.show(Image.HEART)\n    if button_b.was_pressed():\n        display.clear()\n    # If both were latched in one poll, B wins in this example.\n    sleep(20)\n",
-        "q": "Đoạn trong sự kiện nút A chạy khi nào?",
+        "q": "Với if button_a.was_pressed(), lệnh hiện trái tim chạy khi nào?",
         "opts": [
           "Chỉ khi tắt nguồn",
-          "Khi xảy ra sự kiện bấm A",
+          "Khi lần đọc ghi nhận A đã được bấm kể từ lần đọc trước",
           "Mỗi giây mặc định"
         ],
         "answer": 1,
-        "why": "Phần thân được gọi khi MakeCode phát sự kiện bấm nút A, không phải tự chạy mỗi giây hay khi tắt nguồn.",
+        "why": "was_pressed() trả True nếu A đã được bấm kể từ lần gọi trước (hoặc từ lúc khởi động), rồi xóa dấu đã bấm. Nhánh if hiện trái tim khi giá trị đó là True; nó không tự chạy mỗi giây.",
         "sim": "matrix",
         "lang": "MicroPython · micro:bit Python Editor",
         "time": 50,
-        "exercise": "Với màn hình trống ban đầu, dự đoán trạng thái cuối của A,B,A và B,B. Viết thêm một phản hồi khác cho A mà không biến nó thành vòng lặp.",
-        "solution": "A,B,A kết thúc ở trái tim; B,B vẫn trống. Có thể đổi A sang biểu tượng khác bằng một lệnh hiển thị trong trình xử lý A. Muốn đếm số lần bấm phải dùng biến, đó là nội dung bài bộ đếm.",
+        "exercise": "Từ màn hình trống, dự đoán rồi thử A,B,A và B,B. Đổi Image.HEART thành Image.HAPPY trong nhánh A, Run lại và kiểm tra A rồi B. Viết một câu về cách was_pressed() khác với kiểm tra đang giữ nút.",
+        "solution": "A,B,A kết thúc ở trái tim; B,B vẫn trống. Sau khi đổi thành display.show(Image.HAPPY), A hiện mặt cười và B vẫn xóa. was_pressed() đọc rồi xóa dấu có lần bấm mới; is_pressed() đọc trạng thái nút đang được giữ. Chương trình này chưa lưu số lần bấm.",
         "checks": [
-          "Mô tả khi nào lệnh ngoài trình xử lý và trong trình xử lý chạy.",
-          "Gán hành vi A hiển thị, B xóa rồi kiểm tra nhiều thứ tự.",
-          "Nhận biết giữ nút và các sự kiện bấm liên tiếp là hai mô tả khác nhau.",
-          "Có bảng dự đoán – quan sát – giải thích, gồm ca bình thường và ca biên hoặc lỗi."
+          "Chỉ được phần chạy một lần ở đầu và phần lặp kiểm tra nút trong while True.",
+          "Kiểm tra A hiển thị, B xóa với nhiều thứ tự bấm.",
+          "Phân biệt dấu đã bấm từ was_pressed() với trạng thái đang giữ từ is_pressed().",
+          "Có bảng dự đoán và quan sát theo từng lần bấm."
         ],
         "rubric": [
           [
@@ -1340,40 +1352,36 @@
             15
           ]
         ],
-        "prereq": "Đã hiểu trạng thái ma trận và các lệnh hiển thị/xóa màn hình trong MakeCode.",
-        "labGuide": "Trong Python Editor, chạy chương trình rồi bấm A/B trên micro:bit mô phỏng. A hiện trái tim, B xóa màn hình; nếu hai nút cùng được ghi nhận trong một lượt đọc thì B được ưu tiên. Đổi thứ tự thao tác để kiểm tra trạng thái cuối.",
+        "prereq": "Đã chạy hình trong micro:bit Python Editor. Nhận biết display.clear(), nút A/B và ý nghĩa “nếu ... thì ...” của if.",
+        "labGuide": "Trong Lab, chọn micro:bit Python Editor và chạy mã MicroPython. Bấm A/B trên bo mô phỏng: A hiện trái tim, B xóa. Thử A,A,B và B,A theo từng bước. Hai nhánh if được đọc trong while True, nghỉ 20 ms mỗi vòng; nếu cả hai nút cùng được ghi nhận trong một lượt đọc thì nhánh B chạy sau và màn hình trống. Mô hình nút bấm trong trang chỉ minh họa quy tắc phản hồi; thử nút với chương trình ở Python Editor.",
         "objectives": [
-          "Mô tả khi nào lệnh ngoài trình xử lý và trong trình xử lý chạy.",
-          "Gán hành vi A hiển thị, B xóa rồi kiểm tra nhiều thứ tự.",
-          "Nhận biết giữ nút và các sự kiện bấm liên tiếp là hai mô tả khác nhau."
+          "Chỉ được phần chạy một lần ở đầu và phần lặp kiểm tra nút trong while True.",
+          "Kiểm tra A hiển thị, B xóa với nhiều thứ tự bấm.",
+          "Phân biệt dấu đã bấm từ was_pressed() với trạng thái đang giữ từ is_pressed()."
         ],
         "concepts": [
           {
-            "title": "Đăng ký không phải bấm nút",
-            "body": "input.onButtonPressed(Button.A, function(){...}) đăng ký một trình xử lý. Phần trong ngoặc nhọn được thực hiện khi môi trường phát sự kiện bấm A; nó không phải vòng lặp tự chạy mỗi giây. Những lệnh ở mức đầu chương trình chạy khi khởi động theo thứ tự."
+            "title": "Một lần khởi động, nhiều lượt kiểm tra",
+            "body": "Trong MicroPython, display.clear() ở đầu chạy một lần khi chương trình bắt đầu. while True lặp các lệnh thụt vào bên dưới. Mỗi lượt, if button_a.was_pressed() hỏi có lần bấm A nào từ lần đọc trước không; nếu có thì hiện trái tim. sleep(20) ở cuối vòng cho biết chương trình nghỉ ngắn trước lượt kiểm tra tiếp theo."
           },
           {
-            "title": "Tách đầu vào và đầu ra",
-            "body": "Nút A/B là đầu vào, ma trận LED là đầu ra. Quy tắc của bài: A hiển thị trái tim, B xóa. Cần thử A rồi B và B rồi A vì trạng thái cuối phụ thuộc thao tác cuối. Nếu nhiều trình xử lý cùng ghi màn hình, kết quả có thể phụ thuộc thời điểm và thời gian hiển thị; giữ mỗi trình xử lý ngắn, rõ trách nhiệm."
+            "title": "Thứ tự đầu vào quyết định màn hình",
+            "body": "A/B là đầu vào, LED là đầu ra. Mẫu xử lý A trước rồi B: A hiện Image.HEART, B gọi display.clear(). Các lần bấm tuần tự cho trạng thái theo nút cuối. Nếu A và B đều có dấu đã bấm trong cùng lượt đọc thì B xóa sau A. sleep(20) cho chương trình nghỉ 20 ms trước lượt kiểm tra tiếp theo."
           },
           {
-            "title": "Sự kiện và kiểm tra trạng thái nút",
-            "body": "Một sự kiện pressed không đồng nghĩa tăng hay vẽ lặp lại ở mọi vòng khi giữ nút. Nếu muốn phản hồi trong lúc giữ, cần thiết kế bằng trạng thái nút hoặc kiểu sự kiện phù hợp và kiểm thử riêng. Không suy luận số lần sự kiện từ thời gian giữ nếu chưa kiểm tra cách môi trường xử lý."
+            "title": "Đọc thêm · Dấu đã bấm và trạng thái đang giữ",
+            "body": "was_pressed() trả True khi có ít nhất một lần bấm kể từ lần gọi trước và xóa dấu đó; nó không cho biết đã bấm bao nhiêu lần. is_pressed() cho biết nút đang được giữ tại thời điểm đọc. get_presses() trả số lần bấm từ lần gọi trước. Biến thể MakeCode dùng input.onButtonPressed trong MakeCode; không dán API đó vào micro:bit Python Editor."
           }
         ],
         "misconceptions": [
-          "Viết một trình xử lý không khiến phần thân tự chạy liên tục.",
-          "Hai lần bấm A trong chương trình này không phải bộ đếm; chưa có biến nào lưu số lần bấm."
+          "while True không tự làm nhánh A hiển thị mỗi vòng: còn phải thỏa điều kiện was_pressed().",
+          "Hai lần bấm A trong chương trình này không phải bộ đếm; chưa có biến lưu số lần bấm."
         ],
         "selfCheck": [
           "Vì sao phải thử cả B,A và A,B?",
           "Muốn nhớ số lần A đã bấm thì cần bổ sung loại dữ liệu/trạng thái nào?"
         ],
         "sources": [
-          {
-            "title": "MakeCode micro:bit — sự kiện nút bấm",
-            "url": "https://makecode.microbit.org/reference/input/on-button-pressed"
-          },
           {
             "title": "micro:bit — các nút trên thiết bị",
             "url": "https://microbit.org/get-started/features/buttons/"
@@ -1389,12 +1397,16 @@
           {
             "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
             "url": "https://python.microbit.org/v/3/"
+          },
+          {
+            "title": "Thay thế · MakeCode micro:bit — sự kiện nút bấm",
+            "url": "https://makecode.microbit.org/reference/input/on-button-pressed"
           }
         ],
         "codeVariants": [
           {
             "id": "makecode-js",
-            "label": "MakeCode JavaScript",
+            "label": "Thay thế · MakeCode JavaScript",
             "lang": "MakeCode JavaScript",
             "code": "basic.clearScreen()\ninput.onButtonPressed(Button.A, function () {\n    basic.showIcon(IconNames.Heart)\n})\ninput.onButtonPressed(Button.B, function () {\n    basic.clearScreen()\n})\n"
           }
@@ -1404,17 +1416,17 @@
         "id": "light",
         "title": "Cảm biến ánh sáng",
         "goal": "Sử dụng mức sáng tương đối để thiết kế quy tắc ngưỡng và kiểm thử tại biên.",
-        "theory": "1. Đang đo đại lượng nào?\ninput.lightLevel() trả mức sáng tương đối trong khoảng 0..255: số nhỏ hơn biểu thị tối hơn trong thang đo của môi trường này. Nó không phải lux và không đủ để so sánh độ rọi tuyệt đối giữa các cảm biến. micro:bit dùng các LED để cảm nhận ánh sáng; phép đọc đầu tiên có thể bằng 0 khi quá trình đo chưa sẵn sàng.\n\n2. Quy tắc ngưỡng có biên rõ ràng\nVới lightLevel < 80: 79 thuộc nhánh tối, 80 và 81 thuộc nhánh còn lại. Viết bảng ba giá trị này trước khi code giúp phát hiện sai dấu. Vòng lặp đọc lại định kỳ; ảnh hiển thị chỉ thể hiện quyết định của chương trình, không chứng minh số đo đã được hiệu chuẩn.\n\n3. Khảo sát rồi chọn ngưỡng\nThử ít nhất hai điều kiện sử dụng như bàn học sáng và vị trí che bớt ánh sáng. Nếu hai nhóm số đo chồng lấn nhiều, một ngưỡng đơn giản khó phân biệt ổn định. Có thể cần đổi vị trí đo hoặc dùng hai ngưỡng ở bài nâng cao. Trên simulator, thanh điều chỉnh chỉ mô phỏng đầu vào, không đo ánh sáng của căn phòng thật.",
-        "example": "Ngưỡng 80: mức 79 → hiện trái tim; mức 80 → xóa; mức 81 → xóa. Dữ liệu giả định ở vị trí tối là 25,30,35 và vị trí sáng là 140,150,160 có thể tách bằng 80 trong khảo sát đó; không suy ra 80 đúng với mọi thiết bị và phòng.",
+        "theory": "1. Đang đo đại lượng nào?\ndisplay.read_light_level() trong MicroPython trả mức sáng tương đối 0..255: số nhỏ hơn biểu thị tối hơn trên thang này. Nó không phải lux và không đủ để so sánh độ rọi tuyệt đối giữa các cảm biến. micro:bit dùng ma trận LED để cảm nhận ánh sáng; phép đọc đầu tiên có thể là 0 khi phép đo chưa sẵn sàng. Mẫu đọc khởi tạo rồi nghỉ 200 ms trước khi dùng kết quả.\n\n2. Quy tắc ngưỡng có biên rõ ràng\nBiến level nhận kết quả từ display.read_light_level(). Với if level < 80, giá trị 79 hiện trái tim, 80 và 81 vào else để xóa màn hình. while True đọc lại định kỳ, sleep(100) nghỉ 100 ms mỗi vòng. Viết bảng ba giá trị này trước khi chạy giúp phát hiện sai dấu.\n\n3. Đọc thêm · Khảo sát rồi chọn ngưỡng\nThử ít nhất hai điều kiện sử dụng như bàn học sáng và vị trí che bớt ánh sáng. Nếu hai nhóm số đo chồng lấn nhiều, một ngưỡng đơn giản khó phân biệt ổn định. Có thể cần đổi vị trí đo hoặc dùng hai ngưỡng ở bài nâng cao. Trên simulator, thanh điều chỉnh chỉ mô phỏng đầu vào, không đo ánh sáng của căn phòng thật.",
+        "example": "Với if level < 80: mức 79 → hiện trái tim; mức 80 → xóa; mức 81 → xóa. Dữ liệu giả định ở vị trí tối là 25,30,35 và vị trí sáng là 140,150,160 có thể tách bằng 80 trong khảo sát đó; không suy ra 80 đúng với mọi thiết bị và phòng.",
         "steps": [
-          "Tạo bảng dự đoán 79,80,81 ở ngưỡng 80.",
-          "Chạy code trong MakeCode và thay mức sáng simulator; đối chiếu hai nhánh.",
-          "Đổi ngưỡng thành 50 rồi kiểm tra 49,50,51.",
-          "Nếu có bo thật, chờ cảm biến khởi tạo rồi ghi nhiều lần đọc ở ít nhất hai vị trí.",
-          "Đề xuất ngưỡng từ bảng số liệu và ghi giới hạn của phép phân loại."
+          "Dự đoán: với điều kiện level < 80, lập bảng 79,80,81; ghi mỗi giá trị sẽ hiện trái tim hay màn hình trống.",
+          "Thao tác: chạy mã MicroPython trong Lab → Python Editor. Sau lượt khởi tạo cảm biến, thay mức ánh sáng simulator và thử lần lượt 79,80,81.",
+          "Quan sát: ghi hình hiện ra ở mỗi mức và đối chiếu bảng. Ở mức bằng 80, kiểm tra đặc biệt dấu < không bao gồm bằng.",
+          "Thử tiếp: đổi 80 thành 50 trong if level < 80, Run lại rồi thử 49,50,51.",
+          "Giải thích: nêu vì sao số đọc là mức tương đối, không phải lux. Nếu có bo thật, chờ cảm biến khởi tạo rồi ghi nhiều lần đọc ở ít nhất hai vị trí trước khi đề xuất ngưỡng."
         ],
         "code": "from microbit import *\n\n# Prime the first light reading; the matrix also senses light.\ndisplay.read_light_level()\nsleep(200)\nwhile True:\n    level = display.read_light_level()  # relative value 0..255, not lux\n    if level < 80:\n        display.show(Image.HEART)\n    else:\n        display.clear()\n    sleep(100)\n",
-        "q": "Giá trị lightLevel 0–255 được hiểu là…",
+        "q": "Giá trị display.read_light_level() từ 0 đến 255 được hiểu là…",
         "opts": [
           "Lux đã hiệu chuẩn",
           "Mức sáng tương đối",
@@ -1425,13 +1437,13 @@
         "sim": "light",
         "lang": "MicroPython · micro:bit Python Editor",
         "time": 50,
-        "exercise": "Với điều kiện lightLevel < 50, lập bảng 49,50,51. Từ hai nhóm đo giả định 20..35 và 120..160, đề xuất một ngưỡng và nêu dữ liệu còn cần kiểm tra.",
+        "exercise": "Đổi điều kiện thành level < 50. Dự đoán rồi thử 49,50,51 trong Python Editor, ghi hình quan sát. Từ hai nhóm đo giả định 20..35 và 120..160, đề xuất một ngưỡng và nêu điều kiện còn cần thử.",
         "solution": "49 thỏa nhánh tối; 50 và 51 không thỏa. Có thể thử 80 vì nằm giữa hai nhóm trong dữ liệu đã cho; cần kiểm tra thêm ở vị trí, thời gian, bo và điều kiện sử dụng mới, không coi đó là một giá trị lux.",
         "checks": [
-          "Phân biệt thang lightLevel 0..255 với đơn vị độ rọi lux.",
+          "Phân biệt giá trị tương đối 0..255 của display.read_light_level() với lux.",
           "Dự đoán hai nhánh ở dưới, bằng và trên ngưỡng.",
-          "Chọn ngưỡng dựa trên quan sát điều kiện sử dụng, không áp một giá trị cho mọi phòng.",
-          "Có bảng dự đoán – quan sát – giải thích, gồm ca bình thường và ca biên hoặc lỗi."
+          "Chọn ngưỡng từ nhiều số đo trong điều kiện sử dụng.",
+          "Có bảng dự đoán và quan sát ở dưới, bằng và trên ngưỡng."
         ],
         "rubric": [
           [
@@ -1452,23 +1464,23 @@
           ]
         ],
         "prereq": "Biết if/else, so sánh < và lệnh hiển thị; hoàn thành bài ma trận.",
-        "labGuide": "Chạy mã MicroPython trong Python Editor và điều chỉnh ánh sáng của simulator. Thử các mức 79, 80 và 81 với ngưỡng 80. display.read_light_level trả mức tương đối 0–255; ghi riêng quan sát trên mô phỏng và phép thử với bo mạch.",
+        "labGuide": "Trong Lab → micro:bit Python Editor, chạy mã có display.read_light_level(). Thay ánh sáng của simulator, thử 79,80,81 với ngưỡng 80 rồi đối chiếu hình. Chương trình đọc một lần và nghỉ 200 ms để khởi tạo trước vòng lặp; sau đó cập nhật mỗi khoảng 100 ms. Bàn mô hình ngưỡng trong trang chỉ tính nhánh từ giá trị nhập, không chạy Python hay đo ánh sáng căn phòng.",
         "objectives": [
-          "Phân biệt thang lightLevel 0..255 với đơn vị độ rọi lux.",
+          "Phân biệt giá trị tương đối 0..255 của display.read_light_level() với lux.",
           "Dự đoán hai nhánh ở dưới, bằng và trên ngưỡng.",
-          "Chọn ngưỡng dựa trên quan sát điều kiện sử dụng, không áp một giá trị cho mọi phòng."
+          "Chọn ngưỡng từ nhiều số đo trong điều kiện sử dụng."
         ],
         "concepts": [
           {
             "title": "Đang đo đại lượng nào?",
-            "body": "input.lightLevel() trả mức sáng tương đối trong khoảng 0..255: số nhỏ hơn biểu thị tối hơn trong thang đo của môi trường này. Nó không phải lux và không đủ để so sánh độ rọi tuyệt đối giữa các cảm biến. micro:bit dùng các LED để cảm nhận ánh sáng; phép đọc đầu tiên có thể bằng 0 khi quá trình đo chưa sẵn sàng."
+            "body": "display.read_light_level() trong MicroPython trả mức sáng tương đối 0..255: số nhỏ hơn biểu thị tối hơn trên thang này. Nó không phải lux và không đủ để so sánh độ rọi tuyệt đối giữa các cảm biến. micro:bit dùng ma trận LED để cảm nhận ánh sáng; phép đọc đầu tiên có thể là 0 khi phép đo chưa sẵn sàng. Mẫu đọc khởi tạo rồi nghỉ 200 ms trước khi dùng kết quả."
           },
           {
             "title": "Quy tắc ngưỡng có biên rõ ràng",
-            "body": "Với lightLevel < 80: 79 thuộc nhánh tối, 80 và 81 thuộc nhánh còn lại. Viết bảng ba giá trị này trước khi code giúp phát hiện sai dấu. Vòng lặp đọc lại định kỳ; ảnh hiển thị chỉ thể hiện quyết định của chương trình, không chứng minh số đo đã được hiệu chuẩn."
+            "body": "Biến level nhận kết quả từ display.read_light_level(). Với if level < 80, giá trị 79 hiện trái tim, 80 và 81 vào else để xóa màn hình. while True đọc lại định kỳ, sleep(100) nghỉ 100 ms mỗi vòng. Viết bảng ba giá trị này trước khi chạy giúp phát hiện sai dấu."
           },
           {
-            "title": "Khảo sát rồi chọn ngưỡng",
+            "title": "Đọc thêm · Khảo sát rồi chọn ngưỡng",
             "body": "Thử ít nhất hai điều kiện sử dụng như bàn học sáng và vị trí che bớt ánh sáng. Nếu hai nhóm số đo chồng lấn nhiều, một ngưỡng đơn giản khó phân biệt ổn định. Có thể cần đổi vị trí đo hoặc dùng hai ngưỡng ở bài nâng cao. Trên simulator, thanh điều chỉnh chỉ mô phỏng đầu vào, không đo ánh sáng của căn phòng thật."
           }
         ],
@@ -1481,10 +1493,6 @@
           "Nếu nhóm sáng và tối cùng thường trả 70..90, vì sao một ngưỡng không đủ tin cậy?"
         ],
         "sources": [
-          {
-            "title": "MakeCode micro:bit — mức ánh sáng",
-            "url": "https://makecode.microbit.org/reference/input/light-level"
-          },
           {
             "title": "micro:bit — cảm nhận ánh sáng",
             "url": "https://microbit.org/get-started/features/light-sensor/"
@@ -1500,12 +1508,16 @@
           {
             "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
             "url": "https://python.microbit.org/v/3/"
+          },
+          {
+            "title": "Thay thế · MakeCode micro:bit — mức ánh sáng",
+            "url": "https://makecode.microbit.org/reference/input/light-level"
           }
         ],
         "codeVariants": [
           {
             "id": "makecode-js",
-            "label": "MakeCode JavaScript",
+            "label": "Thay thế · MakeCode JavaScript",
             "lang": "MakeCode JavaScript",
             "code": "input.lightLevel() // Khoi dong phep doc truoc vong lap\nbasic.pause(200)\nbasic.forever(function () {\n    let level = input.lightLevel()\n    if (level < 80) {\n        basic.showIcon(IconNames.Heart, 0)\n    } else {\n        basic.clearScreen()\n    }\n    basic.pause(100)\n})\n"
           }
@@ -1515,14 +1527,14 @@
         "id": "counter",
         "title": "Dự án: bộ đếm tương tác",
         "goal": "Dùng biến lưu số lần bấm và kiểm tra quy tắc tăng/đặt lại bằng bảng trạng thái.",
-        "theory": "1. Biến là trạng thái của chương trình\nlet count = 0 tạo trạng thái ban đầu. Mỗi sự kiện A đặt count thành count + 1; mỗi sự kiện B đặt count về 0. Khởi tạo phải nằm ngoài sự kiện A, nếu không mỗi lần A có thể xóa lịch sử cũ. Biến trong ví dụ không tự lưu bền vững sau khi khởi động lại.\n\n2. Trạng thái khác với cách trình bày\ncount lưu một số; basic.showNumber(count) biểu diễn số đó trên ma trận 5×5. Số nhiều chữ số có thể cuộn và việc hiển thị có thời gian thực hiện. Khi kiểm thử ban đầu, bấm từng lần và đợi hiển thị xong; không kết luận mất dữ liệu chỉ từ một ảnh màn hình chụp giữa lúc cuộn.\n\n3. Viết bảng chuyển trạng thái\nTừ n, A cho n+1; từ bất kỳ n, B cho 0. Với hai thao tác này, số không giảm dưới 0. Đây là bộ đếm sự kiện đã nhận, chưa phải thiết bị đếm người hay sản phẩm ngoài thực tế; một ứng dụng thật còn phải xác định một sự kiện tương ứng vật gì và xử lý nhiễu/trùng.",
+        "theory": "1. Biến là trạng thái được nhớ\ncount = 0 trước while True tạo trạng thái ban đầu một lần. Mỗi lượt, button_a.get_presses() trả số lần A từ lần gọi trước rồi đưa bộ đếm nút đó về 0; presses giữ số vừa lấy. Nếu không reset, count += presses cộng số này vào trạng thái cũ. Đặt count = 0 trong mọi nhánh A sẽ xóa lịch sử. Biến không tự lưu sau khi khởi động lại.\n\n2. Đặt lại và hiển thị là hai việc riêng\nbutton_b.was_pressed() cho biết có lần B kể từ lần đọc trước. Mẫu xét reset trước nhánh cộng A, nên B được ưu tiên khi cả hai được ghi nhận trong một lượt đọc. display.scroll(str(count), wait=False, loop=False) cuộn số mà vòng kiểm tra vẫn tiếp tục. Một ảnh chụp giữa lúc cuộn chưa cho biết toàn bộ count; thử chậm và đợi đọc rõ số ở lượt đầu.\n\n3. Đọc thêm · Bảng chuyển trạng thái\nVới các lần bấm rời nhau, từ n, A cho n+1; từ bất kỳ n, B cho 0. Hai lần B vẫn cho 0. Đây là số sự kiện nút đã nhận theo quy tắc của chương trình, chưa phải thiết bị đếm người hay sản phẩm thực tế. Mẫu không tự lưu bền vững. Biến thể MakeCode có API và cách xử lý sự kiện riêng; dùng nó trong MakeCode.",
         "example": "Ban đầu 0. Chuỗi A,A,B,A tạo 1,2,0,1. Chuỗi B,B,A tạo 0,0,1. Hai lần đặt lại liên tiếp không làm số âm và không cần trừ đi giá trị hiện tại.",
         "steps": [
-          "Vẽ bảng cột thao tác, count trước và count sau cho hai chuỗi ví dụ.",
-          "Dán code MakeCode, xác nhận khởi động hiển thị 0.",
-          "Bấm A hai lần, đợi mỗi lần hiển thị xong và kiểm tra số 2.",
-          "Bấm B hai lần rồi A; đối chiếu kết quả 0,0,1.",
-          "Khởi động lại simulator, ghi trạng thái trở về 0 và giải thích vì sao chưa có lưu trữ lâu dài."
+          "Dự đoán: lập bảng thao tác, count trước và count sau cho khởi động → A → A → B → B → A; ghi đầy đủ trước khi chạy.",
+          "Thao tác: chạy mã MicroPython trong Lab → Python Editor, xác nhận khởi động hiển thị 0.",
+          "Quan sát: bấm A hai lần, mỗi lần đợi thấy số rồi bấm tiếp; đối chiếu count = 1 rồi 2.",
+          "Thử B hai lần rồi A; ghi kết quả từng bước. Sau đó khởi động lại chương trình và kiểm tra về 0.",
+          "Giải thích: chỉ dòng count = 0 trước while True, get_presses() lấy số lần A đã bấm và nhánh reset đặt lại. Nếu A/B cùng được ghi nhận trong một lượt đọc, B được ưu tiên; không dùng thứ tự của các ca chậm để suy kết quả mọi ca bấm nhanh."
         ],
         "code": "from microbit import *\n\ncount = 0\ndisplay.show(str(count))\nwhile True:\n    # get_presses consumes the number of A presses since the last read.\n    presses = button_a.get_presses()\n    reset = button_b.was_pressed()\n    if reset:\n        count = 0\n    elif presses:\n        count += presses\n    if reset or presses:\n        # Non-blocking display keeps the polling loop responsive.\n        display.scroll(str(count), wait=False, loop=False)\n    # B has priority if A and B arrived within the same polling interval.\n    sleep(20)\n",
         "q": "Sau A, A, B, A từ số 0, bộ đếm là…",
@@ -1536,13 +1548,13 @@
         "sim": "counter",
         "lang": "MicroPython · micro:bit Python Editor",
         "time": 50,
-        "exercise": "Lập bảng cho khởi động → A → A → B → B → A; thử sửa nhầm count = 0 vào sự kiện A rồi giải thích lỗi trước khi khôi phục.",
-        "solution": "Các trạng thái lần lượt 0,1,2,0,0,1. Nếu gán 0 rồi tăng 1 trong mỗi lần A thì A luôn kết thúc ở 1; chương trình không còn tích lũy số lần bấm.",
+        "exercise": "Dự đoán rồi thử khởi động → A → A → B → B → A, ghi trạng thái mỗi bước. Trong bản sao, thêm count = 0 ngay trước count += presses ở nhánh A, thử A,A và giải thích lỗi trước khi khôi phục.",
+        "solution": "Các trạng thái lần lượt 0,1,2,0,0,1. Trong bản sửa lỗi có chủ đích, nếu mỗi nhánh A lại gán count = 0 trước khi cộng thì hai lần A rời nhau cho 1,1 thay vì 1,2. Khởi tạo một lần trước vòng lặp để giữ lịch sử; xóa dòng thêm rồi thử lại.",
         "checks": [
-          "Khởi tạo biến một lần và cập nhật từ sự kiện.",
-          "Phân biệt giá trị lưu trong count với hình số đang hiển thị.",
-          "Kiểm tra phép đặt lại cả khi đã đếm và khi đang bằng 0.",
-          "Có bảng dự đoán – quan sát – giải thích, gồm ca bình thường và ca biên hoặc lỗi."
+          "Khởi tạo count một lần trước vòng lặp và cập nhật từ số lần bấm đọc được.",
+          "Phân biệt giá trị count với hình số đang cuộn trên LED.",
+          "Kiểm tra reset khi đã đếm, khi đang 0 và khi A/B cùng được ghi nhận.",
+          "Có bảng dự đoán và quan sát từng thao tác."
         ],
         "rubric": [
           [
@@ -1562,29 +1574,29 @@
             15
           ]
         ],
-        "prereq": "Đã biết trình xử lý nút A/B, ma trận hiển thị và khái niệm biến.",
-        "labGuide": "Chạy mã MicroPython rồi thử A tăng, B đặt lại, nhiều lần B và A/B gần nhau. Bộ đếm lưu trong biến count; chương trình ưu tiên B trong cùng lượt đọc và cuộn số bằng thao tác hiển thị không chặn. Chờ thông báo lưu mã trước khi đổi bài.",
+        "prereq": "Đã chạy bài nút A/B trong micro:bit Python Editor. Hiểu if và while True; count là một tên biến để nhớ một số.",
+        "labGuide": "Chạy mã MicroPython trong Lab → Python Editor. Thử A,A,B,B,A từng bước rồi Run lại để kiểm tra khởi tạo 0. get_presses() lấy và xóa số lần A tích lũy từ lần đọc trước; was_pressed() đọc dấu B. Nếu cả hai được ghi nhận trong cùng lượt đọc, B đặt count về 0 và các lần A của lượt đó không được cộng. display.scroll(..., wait=False) hiển thị không chặn; bấm chậm để đọc đủ số ở lần kiểm tra đầu. Bàn bộ đếm trong trang là mô hình theo thao tác, không chạy đoạn Python.",
         "objectives": [
-          "Khởi tạo biến một lần và cập nhật từ sự kiện.",
-          "Phân biệt giá trị lưu trong count với hình số đang hiển thị.",
-          "Kiểm tra phép đặt lại cả khi đã đếm và khi đang bằng 0."
+          "Khởi tạo count một lần trước vòng lặp và cập nhật từ số lần bấm đọc được.",
+          "Phân biệt giá trị count với hình số đang cuộn trên LED.",
+          "Kiểm tra reset khi đã đếm, khi đang 0 và khi A/B cùng được ghi nhận."
         ],
         "concepts": [
           {
-            "title": "Biến là trạng thái của chương trình",
-            "body": "let count = 0 tạo trạng thái ban đầu. Mỗi sự kiện A đặt count thành count + 1; mỗi sự kiện B đặt count về 0. Khởi tạo phải nằm ngoài sự kiện A, nếu không mỗi lần A có thể xóa lịch sử cũ. Biến trong ví dụ không tự lưu bền vững sau khi khởi động lại."
+            "title": "Biến là trạng thái được nhớ",
+            "body": "count = 0 trước while True tạo trạng thái ban đầu một lần. Mỗi lượt, button_a.get_presses() trả số lần A từ lần gọi trước rồi đưa bộ đếm nút đó về 0; presses giữ số vừa lấy. Nếu không reset, count += presses cộng số này vào trạng thái cũ. Đặt count = 0 trong mọi nhánh A sẽ xóa lịch sử. Biến không tự lưu sau khi khởi động lại."
           },
           {
-            "title": "Trạng thái khác với cách trình bày",
-            "body": "count lưu một số; basic.showNumber(count) biểu diễn số đó trên ma trận 5×5. Số nhiều chữ số có thể cuộn và việc hiển thị có thời gian thực hiện. Khi kiểm thử ban đầu, bấm từng lần và đợi hiển thị xong; không kết luận mất dữ liệu chỉ từ một ảnh màn hình chụp giữa lúc cuộn."
+            "title": "Đặt lại và hiển thị là hai việc riêng",
+            "body": "button_b.was_pressed() cho biết có lần B kể từ lần đọc trước. Mẫu xét reset trước nhánh cộng A, nên B được ưu tiên khi cả hai được ghi nhận trong một lượt đọc. display.scroll(str(count), wait=False, loop=False) cuộn số mà vòng kiểm tra vẫn tiếp tục. Một ảnh chụp giữa lúc cuộn chưa cho biết toàn bộ count; thử chậm và đợi đọc rõ số ở lượt đầu."
           },
           {
-            "title": "Viết bảng chuyển trạng thái",
-            "body": "Từ n, A cho n+1; từ bất kỳ n, B cho 0. Với hai thao tác này, số không giảm dưới 0. Đây là bộ đếm sự kiện đã nhận, chưa phải thiết bị đếm người hay sản phẩm ngoài thực tế; một ứng dụng thật còn phải xác định một sự kiện tương ứng vật gì và xử lý nhiễu/trùng."
+            "title": "Đọc thêm · Bảng chuyển trạng thái",
+            "body": "Với các lần bấm rời nhau, từ n, A cho n+1; từ bất kỳ n, B cho 0. Hai lần B vẫn cho 0. Đây là số sự kiện nút đã nhận theo quy tắc của chương trình, chưa phải thiết bị đếm người hay sản phẩm thực tế. Mẫu không tự lưu bền vững. Biến thể MakeCode có API và cách xử lý sự kiện riêng; dùng nó trong MakeCode."
           }
         ],
         "misconceptions": [
-          "Đặt count = 0 ở đầu mọi lần bấm A sẽ phá hủy lịch sử đếm.",
+          "Đặt count = 0 ở đầu mỗi nhánh cộng A sẽ xóa lịch sử đếm.",
           "Hiển thị một số không tự lưu số đó sau khi tắt hay khởi động lại."
         ],
         "selfCheck": [
@@ -1592,14 +1604,6 @@
           "Nếu simulator khởi động lại, ví dụ này có biết số trước đó không?"
         ],
         "sources": [
-          {
-            "title": "MakeCode micro:bit — sự kiện nút bấm",
-            "url": "https://makecode.microbit.org/reference/input/on-button-pressed"
-          },
-          {
-            "title": "MakeCode — biến số",
-            "url": "https://makecode.microbit.org/blocks/variables/var"
-          },
           {
             "title": "MicroPython micro:bit — API chính thức",
             "url": "https://microbit-micropython.readthedocs.io/en/v2-docs/"
@@ -1611,12 +1615,20 @@
           {
             "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
             "url": "https://python.microbit.org/v/3/"
+          },
+          {
+            "title": "Thay thế · MakeCode micro:bit — sự kiện nút bấm",
+            "url": "https://makecode.microbit.org/reference/input/on-button-pressed"
+          },
+          {
+            "title": "Thay thế · MakeCode — biến số",
+            "url": "https://makecode.microbit.org/blocks/variables/var"
           }
         ],
         "codeVariants": [
           {
             "id": "makecode-js",
-            "label": "MakeCode JavaScript",
+            "label": "Thay thế · MakeCode JavaScript",
             "lang": "MakeCode JavaScript",
             "code": "let count = 0\nbasic.showNumber(count)\ninput.onButtonPressed(Button.A, function () {\n    count += 1\n    basic.showNumber(count)\n})\ninput.onButtonPressed(Button.B, function () {\n    count = 0\n    basic.showNumber(count)\n})\n"
           }
@@ -1626,14 +1638,15 @@
         "id": "radio",
         "title": "Giao tiếp radio và giao thức bản tin",
         "goal": "Thiết kế giao thức radio đơn giản có kiểm tra tên, miền dữ liệu và giới hạn bảo mật.",
-        "theory": "1. Giao thức là một thỏa thuận\nBên gửi và nhận phải thống nhất nhóm, loại bản tin, tên trường, đơn vị và miền hợp lệ. Ví dụ dùng nhóm 7, tên temp, giá trị số từ −20 đến 60, đơn vị giả định °C. Nhóm giúp lựa chọn các bản tin được xử lý, không phải cơ chế mã hóa hay xác thực người gửi.\n\n2. Kiểm tra trước khi cập nhật\nBộ nhận chỉ cập nhật khi name bằng temp và value nằm trong miền đóng [−20,60]. Tên sai hoặc temp=999 phải bị bỏ qua. Không cập nhật giá trị trước rồi mới kiểm tra vì dữ liệu lỗi đã có thể ảnh hưởng màn hình hoặc điều khiển. Miền −20..60 là quy tắc dữ liệu của bài, không phải tuyên bố độ chính xác hay phạm vi cảm biến nhiệt trên chip.\n\n3. Không nhận không có nghĩa là số 0\nRadio có thể mất gói, nhiễu và có giới hạn phạm vi; simulator không đo được tầm xa thật. Một sản phẩm cần ghi thời điểm nhận cuối và báo dữ liệu cũ khi quá hạn do thiết kế quy định. Tên trường và nhóm không bảo vệ dữ liệu nhạy cảm; không gửi thông tin cá nhân qua ví dụ này. Radio cơ bản dùng được trên micro:bit V1 và V2, nhưng tính năng V2 như microphone/speaker không được giả định có trên V1.",
-        "example": "Giá trị đang lưu là 21. Bản tin (temp,23) được nhận → 23; (temp,999) bị loại → vẫn 23; (other,22) bị loại → vẫn 23; (temp,−20) hợp lệ vì nằm ở biên. Nếu không có bản tin mới, chưa được kết luận nhiệt độ bằng 0.",
+        "theory": "1. Thống nhất một chuỗi trước khi truyền\nHai bên dùng MicroPython, bật radio bằng radio.on() và đặt radio.config(group=7). radio.send(\"temp:23\") gửi chuỗi: phần trước dấu : là tên temp, phần sau là số theo đơn vị giả định °C. Bên nhận dùng radio.receive(); None nghĩa là chưa có bản tin để đọc, không phải nhiệt độ 0. Nhóm chọn bản tin để xử lý, không mã hóa hay xác thực người gửi.\n\n2. Kiểm tra trước khi cập nhật\nmessage.split(\":\", 1) tách tên và dữ liệu; float(raw) chuyển phần số sang giá trị. Chỉ tên temp với giá trị trong miền đóng [−20,60] mới cập nhật last_valid; sai định dạng hoặc ngoài miền thì giữ giá trị cũ. Ví dụ temp:-20 và temp:60 hợp lệ, temp:999 và other:22 không hợp lệ. Miền này là quy tắc của bài, không phải thông số độ chính xác của cảm biến. last_valid là trạng thái được lưu trong biến; số cuộn trên màn hình chỉ là cách trình bày tạm thời. Để kiểm tra trạng thái sau bản tin lỗi, cần đầu ra print thử nghiệm hoặc đối chiếu mã, không chỉ ảnh màn hình trống.\n\n3. Đọc thêm · Dữ liệu cũ và các giao thức khác\nRadio có thể mất gói, nhiễu và có giới hạn phạm vi; simulator không đo được tầm xa thật. Một sản phẩm cần ghi thời điểm nhận cuối và báo dữ liệu cũ khi quá hạn do thiết kế quy định. Tên trường và nhóm không bảo vệ dữ liệu nhạy cảm; không gửi thông tin cá nhân qua ví dụ này. Radio cơ bản dùng được trên micro:bit V1 và V2, nhưng tính năng V2 như microphone/speaker không được giả định có trên V1. Mẫu dùng chuỗi MicroPython, khác định dạng MakeCode radio.sendValue. Biến thể MakeCode chỉ dùng như một cặp chương trình riêng trong MakeCode; không ghép với bên gửi hoặc nhận MicroPython của bài.",
+        "example": "Giá trị đang lưu là 21. Chuỗi temp:23 hợp lệ → 23; temp:999 sai miền → vẫn 23; other:22 sai tên → vẫn 23; temp:-20 hợp lệ ở biên → −20. Nếu chưa có bản tin mới, radio.receive() trả None; không được kết luận nhiệt độ bằng 0.",
         "steps": [
-          "Viết quy ước nhóm 7, tên temp, đơn vị °C và miền −20..60 trước khi code.",
-          "Tạo chương trình bên gửi bằng ví dụ gửi bên dưới và bên nhận bằng code mẫu; dùng hai bo hoặc simulator hỗ trợ giao tiếp radio.",
-          "Thử tên đúng với số 23, hai biên −20 và 60.",
-          "Thử tên sai, −21 và 999; kiểm tra giá trị cũ không bị ghi đè.",
-          "Tắt bên gửi, quan sát dữ liệu có thể bị cũ; viết yêu cầu thời gian hết hạn trước khi triển khai phần nâng cao."
+          "Dự đoán: viết quy ước nhóm 7, chuỗi dạng temp:23, đơn vị giả định °C và miền −20..60. Từ giá trị cũ 21, đoán kết quả của temp:23, temp:999, other:22 và temp:-20.",
+          "Thao tác: chạy mã bên nhận MicroPython trong Lab → Python Editor. Mở bảng Radio, chọn cùng nhóm 7 và gửi chuỗi temp:23 để kiểm tra bộ nhận.",
+          "Quan sát: gửi lần lượt temp:-20, temp:60, temp:-21, temp:999, other:22 và chuỗi sai định dạng. Bản tin hợp lệ làm xuất hiện lượt cuộn số mới. Mã gốc chỉ cuộn tạm thời, nên màn hình trống sau đó chưa chứng minh last_valid đã bị xóa.",
+          "Kiểm tra giá trị lưu: trong bản sao mã Python, thêm print(last_valid) ngay trước sleep(20), thụt vào 4 dấu cách trong while True. Đọc đầu ra print của editor khi gửi từng bản tin: bản tin bị loại phải giữ số cũ. Dừng sau khi ghi đủ dữ liệu rồi xóa dòng print thử nghiệm.",
+          "Nếu có hai bo: nạp mã bên nhận lên một bo và biến thể MicroPython bên gửi lên bo kia. Bấm A ở bên gửi để gửi temp:23; cả hai dùng nhóm 7 và cùng định dạng chuỗi. Hai tab editor độc lập không tự ghép thành một cặp radio.",
+          "Giải thích: ngừng gửi và nêu vì sao giá trị cũ chưa phải số đo mới hay bằng 0. Viết yêu cầu hết hạn dữ liệu cho phần nâng cao; mã hiện tại chưa thực hiện yêu cầu đó."
         ],
         "code": "from microbit import *\nimport radio\n\n# RECEIVER: both devices must run the same MicroPython text protocol.\n# MakeCode sendValue packets use another format; do not mix the programs.\nradio.config(group=7)\nradio.on()\nlast_valid = None\nwhile True:\n    try:\n        message = radio.receive()\n        if message is not None:\n            name, raw = message.split(\":\", 1)\n            value = float(raw)\n            if name == \"temp\" and -20 <= value <= 60:\n                last_valid = value\n                display.scroll(str(last_valid), wait=False, loop=False)\n    except (ValueError, TypeError):\n        # Ignore malformed/non-text data; keep the last valid value.\n        pass\n    sleep(20)\n",
         "q": "Đặt cùng nhóm radio có mã hóa bản tin không?",
@@ -1647,8 +1660,8 @@
         "sim": "counter",
         "time": 50,
         "lang": "MicroPython · bên nhận radio",
-        "exercise": "Từ giá trị cũ 21, dự đoán trạng thái sau (temp,23), (temp,999), (other,22), (temp,−20). Đề xuất chính sách cho dữ liệu quá hạn và nêu phần code mẫu chưa thực hiện.",
-        "solution": "Các giá trị lưu lần lượt 23,23,23,−20. Có thể yêu cầu báo “dữ liệu cũ” khi quá một khoảng thời gian đã quy định mà không nhận mẫu hợp lệ; code mẫu mới lọc tên/miền, chưa có bộ đếm thời gian hết hạn hoặc bảo mật.",
+        "exercise": "Từ giá trị cũ 21, dự đoán giá trị lưu sau temp:23, temp:999, other:22, temp:-20. Thử quy tắc trên bàn mô hình bản tin; khi thử mã MicroPython, thêm tạm print(last_valid) trước sleep(20) trong vòng lặp để quan sát trạng thái sau từng bản tin. Phân biệt giá trị lưu với hình cuộn tạm thời. Đề xuất chính sách dữ liệu quá hạn.",
+        "solution": "Các giá trị lưu lần lượt 23,23,23,−20. temp:999 sai miền, other:22 sai tên nên không ghi đè. Có thể yêu cầu hiện “dữ liệu cũ” sau một thời hạn không nhận mẫu hợp lệ; mã hiện tại mới lọc định dạng, tên và miền, chưa theo dõi thời điểm nhận hay xác thực người gửi.",
         "checks": [
           "Đặt cùng nhóm radio trên bên gửi và bên nhận.",
           "Chỉ nhận đúng tên bản tin và miền số đã quy ước.",
@@ -1673,8 +1686,8 @@
             15
           ]
         ],
-        "prereq": "Biết biến, if/else và sự kiện; cần hai chương trình/thiết bị hoặc tính năng simulator có radio phù hợp.",
-        "labGuide": "Mã mặc định là bên nhận MicroPython, nhóm 7. Trong bảng Radio của Python Editor, chọn cùng nhóm và gửi chuỗi temp:23 để thử bên nhận; thử thêm temp:100 và bản tin sai định dạng. Chọn biến thể bên gửi và nạp lên bo thứ hai để kiểm thử truyền giữa hai thiết bị. Hai tab editor độc lập dùng bảng Radio riêng, không tự ghép thành hai bo liên lạc.",
+        "prereq": "Đã biết biến, if và vòng lặp MicroPython. Bắt đầu bằng bảng Radio của Python Editor để gửi chuỗi thử; cần hai micro:bit thật khi muốn kiểm tra truyền giữa hai bo.",
+        "labGuide": "Trong Lab → micro:bit Python Editor, chạy mã bên nhận MicroPython nhóm 7. Dùng bảng Radio cùng nhóm gửi temp:23, temp:-20, temp:60 rồi temp:999 và other:22. Số chỉ cuộn tạm thời khi nhận hợp lệ; màn hình trống sau cuộn chưa cho biết giá trị lưu. Muốn kiểm tra last_valid sau bản tin bị loại, trong bản sao thêm print(last_valid) ngay trước sleep(20), cùng mức thụt vào 4 dấu cách, rồi đọc đầu ra print; dừng và xóa dòng này khi ghi đủ dữ liệu. Muốn thử hai bo thật, nạp biến thể MicroPython bên gửi lên bo thứ hai. Hai bên dùng cùng chuỗi MicroPython; MakeCode sendValue có định dạng khác. Bàn bản tin trong trang chỉ mô phỏng quy tắc lọc, không phát radio; hai tab editor không tự liên lạc.",
         "objectives": [
           "Đặt cùng nhóm radio trên bên gửi và bên nhận.",
           "Chỉ nhận đúng tên bản tin và miền số đã quy ước.",
@@ -1682,16 +1695,16 @@
         ],
         "concepts": [
           {
-            "title": "Giao thức là một thỏa thuận",
-            "body": "Bên gửi và nhận phải thống nhất nhóm, loại bản tin, tên trường, đơn vị và miền hợp lệ. Ví dụ dùng nhóm 7, tên temp, giá trị số từ −20 đến 60, đơn vị giả định °C. Nhóm giúp lựa chọn các bản tin được xử lý, không phải cơ chế mã hóa hay xác thực người gửi."
+            "title": "Thống nhất một chuỗi trước khi truyền",
+            "body": "Hai bên dùng MicroPython, bật radio bằng radio.on() và đặt radio.config(group=7). radio.send(\"temp:23\") gửi chuỗi: phần trước dấu : là tên temp, phần sau là số theo đơn vị giả định °C. Bên nhận dùng radio.receive(); None nghĩa là chưa có bản tin để đọc, không phải nhiệt độ 0. Nhóm chọn bản tin để xử lý, không mã hóa hay xác thực người gửi."
           },
           {
             "title": "Kiểm tra trước khi cập nhật",
-            "body": "Bộ nhận chỉ cập nhật khi name bằng temp và value nằm trong miền đóng [−20,60]. Tên sai hoặc temp=999 phải bị bỏ qua. Không cập nhật giá trị trước rồi mới kiểm tra vì dữ liệu lỗi đã có thể ảnh hưởng màn hình hoặc điều khiển. Miền −20..60 là quy tắc dữ liệu của bài, không phải tuyên bố độ chính xác hay phạm vi cảm biến nhiệt trên chip."
+            "body": "message.split(\":\", 1) tách tên và dữ liệu; float(raw) chuyển phần số sang giá trị. Chỉ tên temp với giá trị trong miền đóng [−20,60] mới cập nhật last_valid; sai định dạng hoặc ngoài miền thì giữ giá trị cũ. Ví dụ temp:-20 và temp:60 hợp lệ, temp:999 và other:22 không hợp lệ. Miền này là quy tắc của bài, không phải thông số độ chính xác của cảm biến. last_valid là trạng thái được lưu trong biến; số cuộn trên màn hình chỉ là cách trình bày tạm thời. Để kiểm tra trạng thái sau bản tin lỗi, cần đầu ra print thử nghiệm hoặc đối chiếu mã, không chỉ ảnh màn hình trống."
           },
           {
-            "title": "Không nhận không có nghĩa là số 0",
-            "body": "Radio có thể mất gói, nhiễu và có giới hạn phạm vi; simulator không đo được tầm xa thật. Một sản phẩm cần ghi thời điểm nhận cuối và báo dữ liệu cũ khi quá hạn do thiết kế quy định. Tên trường và nhóm không bảo vệ dữ liệu nhạy cảm; không gửi thông tin cá nhân qua ví dụ này. Radio cơ bản dùng được trên micro:bit V1 và V2, nhưng tính năng V2 như microphone/speaker không được giả định có trên V1."
+            "title": "Đọc thêm · Dữ liệu cũ và các giao thức khác",
+            "body": "Radio có thể mất gói, nhiễu và có giới hạn phạm vi; simulator không đo được tầm xa thật. Một sản phẩm cần ghi thời điểm nhận cuối và báo dữ liệu cũ khi quá hạn do thiết kế quy định. Tên trường và nhóm không bảo vệ dữ liệu nhạy cảm; không gửi thông tin cá nhân qua ví dụ này. Radio cơ bản dùng được trên micro:bit V1 và V2, nhưng tính năng V2 như microphone/speaker không được giả định có trên V1. Mẫu dùng chuỗi MicroPython, khác định dạng MakeCode radio.sendValue. Biến thể MakeCode chỉ dùng như một cặp chương trình riêng trong MakeCode; không ghép với bên gửi hoặc nhận MicroPython của bài."
           }
         ],
         "misconceptions": [
@@ -1699,18 +1712,10 @@
           "Một số hợp lệ theo giao thức không tự chứng minh đó là số đo cảm biến thật hay còn mới."
         ],
         "selfCheck": [
-          "Tại sao temp=60 được nhận nhưng temp=60,1 không được nhận trong quy tắc này?",
-          "Khi không nhận bản tin trong thời gian dài, hệ thống cần thêm trạng thái gì?"
+          "Vì sao temp:60 được nhận nhưng temp:60.1 bị loại theo quy tắc này?",
+          "Khi lâu không nhận bản tin, mã cần thêm trạng thái gì để báo dữ liệu cũ?"
         ],
         "sources": [
-          {
-            "title": "MakeCode micro:bit — nhóm radio",
-            "url": "https://makecode.microbit.org/reference/radio/set-group"
-          },
-          {
-            "title": "MakeCode — nhận cặp tên và số",
-            "url": "https://makecode.microbit.org/reference/radio/on-received-value"
-          },
           {
             "title": "MicroPython micro:bit — API chính thức",
             "url": "https://microbit-micropython.readthedocs.io/en/v2-docs/"
@@ -1722,6 +1727,14 @@
           {
             "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
             "url": "https://python.microbit.org/v/3/"
+          },
+          {
+            "title": "Thay thế · MakeCode micro:bit — nhóm radio",
+            "url": "https://makecode.microbit.org/reference/radio/set-group"
+          },
+          {
+            "title": "Thay thế · MakeCode — nhận cặp tên và số",
+            "url": "https://makecode.microbit.org/reference/radio/on-received-value"
           }
         ],
         "codeVariants": [
@@ -1733,7 +1746,7 @@
           },
           {
             "id": "makecode-js",
-            "label": "MakeCode JavaScript",
+            "label": "Thay thế · MakeCode JavaScript",
             "lang": "MakeCode JavaScript · hai dự án gửi/nhận riêng",
             "code": "// CHUONG TRINH BEN NHAN: dan vao mot du an MakeCode rieng.\nlet lastValid = 0\nradio.setGroup(7)\nradio.onReceivedValue(function (name, value) {\n    if (name == \"temp\" && value >= -20 && value <= 60) {\n        lastValid = value\n        basic.showNumber(lastValid)\n    }\n})\n\n// BEN GUI: tao du an khac, khong ghep nguyen hai chuong trinh.\n// radio.setGroup(7)\n// input.onButtonPressed(Button.A, function () {\n//     radio.sendValue(\"temp\", 23)\n// })\n"
           }
@@ -1743,14 +1756,15 @@
         "id": "project",
         "title": "Dự án: bộ đếm có kiểm thử sự kiện",
         "goal": "Hoàn thiện bộ đếm thành một dự án có yêu cầu, bộ ca kiểm thử và báo cáo lỗi có thể tái hiện.",
-        "theory": "1. Bắt đầu bằng yêu cầu kiểm chứng được\nPhiên bản cơ bản: count khởi tạo 0; mỗi sự kiện A tăng 1; B đặt 0; màn hình thể hiện count; khởi động lại về 0. Phạm vi bài không bao gồm tự lưu khi mất điện hay đo số người thực tế. Yêu cầu cụ thể giúp xác định thế nào là đạt trước khi thử.\n\n2. Bộ ca cần thứ tự và mốc quan sát\nMỗi ca nên ghi trạng thái ban đầu, chuỗi đầu vào, kết quả kỳ vọng và thực tế. Thử cả tăng nhiều lần, đặt lại khi đang 0, đặt lại sau khi đã đếm và khởi động lại. Với code hiển thị có thời gian chờ, làm phép thử tuần tự, đợi mỗi lần hiển thị xong. Nếu muốn hỗ trợ bấm nhanh/đồng thời, phải định nghĩa yêu cầu riêng và thử thêm, không suy ra từ các ca chậm.\n\n3. Tái hiện và sửa lỗi có bằng chứng\nVí dụ lỗi count = 0 trong sự kiện A: A,A luôn kết thúc 1 thay vì 2. Ghi chuỗi tái hiện ngắn nhất, chỉ sửa một nguyên nhân rồi chạy lại cả ca từng lỗi và những ca trước đó. Nhật ký nêu kết quả thật kể cả khi chưa đạt. Simulator chỉ kiểm tra môi trường mô phỏng; cần thử lại trên bo dự kiến sử dụng trước khi ứng dụng thực.",
+        "theory": "1. Yêu cầu phải khớp mã MicroPython\ncount khởi tạo 0 trước while True. Chương trình lấy presses = button_a.get_presses() và reset = button_b.was_pressed() mỗi lượt; nếu reset thì count = 0, nếu không thì cộng presses. Vì vậy A/B cùng được ghi nhận trong một lượt đọc sẽ cho reset, các lần A của lượt đó không được cộng. Chạy lại chương trình về 0; mẫu chưa có lưu sau mất nguồn.\n\n2. Ca thử cần thứ tự và mốc quan sát\nMỗi ca ghi trạng thái ban đầu, chuỗi nút, kết quả kỳ vọng và quan sát sau từng thao tác. Thử tăng, reset lúc 0, reset sau khi tăng và chạy lại. Mẫu dùng display.scroll(..., wait=False) nên vòng đọc nút không chờ cuộn xong; bấm chậm ở bộ ca đầu để đọc đủ số. Thử bấm gần nhau ở ca riêng và đối chiếu chính sách B thắng trong cùng lượt đọc.\n\n3. Đọc thêm · Tái hiện và kiểm tra lại sau khi sửa\nThêm count = 0 ngay trước count += presses trong nhánh A tạo lỗi: hai lần A rời nhau cho 1,1 thay vì 1,2. Ghi ca ngắn nhất, chỉ sửa một nguyên nhân rồi chạy lại cả ca lỗi lẫn ca từng đúng. Nhật ký ghi kết quả quan sát kể cả chưa đạt. Biến thể MakeCode có cơ chế sự kiện riêng; ca về ưu tiên cùng lượt đọc đang mô tả mẫu MicroPython, không tự áp dụng cho MakeCode.",
         "example": "Ca 1 từ 0: A,A,B,A → 1,2,0,1. Ca 2 từ 0: B,B,A,A,A → 0,0,1,2,3. Ca 3: đang 3 rồi khởi động lại → 0. Bảng có từng trạng thái trung gian sẽ phát hiện lỗi dù một ca tình cờ vẫn có kết quả cuối đúng.",
         "steps": [
-          "Viết đặc tả 5 dòng cho phiên bản cơ bản và ba ca kiểm thử ví dụ.",
-          "Tạo một bản dự án mới từ bộ đếm, đặt tên phiên bản; chạy code gốc trước khi thêm tính năng.",
-          "Thực hiện từng ca tuần tự, ghi kỳ vọng và quan sát ở từng mốc.",
-          "Tạo có chủ đích lỗi khởi tạo sai vị trí trong một bản sao; ghi cách tái hiện rồi sửa lại.",
-          "Chạy lại toàn bộ ca; viết báo cáo ngắn về yêu cầu đạt/chưa đạt và một tính năng nâng cao cần đặc tả riêng."
+          "Dự đoán: viết yêu cầu khởi động = 0, A tăng theo số lần bấm đã đọc, B reset, chạy lại về 0; thêm quy tắc B thắng khi A/B cùng được ghi nhận trong một lượt đọc.",
+          "Thao tác: dùng bản dự án MicroPython của bài trong Lab → Python Editor, chạy mã gốc trước khi chỉnh và kiểm tra ban đầu là 0.",
+          "Quan sát: thực hiện A,A,B,A rồi B,B,A,A,A từng bước, đợi đọc số trước lần tiếp theo. Ghi kỳ vọng và quan sát ở từng mốc, sau đó Run lại để kiểm tra về 0.",
+          "Trong bản sao, thêm count = 0 ngay trước count += presses ở nhánh A để tạo lỗi; thử A,A, ghi chuỗi tái hiện ngắn nhất rồi xóa dòng thêm.",
+          "Chạy lại các ca đã ghi. Thử thêm thao tác A/B gần nhau và đối chiếu quy tắc ưu tiên reset; ghi trường hợp chưa quan sát chắc thay vì tự kết luận đạt.",
+          "Giải thích: viết báo cáo ngắn yêu cầu đạt/chưa đạt, cách tái hiện lỗi và một mở rộng cần đặc tả riêng, chẳng hạn lưu số sau mất nguồn."
         ],
         "code": "from microbit import *\n\n# Specification: boot=0, A adds one, B resets, reset is repeatable.\n# Sequential tests: wait for each display before the next input.\n# Fast/simultaneous A+B policy: reset wins for that polling interval.\ncount = 0\ndisplay.show(str(count))\nwhile True:\n    presses = button_a.get_presses()\n    reset = button_b.was_pressed()\n    if reset:\n        count = 0\n    elif presses:\n        count += presses\n    if reset or presses:\n        display.scroll(str(count), wait=False, loop=False)\n    sleep(20)\n",
         "q": "A,A,B,A cho kết quả…",
@@ -1765,7 +1779,7 @@
         "time": 50,
         "lang": "MicroPython · micro:bit Python Editor",
         "exercise": "Viết ít nhất 4 ca có trạng thái đầu, chuỗi thao tác, từng trạng thái kỳ vọng và quan sát: tăng, reset khi 0, reset sau khi tăng, khởi động lại. Thêm báo cáo một lỗi với cách tái hiện.",
-        "solution": "Ví dụ: A,A → 1,2; B,B từ 0 → 0,0; A,A,B → 1,2,0; khởi động lại từ 2 → 0. Lỗi count = 0 đặt trong A tái hiện bằng A,A nhưng quan sát 1,1. Sửa bằng khởi tạo một lần ở đầu chương trình rồi chạy lại các ca.",
+        "solution": "Ví dụ: A,A → 1,2; B,B từ 0 → 0,0; A,A,B → 1,2,0; chạy lại từ 2 → 0. Nếu thêm count = 0 ngay trước count += presses trong nhánh A, hai lần A rời nhau cho 1,1. Xóa dòng thêm để chỉ khởi tạo một lần trước while True rồi chạy lại các ca. Nếu A/B cùng được ghi nhận trong một lượt đọc, kết quả của lượt đó là 0 theo quy tắc ưu tiên B.",
         "checks": [
           "Đặc tả trạng thái khởi tạo, thao tác tăng và đặt lại.",
           "Lập và chạy bộ kiểm thử có kết quả kỳ vọng từng bước.",
@@ -1790,8 +1804,8 @@
             15
           ]
         ],
-        "prereq": "Đã thực hiện bài bộ đếm, hiểu biến count và sự kiện nút; biết ghi nhật ký thực hành.",
-        "labGuide": "Dùng Python Editor để chạy bộ đếm và thực hiện bảng ca thử: khởi động = 0; A,A = 2; B = 0; B,B vẫn = 0; sau đó kiểm tra thao tác A/B gần nhau. Ghi kết quả và giải thích quy tắc ưu tiên reset. Chỉnh sửa dự án ngay trong khung và chờ “Đã lưu” trước khi đổi bài.",
+        "prereq": "Đã chạy bộ đếm MicroPython, biết count, get_presses(), was_pressed() và quy tắc ưu tiên B. Chuẩn bị bảng trạng thái đầu, thao tác, kỳ vọng, quan sát.",
+        "labGuide": "Trong Lab → micro:bit Python Editor, Run bộ đếm và thử khởi động = 0; A,A = 2; B = 0; B,B vẫn 0; Run lại = 0. Mỗi ca ghi từng trạng thái, bấm chậm để đọc rõ số. Sau đó thử A/B gần nhau: get_presses() đã lấy số lần A trong lượt đọc, nhưng nhánh B được ưu tiên và bỏ qua phần cộng của lượt đó. Mã cuộn số không chặn nên hình có thể đổi trước khi cuộn xong khi bấm nhanh. Lưu bản sao trước khi chủ đích tạo lỗi; bàn kiểm thử trong trang chỉ đối chiếu quy tắc từ chuỗi thao tác, không thực thi Python.",
         "objectives": [
           "Đặc tả trạng thái khởi tạo, thao tác tăng và đặt lại.",
           "Lập và chạy bộ kiểm thử có kết quả kỳ vọng từng bước.",
@@ -1799,16 +1813,16 @@
         ],
         "concepts": [
           {
-            "title": "Bắt đầu bằng yêu cầu kiểm chứng được",
-            "body": "Phiên bản cơ bản: count khởi tạo 0; mỗi sự kiện A tăng 1; B đặt 0; màn hình thể hiện count; khởi động lại về 0. Phạm vi bài không bao gồm tự lưu khi mất điện hay đo số người thực tế. Yêu cầu cụ thể giúp xác định thế nào là đạt trước khi thử."
+            "title": "Yêu cầu phải khớp mã MicroPython",
+            "body": "count khởi tạo 0 trước while True. Chương trình lấy presses = button_a.get_presses() và reset = button_b.was_pressed() mỗi lượt; nếu reset thì count = 0, nếu không thì cộng presses. Vì vậy A/B cùng được ghi nhận trong một lượt đọc sẽ cho reset, các lần A của lượt đó không được cộng. Chạy lại chương trình về 0; mẫu chưa có lưu sau mất nguồn."
           },
           {
-            "title": "Bộ ca cần thứ tự và mốc quan sát",
-            "body": "Mỗi ca nên ghi trạng thái ban đầu, chuỗi đầu vào, kết quả kỳ vọng và thực tế. Thử cả tăng nhiều lần, đặt lại khi đang 0, đặt lại sau khi đã đếm và khởi động lại. Với code hiển thị có thời gian chờ, làm phép thử tuần tự, đợi mỗi lần hiển thị xong. Nếu muốn hỗ trợ bấm nhanh/đồng thời, phải định nghĩa yêu cầu riêng và thử thêm, không suy ra từ các ca chậm."
+            "title": "Ca thử cần thứ tự và mốc quan sát",
+            "body": "Mỗi ca ghi trạng thái ban đầu, chuỗi nút, kết quả kỳ vọng và quan sát sau từng thao tác. Thử tăng, reset lúc 0, reset sau khi tăng và chạy lại. Mẫu dùng display.scroll(..., wait=False) nên vòng đọc nút không chờ cuộn xong; bấm chậm ở bộ ca đầu để đọc đủ số. Thử bấm gần nhau ở ca riêng và đối chiếu chính sách B thắng trong cùng lượt đọc."
           },
           {
-            "title": "Tái hiện và sửa lỗi có bằng chứng",
-            "body": "Ví dụ lỗi count = 0 trong sự kiện A: A,A luôn kết thúc 1 thay vì 2. Ghi chuỗi tái hiện ngắn nhất, chỉ sửa một nguyên nhân rồi chạy lại cả ca từng lỗi và những ca trước đó. Nhật ký nêu kết quả thật kể cả khi chưa đạt. Simulator chỉ kiểm tra môi trường mô phỏng; cần thử lại trên bo dự kiến sử dụng trước khi ứng dụng thực."
+            "title": "Đọc thêm · Tái hiện và kiểm tra lại sau khi sửa",
+            "body": "Thêm count = 0 ngay trước count += presses trong nhánh A tạo lỗi: hai lần A rời nhau cho 1,1 thay vì 1,2. Ghi ca ngắn nhất, chỉ sửa một nguyên nhân rồi chạy lại cả ca lỗi lẫn ca từng đúng. Nhật ký ghi kết quả quan sát kể cả chưa đạt. Biến thể MakeCode có cơ chế sự kiện riêng; ca về ưu tiên cùng lượt đọc đang mô tả mẫu MicroPython, không tự áp dụng cho MakeCode."
           }
         ],
         "misconceptions": [
@@ -1821,14 +1835,6 @@
         ],
         "sources": [
           {
-            "title": "MakeCode micro:bit — sự kiện nút bấm",
-            "url": "https://makecode.microbit.org/reference/input/on-button-pressed"
-          },
-          {
-            "title": "MakeCode — hiển thị số và thời gian hiển thị",
-            "url": "https://makecode.microbit.org/reference/basic/show-number"
-          },
-          {
             "title": "MicroPython micro:bit — API chính thức",
             "url": "https://microbit-micropython.readthedocs.io/en/v2-docs/"
           },
@@ -1839,12 +1845,20 @@
           {
             "title": "micro:bit Python Editor — soạn thảo và mô phỏng",
             "url": "https://python.microbit.org/v/3/"
+          },
+          {
+            "title": "Thay thế · MakeCode micro:bit — sự kiện nút bấm",
+            "url": "https://makecode.microbit.org/reference/input/on-button-pressed"
+          },
+          {
+            "title": "Thay thế · MakeCode — hiển thị số và thời gian hiển thị",
+            "url": "https://makecode.microbit.org/reference/basic/show-number"
           }
         ],
         "codeVariants": [
           {
             "id": "makecode-js",
-            "label": "MakeCode JavaScript",
+            "label": "Thay thế · MakeCode JavaScript",
             "lang": "MakeCode JavaScript · phiên bản bộ đếm cơ bản để kiểm thử",
             "code": "let count = 0\nbasic.showNumber(count)\ninput.onButtonPressed(Button.A, function () {\n    count += 1\n    basic.showNumber(count)\n})\ninput.onButtonPressed(Button.B, function () {\n    count = 0\n    basic.showNumber(count)\n})\n"
           }
@@ -1865,14 +1879,16 @@
       {
         "id": "mechanism",
         "title": "Cơ cấu và góc quay",
-        "goal": "Phân biệt góc motor, góc trục ra và góc của tay gạt trong một cơ cấu.",
-        "theory": "Lệnh motor không phải góc tay gạt: Motor làm quay trục vào; bánh răng hoặc liên kết truyền chuyển động ra cơ cấu. Với một cặp bánh răng ngoài lý tưởng, góc trục ra có độ lớn |θra| = |θvào| × Zvào/Zra và ngược chiều quay. Z là số răng. Nếu tay gạt lắp trực tiếp trục ra thì góc tay gạt bằng góc trục ra trong mô hình cứng; liên kết phức tạp cần xét hình học riêng.\n\nGốc tọa độ và giới hạn cơ khí: Vị trí nghỉ là mốc đo góc được xác định trước, không tự có chỉ vì vừa bật Hub. Nêu phạm vi được phép, chẳng hạn từ −30° đến +30° quanh vị trí nghỉ, nhưng phải chọn theo cơ cấu thực. Không ép motor vào chặn cứng để tìm gốc khi chưa có quy trình phù hợp; có thể gây kẹt, quá tải hoặc hỏng linh kiện.\n\nKiểm tra khi có tải: Độ rơ khiến đổi chiều chưa tạo ngay chuyển động đầu ra; tải và ma sát có thể làm motor không đạt góc yêu cầu. Dùng góc nhỏ, tốc độ thấp và có timeout/điều kiện dừng khi thử. GearsBot hỗ trợ luyện thuật toán motor trên mô hình riêng, không mô phỏng chính xác một bộ SPIKE tự lắp hay mọi tỷ số truyền của nó.",
+        "goal": "Cho mô hình tay gạt đi ra rồi trở về, so sánh góc motor với góc đầu ra và nhận biết vị trí nghỉ.",
+        "theory": "1. Việc đầu tiên: đi đến một góc rồi trở về\nĐộng cơ (motor) quay trục vào; bánh răng truyền chuyển động sang trục ra gắn tay gạt. Trước hết chọn mốc nghỉ 0°, thay một góc motor và đọc góc đầu ra. Hai góc có thể khác nhau vì cơ cấu truyền động. Trong mô hình 12:36 của bài, motor 90° cho đầu ra có độ lớn 30° và ngược chiều. Sau khi thử, đọc công thức để giải thích; tay chắn trực tiếp của GearsBot Cage Bot là một hoạt động riêng.\n\n2. Đọc thêm · Lệnh motor không phải góc tay gạt\nMotor làm quay trục vào; bánh răng hoặc liên kết truyền chuyển động ra cơ cấu. Với một cặp bánh răng ngoài lý tưởng, góc trục ra có độ lớn |θra| = |θvào| × Zvào/Zra và ngược chiều quay. Z là số răng. Nếu tay gạt lắp trực tiếp trục ra thì góc tay gạt bằng góc trục ra trong mô hình cứng; liên kết phức tạp cần xét hình học riêng.\n\n3. Đọc thêm · Gốc tọa độ và giới hạn cơ khí\nVị trí nghỉ là mốc đo góc được xác định trước, không tự có chỉ vì vừa bật Hub. Nêu phạm vi được phép, chẳng hạn từ −30° đến +30° quanh vị trí nghỉ, nhưng phải chọn theo cơ cấu thực. Không ép motor vào chặn cứng để tìm gốc khi chưa có quy trình phù hợp; có thể gây kẹt, quá tải hoặc hỏng linh kiện.\n\n4. Đọc thêm · Kiểm tra khi có tải\nĐộ rơ khiến đổi chiều chưa tạo ngay chuyển động đầu ra; tải và ma sát có thể làm motor không đạt góc yêu cầu. Dùng góc nhỏ, tốc độ thấp và có timeout/điều kiện dừng khi thử. GearsBot hỗ trợ luyện thuật toán motor trên mô hình riêng, không mô phỏng chính xác một bộ SPIKE tự lắp hay mọi tỷ số truyền của nó.",
         "example": "Bánh chủ động 12 răng kéo bánh bị động 36 răng. Motor quay 90° thì trục ra lý tưởng quay 30° ngược chiều; nếu tay gạt gắn trực tiếp trục ra, tay gạt đổi góc 30°. Đây không phải quyền cho phép chạy qua chặn cơ khí của tay gạt.",
         "steps": [
-          "Vẽ sơ đồ motor → bộ truyền → tay gạt; ghi số răng, vị trí nghỉ và góc giới hạn của cơ cấu đã chọn.",
-          "Tính trước góc đầu ra khi motor quay 30°, 60°, 90°. Nếu không có kit, mô tả bằng sơ đồ và bảng tính.",
-          "Nếu có kit: tắt Hub khi lắp/chỉnh cơ cấu, dọn vùng tay gạt, kiểm tra đường dây và thử góc nhỏ ở tốc độ thấp.",
-          "Ghi góc yêu cầu/góc quan sát, thử trở về nghỉ. Dừng ngay nếu kẹt; thêm timeout thay vì tiếp tục cấp lệnh quay."
+          "Dự đoán: trên mô hình có cặp bánh răng 12:36, khi motor quay 90° thì tay gạt đầu ra sẽ quay cùng góc hay một góc khác? Vẽ phỏng đoán và đánh dấu vị trí nghỉ 0°.",
+          "Thao tác: vào Lab → Bàn thí nghiệm, giữ cặp bánh răng 12:36 và đặt góc motor lần lượt 0°, 90°, 0°. Chạy mô hình ở mỗi mốc; chỉ thay góc motor.",
+          "Quan sát: ghi góc motor và góc đầu ra ở ba mốc. Đối chiếu xem tay gạt có về 0° không và giải thích đầu ra −30° có độ lớn 30°, ngược chiều dương đã chọn.",
+          "Giải thích: chỉ motor, bánh răng vào 12 răng, bánh răng ra 36 răng và tay gạt trên sơ đồ. Viết một câu: thêm bộ truyền có thể đổi góc và chiều quay.",
+          "Chạy thử mở rộng: chọn GearsBot Cage Bot theo hướng dẫn Lab, dán toàn bộ mẫu Python rồi Reset và Run. Quan sát chuỗi tay chắn 0° → 30° → 0° và các cặp target_deg/measured_deg. Đây là tay chắn truyền động trực tiếp của Cage Bot, khác mô hình bánh răng 12:36.",
+          "Mở rộng: đọc công thức để tự tính motor 60° tạo đầu ra bao nhiêu. Nếu thử kit thật, nhờ người hướng dẫn kiểm tra cơ khí, mốc nghỉ và giới hạn; dừng khi kẹt hoặc quá hạn."
         ],
         "code": "# GearsBot Cage Bot, ev3dev2 Python. Press Reset before Run.\nfrom ev3dev2.motor import LargeMotor, OUTPUT_C, SpeedDPS\nfrom ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor\nfrom time import time, sleep\n\ntry:\n    color = ColorSensor(\"in3\")\n    sonar = UltrasonicSensor(\"in4\")\n    arm = LargeMotor(OUTPUT_C)\nexcept Exception as error:\n    print(\"SETUP:\", error)\n    raise RuntimeError(\"Select Cage Bot, then press Reset.\")\n\ndef move_arm(target, deadline):\n    if not 0 <= target <= 45:\n        raise ValueError(\"Use an arm target from 0 to 45 degrees.\")\n    if time() >= deadline:\n        return False\n    limit = min(deadline, time() + 3.0)\n    arm.on_to_position(SpeedDPS(30), target, brake=True, block=False)\n    while abs(arm.position - target) > 2:\n        if time() >= limit:\n            arm.off(brake=True)\n            return False\n        sleep(0.02)\n    arm.off(brake=True)\n    return time() < limit\n\n# Cage Bot arm angles are direct encoder angles, not a 12:36 gearbox.\ndeadline = time() + 15.0\ntry:\n    for target in [0, 30, 0]:\n        if not move_arm(target, deadline):\n            print(\"ERROR: target timeout\", target, \"measured\", arm.position)\n            break\n        print(\"target_deg\", target, \"measured_deg\", arm.position)\n        sleep(0.3)\nfinally:\n    arm.off(brake=True)\n\n# Separate mathematical prediction for an external 12:36 gear pair.\nteeth_in, teeth_out = 12, 36\nmotor_deg = 90.0\noutput_deg = -motor_deg * teeth_in / teeth_out\nrequired_motor_deg = -20.0 * teeth_out / teeth_in\nprint(\"model_output_deg\", output_deg)\nprint(\"motor_deg_for_positive_20_deg_output\", required_motor_deg)\n",
         "q": "Vì sao góc tay gạt có thể khác góc động cơ?",
@@ -1886,12 +1902,13 @@
         "sim": "color",
         "lang": "Python · GearsBot Cage Bot (ev3dev2)",
         "time": 50,
-        "exercise": "Với bộ truyền 12:36, muốn tay gạt đổi 20° thì motor cần đổi góc bao nhiêu trong mô hình lý tưởng? Vẽ thêm hai vị trí phân loại và nêu cách xử lý khi tay gạt không về mốc đúng hạn.",
-        "solution": "Motor cần đổi độ lớn 60°; chiều trục ra ngược chiều motor với một cặp bánh răng ngoài. Phải chọn hai vị trí trong vùng cơ khí cho phép. Nếu quá thời gian về nghỉ: dừng motor, báo lỗi và yêu cầu kiểm tra, không tự chạy chu kỳ phân loại tiếp theo.",
+        "exercise": "Trên mô hình bánh răng 12:36, dự đoán rồi thử góc motor 0° → 90° → 0°; ghi góc đầu ra và giải thích vì sao có thể khác góc motor. Nêu mốc nghỉ và việc cần làm khi cơ cấu thật không về được mốc. Phần thêm: muốn đầu ra đổi độ lớn 20° thì motor cần đổi bao nhiêu độ?",
+        "solution": "Mô hình cho đầu ra 0° → −30° → 0°. Với một cặp bánh răng ngoài 12:36, độ lớn góc đầu ra bằng một phần ba góc motor, chiều ngược lại. Vì vậy đầu ra 20° cần motor đổi độ lớn 60°. Mốc nghỉ là 0° đã chọn trước; khi cơ cấu thật không về đúng hạn thì dừng motor và kiểm tra. Chương trình Cage Bot riêng dùng chuỗi trực tiếp 0° → 30° → 0°, không có bộ truyền 12:36 này.",
         "checks": [
-          "Đánh dấu đúng trục vào, trục ra và vị trí nghỉ.",
-          "Tính được motor 90° → đầu ra 30° cho cặp 12:36.",
-          "Mô tả được hành vi dừng khi kẹt hoặc quá thời gian."
+          "Dự đoán rồi đối chiếu góc motor và góc đầu ra của một mô hình cơ cấu.",
+          "Chỉ đúng vị trí nghỉ và kiểm tra chuỗi chuyển động có trở về mốc.",
+          "Phân biệt mô hình bánh răng 12:36 với tay chắn trực tiếp của Cage Bot.",
+          "Nêu được hành vi dừng khi kẹt hoặc quá thời gian."
         ],
         "rubric": [
           [
@@ -1911,24 +1928,28 @@
             15
           ]
         ],
-        "prereq": "Biết một vòng là 360°, phân biệt trục chủ động/bị động và thao tác dừng chương trình. Nếu dùng kit thật cần có người hướng dẫn kiểm tra cơ khí.",
-        "labGuide": "Trong GearsBot, chọn Robot → Select Robot → Cage Bot, chuyển sang Python rồi bấm Reset trước mỗi lần chạy. Mẫu dùng ev3dev2 của GearsBot: outC là tay chắn, in3 là cảm biến màu hướng trước, in4 là siêu âm; cổng A/B dành cho hai bánh xe. Chạy khi vùng tay chắn trống; quan sát chuỗi góc 0° → 30° → 0° và đối chiếu góc encoder in ra. Chương trình dừng motor nếu quá 3 giây cho một chặng; khi báo lỗi, kiểm tra rồi Reset trước khi chạy lại. Phần cuối tính riêng bộ truyền 12:36 và góc motor cho đầu ra +20°. Đây là mã chạy cho mô hình Cage Bot; với Hub SPIKE thật, dùng API của ứng dụng LEGO Education SPIKE và cấu hình cổng của bộ lắp. ",
+        "prereq": "Chưa cần viết Python hoặc tính tỷ số truyền. Nhận biết tay chắn, động cơ (motor) và vị trí nghỉ; 90° là một góc vuông. Bắt đầu bằng mô phỏng trong Lab. Nếu dùng kit thật, cần người hướng dẫn kiểm tra cơ khí.",
+        "labGuide": "Bắt đầu ở Bàn thí nghiệm: giữ cặp bánh răng 12:36, dự đoán rồi thử góc motor 0°, 90°, 0° và ghi góc đầu ra. Mô hình tính quan hệ góc, không chạy Python hay mô phỏng kẹt cơ khí. Khi làm phần chương trình, chọn GearsBot → Robot → Select Robot → Cage Bot, mở Python, dán toàn bộ mẫu rồi Reset và Run. Mẫu dùng tay chắn outC, cảm biến màu in3, siêu âm in4; A/B là hai bánh xe. Quan sát 0° → 30° → 0° và target_deg/measured_deg; dừng khi báo timeout rồi kiểm tra trước khi Reset. Góc Cage Bot là góc trực tiếp, còn phép tính bánh răng cuối chương trình là mô hình riêng. Với Hub SPIKE thật, dùng ứng dụng LEGO Education SPIKE và cấu hình cổng của bộ lắp.",
         "objectives": [
-          "Phân biệt góc motor, góc trục ra và góc của tay gạt trong một cơ cấu.",
-          "Xác định vị trí nghỉ, phạm vi chuyển động và điều kiện dừng trước khi chạy.",
-          "Giải thích tác động của tỷ số truyền, độ rơ và tải lên chuyển động thực."
+          "Dự đoán rồi đối chiếu góc motor và góc đầu ra của một mô hình cơ cấu.",
+          "Chỉ đúng vị trí nghỉ và kiểm tra chuỗi chuyển động có trở về mốc.",
+          "Phân biệt mô hình bánh răng 12:36 với tay chắn trực tiếp của Cage Bot."
         ],
         "concepts": [
           {
-            "title": "Lệnh motor không phải góc tay gạt",
+            "title": "Việc đầu tiên: đi đến một góc rồi trở về",
+            "body": "Động cơ (motor) quay trục vào; bánh răng truyền chuyển động sang trục ra gắn tay gạt. Trước hết chọn mốc nghỉ 0°, thay một góc motor và đọc góc đầu ra. Hai góc có thể khác nhau vì cơ cấu truyền động. Trong mô hình 12:36 của bài, motor 90° cho đầu ra có độ lớn 30° và ngược chiều. Sau khi thử, đọc công thức để giải thích; tay chắn trực tiếp của GearsBot Cage Bot là một hoạt động riêng."
+          },
+          {
+            "title": "Đọc thêm · Lệnh motor không phải góc tay gạt",
             "body": "Motor làm quay trục vào; bánh răng hoặc liên kết truyền chuyển động ra cơ cấu. Với một cặp bánh răng ngoài lý tưởng, góc trục ra có độ lớn |θra| = |θvào| × Zvào/Zra và ngược chiều quay. Z là số răng. Nếu tay gạt lắp trực tiếp trục ra thì góc tay gạt bằng góc trục ra trong mô hình cứng; liên kết phức tạp cần xét hình học riêng."
           },
           {
-            "title": "Gốc tọa độ và giới hạn cơ khí",
+            "title": "Đọc thêm · Gốc tọa độ và giới hạn cơ khí",
             "body": "Vị trí nghỉ là mốc đo góc được xác định trước, không tự có chỉ vì vừa bật Hub. Nêu phạm vi được phép, chẳng hạn từ −30° đến +30° quanh vị trí nghỉ, nhưng phải chọn theo cơ cấu thực. Không ép motor vào chặn cứng để tìm gốc khi chưa có quy trình phù hợp; có thể gây kẹt, quá tải hoặc hỏng linh kiện."
           },
           {
-            "title": "Kiểm tra khi có tải",
+            "title": "Đọc thêm · Kiểm tra khi có tải",
             "body": "Độ rơ khiến đổi chiều chưa tạo ngay chuyển động đầu ra; tải và ma sát có thể làm motor không đạt góc yêu cầu. Dùng góc nhỏ, tốc độ thấp và có timeout/điều kiện dừng khi thử. GearsBot hỗ trợ luyện thuật toán motor trên mô hình riêng, không mô phỏng chính xác một bộ SPIKE tự lắp hay mọi tỷ số truyền của nó."
           }
         ],
@@ -1937,9 +1958,8 @@
           "Cơ cấu lắp chắc vẫn có thể quá tải hoặc kẹt; không được dùng motor để ép qua chặn cứng."
         ],
         "selfCheck": [
-          "Đánh dấu đúng trục vào, trục ra và vị trí nghỉ.",
-          "Tính được motor 90° → đầu ra 30° cho cặp 12:36.",
-          "Mô tả được hành vi dừng khi kẹt hoặc quá thời gian."
+          "Trong mô hình 12:36, motor quay 90° thì đầu ra quay bao nhiêu độ và theo chiều nào?",
+          "Nếu cơ cấu chưa về mốc đúng hạn, vì sao cần kiểm tra trước khi chạy lại?"
         ],
         "sources": [
           {
@@ -2477,14 +2497,16 @@
       {
         "id": "sequence",
         "title": "Chuỗi lệnh và hướng",
-        "goal": "Theo dõi chính xác trạng thái vị trí–hướng sau từng lệnh trong một chuỗi.",
-        "theory": "Chuỗi lệnh được thực hiện theo thứ tự: Mỗi lệnh nhận trạng thái hiện tại và tạo trạng thái tiếp theo. Lệnh tiến đổi vị trí theo hướng đang quay; lệnh rẽ tại chỗ đổi hướng. Thay thứ tự lệnh thường thay kết quả: tiến rồi rẽ khác rẽ rồi tiến. Muốn dự đoán đúng phải ghi đủ (x,y,hướng), không chỉ tọa độ.\n\nQuy ước của bàn lưới trong bài: Bàn lưới dùng x tăng sang phải, y tăng xuống dưới; trạng thái đầu (0,0,đông). F là tiến một ô, R là rẽ phải 90°, L là rẽ trái 90°. Ví dụ hướng nam thì F tăng y; hướng bắc thì F giảm y. Chỉ dùng quy ước này cho bàn lưới, không áp đặt cho mọi simulator.\n\nChuyển sang VEXcode VR: VEXcode VR có các Playground và đơn vị đo của riêng nó; đọc chỉ dẫn sân và chọn đúng robot/sân trước khi chạy. Lệnh quãng đường có thể dùng mm hoặc inch theo API đã chọn; một ô trong bài không tự bằng một khoảng cách VR. GearsBot là nền tảng bổ trợ riêng, không phải VEXcode VR và không chạy nguyên API VR.",
+        "goal": "Dự đoán và thử chuỗi tiến–rẽ ngắn để đưa robot đến một ô đích, ghi được vị trí và hướng sau mỗi lệnh.",
+        "theory": "1. Việc đầu tiên: tiến và rẽ là hai việc khác nhau\nHãy coi robot như một mũi tên trên giấy. Tiến là đi một ô theo mũi tên; rẽ phải hoặc trái là xoay mũi tên mà vẫn ở ô hiện tại. Muốn biết lệnh tiến tiếp theo đưa robot đi đâu, hãy nhìn hướng của mũi tên ngay lúc đó. Làm thử một đường ngắn trước khi đọc mã điều khiển motor.\n\n2. Đọc thêm · Chuỗi lệnh được thực hiện theo thứ tự\nMỗi lệnh nhận trạng thái hiện tại và tạo trạng thái tiếp theo. Lệnh tiến đổi vị trí theo hướng đang quay; lệnh rẽ tại chỗ đổi hướng. Thay thứ tự lệnh thường thay kết quả: tiến rồi rẽ khác rẽ rồi tiến. Muốn dự đoán đúng phải ghi đủ (x,y,hướng), không chỉ tọa độ.\n\n3. Đọc thêm · Quy ước của bàn lưới trong bài\nBàn lưới dùng x tăng sang phải, y tăng xuống dưới; trạng thái đầu (0,0,đông). F là tiến một ô, R là rẽ phải 90°, L là rẽ trái 90°. Ví dụ hướng nam thì F tăng y; hướng bắc thì F giảm y. Chỉ dùng quy ước này cho bàn lưới, không áp đặt cho mọi simulator.\n\n4. Đọc thêm · Chuyển sang VEXcode VR\nVEXcode VR có các Playground và đơn vị đo của riêng nó; đọc chỉ dẫn sân và chọn đúng robot/sân trước khi chạy. Lệnh quãng đường có thể dùng mm hoặc inch theo API đã chọn; một ô trong bài không tự bằng một khoảng cách VR. GearsBot là nền tảng bổ trợ riêng, không phải VEXcode VR và không chạy nguyên API VR.",
         "example": "Từ (0,0,đông): F,F,F đưa robot đến (3,0,đông); R cho (3,0,nam); F,F cho (3,2,nam). Chuỗi có 6 hành động nhưng chỉ 5 bước tiến; hành động rẽ không cộng một ô quãng đường.",
         "steps": [
-          "Viết trạng thái đầu và giải nghĩa F/R/L. Dự đoán từng hàng của chuỗi F,F,R,F trước khi chạy.",
-          "Reset bàn lưới, chạy từng lệnh và đối chiếu trạng thái sau mỗi bước, đặc biệt hàng rẽ không đổi vị trí.",
-          "Thử đổi thứ tự thành R,F,F,F; giải thích điểm khác nhau bằng hướng ở thời điểm tiến.",
-          "Nếu mở VEXcode VR hoặc simulator khác, kiểm tra Playground, robot, đơn vị và vị trí đầu của nền tảng rồi mới chuyển thuật toán; lưu dự án trước khi đổi môi trường."
+          "Dự đoán: từ (0,0,đông), vẽ đường đi F,F,R,F. Ghi mũi tên hướng robot sau mỗi lệnh; x tăng sang phải, y tăng xuống.",
+          "Thao tác: vào Lab → Bàn thí nghiệm, Reset rồi nhập F,F,R,F và chạy mô hình lưới.",
+          "Quan sát: đối chiếu từng trạng thái với hình vẽ. Khoanh hàng R để kiểm tra rằng vị trí không đổi nhưng hướng đã đổi.",
+          "Giải thích: ghi số lệnh đã làm và số ô tiến; nêu vì sao hai số khác nhau.",
+          "Thử tiếp: dự đoán chuỗi R,F,F,F, Reset rồi chạy. So sánh hai đích để giải thích tác dụng của thứ tự lệnh.",
+          "Mở rộng: dùng hướng dẫn Lab để chạy mẫu Python trong GearsBot, hoặc chuyển thuật toán sang VEXcode VR. Kiểm tra robot, sân và đơn vị của từng nền tảng trước khi so sánh."
         ],
         "code": "from math import pi, sqrt\nfrom time import time, sleep\nfrom ev3dev2.motor import MoveTank, OUTPUT_A, OUTPUT_B\nfrom ev3dev2.sensor import INPUT_4\nfrom ev3dev2.sensor.virtual import GPSSensor\n\ntank = MoveTank(OUTPUT_A, OUTPUT_B)\ngps = GPSSensor(INPUT_4)\nWHEEL_DIAMETER_MM = 56.0\nTRACK_WIDTH_MM = 152.0\nSPEED = 25\n\ndef move_wheels(left_speed, right_speed, degrees, timeout_s=8.0):\n    start_left = tank.left_motor.position\n    start_right = tank.right_motor.position\n    deadline = time() + timeout_s\n    tank.on_for_degrees(left_speed, right_speed, degrees,\n                        brake=True, block=False)\n    try:\n        sleep(0.05)\n        while time() < deadline:\n            if tank.left_motor.is_stalled or tank.right_motor.is_stalled:\n                raise RuntimeError(\"Motor stalled; check the course\")\n            if not (tank.left_motor.is_running or tank.right_motor.is_running):\n                left_done = abs(tank.left_motor.position - start_left)\n                right_done = abs(tank.right_motor.position - start_right)\n                if min(left_done, right_done) >= degrees - 5:\n                    return\n            sleep(0.02)\n        raise RuntimeError(\"Motion timeout; reset before retrying\")\n    finally:\n        tank.off(brake=True)\n\ndef forward(distance_mm):\n    degrees = 360.0 * distance_mm / (pi * WHEEL_DIAMETER_MM)\n    move_wheels(SPEED, SPEED, degrees)\n\ndef turn_right(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(SPEED, -SPEED, degrees)\n\ndef turn_left(angle_deg=90):\n    degrees = angle_deg * TRACK_WIDTH_MM / WHEEL_DIAMETER_MM\n    move_wheels(-SPEED, SPEED, degrees)\n\n# Initial logical heading: east. One cell is 100 mm.\nx, y, heading = 0, 0, 0\nvectors = [(1, 0), (0, 1), (-1, 0), (0, -1)]\nnames = [\"east\", \"south\", \"west\", \"north\"]\ntry:\n    for command in \"F F R F\".split():\n        if command == \"F\":\n            forward(100)\n            dx, dy = vectors[heading]\n            x, y = x + dx, y + dy\n        elif command == \"R\":\n            turn_right()\n            heading = (heading + 1) % 4\n        elif command == \"L\":\n            turn_left()\n            heading = (heading - 1) % 4\n        else:\n            raise ValueError(\"Unknown command\")\n        print(command, \"->\", x, y, names[heading])\n    print(\"GPS endpoint (cm):\", gps.position[:2])\nfinally:\n    tank.off(brake=True)\n",
         "q": "Lệnh rẽ tại chỗ trong mô hình thay đổi…",
@@ -2498,12 +2520,13 @@
         "sim": "grid",
         "lang": "Python · GearsBot (ev3dev2)",
         "time": 50,
-        "exercise": "Ghi trạng thái sau từng lệnh của F,R,F,L,F từ (0,0,đông). Nếu giữ nguyên chuỗi nhưng xuất phát hướng nam, vị trí cuối có còn giống không? Hãy dự đoán trước khi thử.",
-        "solution": "Hướng đông: (1,0,đông), (1,0,nam), (1,1,nam), (1,1,đông), (2,1,đông). Nếu xuất phát hướng nam: đích (−1,2,nam) trên lưới không giới hạn; trong bàn có biên có thể bị chặn/ghi lỗi nên phải kiểm tra biên thực của bài.",
+        "exercise": "Dự đoán bằng hình mũi tên hoặc bảng trạng thái chuỗi F,R,F,L,F từ (0,0,đông). Reset, chạy bàn lưới và ghi một điểm khớp hoặc sai với dự đoán. Đếm riêng số lệnh và số ô đã tiến; phần thêm: thử bắt đầu hướng nam trên giấy.",
+        "solution": "Từ hướng đông: (1,0,đông), (1,0,nam), (1,1,nam), (1,1,đông), (2,1,đông). Có 5 lệnh, gồm 3 bước tiến và 2 lần rẽ tại chỗ. Nếu xuất phát hướng nam, trên lưới không giới hạn đích là (−1,2,nam); bàn có biên có thể chặn chuyển động nên cần kiểm tra phạm vi trước khi chạy.",
         "checks": [
-          "Bảng trạng thái ghi đủ x, y và hướng sau từng lệnh.",
-          "Đếm riêng được số hành động và số bước tiến.",
-          "Nêu được ít nhất hai điều cần kiểm tra khi chuyển từ bàn lưới sang VEXcode VR."
+          "Dự đoán rồi kiểm tra một đường đi có lệnh tiến và rẽ.",
+          "Ghi đủ vị trí và hướng; đếm riêng số lệnh với số ô đã tiến.",
+          "Nhận biết lưới nội bộ, GearsBot và VEXcode VR có quy ước, đơn vị riêng.",
+          "Có hình hoặc bảng dự đoán trước khi chạy và đối chiếu từng lệnh."
         ],
         "rubric": [
           [
@@ -2523,24 +2546,28 @@
             15
           ]
         ],
-        "prereq": "Biết bốn hướng đông, tây, nam, bắc và phân biệt tiến với rẽ. Chưa cần có VEX IQ hoặc tài khoản trả phí để làm bàn lưới nội bộ.",
+        "prereq": "Chưa cần viết Python hoặc có robot. Biết mũi tên đang chỉ hướng nào. Trên lưới: F tiến một ô, R rẽ phải 90° tại chỗ, L rẽ trái 90° tại chỗ; Reset đưa robot về (0,0), nhìn sang phải (đông).",
         "labGuide": "Trong GearsBot, chọn robot Single Sensor Line Follower (singleFollower), mở Python và dán toàn bộ chương trình. Robot dùng bánh trái A, bánh phải B; đường kính bánh 56 mm, khoảng cách hai bánh 152 mm. Chọn sân rộng, phẳng; Reset trước mỗi lượt rồi Run. Chuỗi F F R F chạy trực tiếp với một ô bằng 100 mm. Console ghi vị trí và hướng theo lưới sau mỗi lệnh; hướng đông quy ước trùng hướng xuất phát của robot. Đổi chuỗi thành F R F L F để làm bài tập, Reset rồi chạy. Tọa độ logic giúp kiểm tra thứ tự lệnh; GPS cung cấp số đo riêng trên sân GearsBot.",
         "objectives": [
-          "Theo dõi chính xác trạng thái vị trí–hướng sau từng lệnh trong một chuỗi.",
-          "Phân biệt hệ tọa độ lưới nội bộ với đơn vị và hệ tọa độ của sân VEXcode VR.",
-          "Chuyển ý tưởng thuật toán sang môi trường khác bằng cách kiểm tra đơn vị và hướng trước."
+          "Dự đoán rồi kiểm tra một đường đi có lệnh tiến và rẽ.",
+          "Ghi đủ vị trí và hướng; đếm riêng số lệnh với số ô đã tiến.",
+          "Nhận biết lưới nội bộ, GearsBot và VEXcode VR có quy ước, đơn vị riêng."
         ],
         "concepts": [
           {
-            "title": "Chuỗi lệnh được thực hiện theo thứ tự",
+            "title": "Việc đầu tiên: tiến và rẽ là hai việc khác nhau",
+            "body": "Hãy coi robot như một mũi tên trên giấy. Tiến là đi một ô theo mũi tên; rẽ phải hoặc trái là xoay mũi tên mà vẫn ở ô hiện tại. Muốn biết lệnh tiến tiếp theo đưa robot đi đâu, hãy nhìn hướng của mũi tên ngay lúc đó. Làm thử một đường ngắn trước khi đọc mã điều khiển motor."
+          },
+          {
+            "title": "Đọc thêm · Chuỗi lệnh được thực hiện theo thứ tự",
             "body": "Mỗi lệnh nhận trạng thái hiện tại và tạo trạng thái tiếp theo. Lệnh tiến đổi vị trí theo hướng đang quay; lệnh rẽ tại chỗ đổi hướng. Thay thứ tự lệnh thường thay kết quả: tiến rồi rẽ khác rẽ rồi tiến. Muốn dự đoán đúng phải ghi đủ (x,y,hướng), không chỉ tọa độ."
           },
           {
-            "title": "Quy ước của bàn lưới trong bài",
+            "title": "Đọc thêm · Quy ước của bàn lưới trong bài",
             "body": "Bàn lưới dùng x tăng sang phải, y tăng xuống dưới; trạng thái đầu (0,0,đông). F là tiến một ô, R là rẽ phải 90°, L là rẽ trái 90°. Ví dụ hướng nam thì F tăng y; hướng bắc thì F giảm y. Chỉ dùng quy ước này cho bàn lưới, không áp đặt cho mọi simulator."
           },
           {
-            "title": "Chuyển sang VEXcode VR",
+            "title": "Đọc thêm · Chuyển sang VEXcode VR",
             "body": "VEXcode VR có các Playground và đơn vị đo của riêng nó; đọc chỉ dẫn sân và chọn đúng robot/sân trước khi chạy. Lệnh quãng đường có thể dùng mm hoặc inch theo API đã chọn; một ô trong bài không tự bằng một khoảng cách VR. GearsBot là nền tảng bổ trợ riêng, không phải VEXcode VR và không chạy nguyên API VR."
           }
         ],
@@ -2549,9 +2576,8 @@
           "Ô lưới, mm của sân VR và vị trí thực của robot là các đại lượng khác nhau."
         ],
         "selfCheck": [
-          "Bảng trạng thái ghi đủ x, y và hướng sau từng lệnh.",
-          "Đếm riêng được số hành động và số bước tiến.",
-          "Nêu được ít nhất hai điều cần kiểm tra khi chuyển từ bàn lưới sang VEXcode VR."
+          "Trong F,F,R,F, lệnh nào đổi hướng nhưng giữ vị trí?",
+          "Vì sao đổi thứ tự thành R,F,F,F làm thay đổi đích?"
         ],
         "sources": [
           {
