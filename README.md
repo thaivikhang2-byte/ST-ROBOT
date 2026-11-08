@@ -43,6 +43,8 @@ Máy chủ chuẩn hóa `ALLOWED_ORIGIN` khi người triển khai dán URL GitH
 
 Chat và tutor dùng `frontend/src/services/AiService.js` để tách thời gian khởi động Render Free (tối đa 90 giây, chỉ gọi `/health`) khỏi thời gian chờ câu trả lời (65 giây). Khi lỗi, mục **Chi tiết lỗi** có thể sao chép mã lỗi và trạng thái HTTP an toàn ngay trên web. Kiểm tra bằng `node tests/ai-readiness.mjs`; giai đoạn readiness không gọi AI, không tiêu hạn mức hỏi và không chạy ping giữ máy chủ thức định kỳ.
 
+Câu trả lời AI dùng chung `AiMessageRenderer.js` để hiển thị Markdown và công thức LaTeX bằng markdown-it/KaTeX lưu ngay trong website. Phân số, chỉ số và ký hiệu toán được dựng thành công thức; nội dung trong code giữ nguyên. HTML thô và ảnh ngoài từ câu trả lời không được thực thi/tải tự động. Công thức sai hoặc vượt giới hạn được giữ dạng văn bản an toàn. Thay đổi chỉ nằm ở hiển thị, giữ nguyên yêu cầu API và lịch sử gửi cho AI. Kiểm tra bằng `node tests/ai-message-renderer.mjs` và `python3 tests/ai-formatting-smoke.py --base http://127.0.0.1:5500` khi frontend đang chạy; API trong bài kiểm tra trình duyệt được giả lập.
+
 Khi model Gemini trả 5xx hoặc bị báo không hợp lệ, máy chủ đối chiếu ID cấu hình với catalog rồi có thể dùng lần thử thứ hai để gọi một ID sửa cách ghi không mơ hồ hoặc Gemini Flash text được catalog liệt kê. Bộ chọn hỗ trợ tiền tố và phiên bản mới; ba tên dự phòng cũ là ưu tiên, không phải giới hạn duy nhất. Tổng số POST vẫn tối đa hai lần và deadline tổng 55 giây; không đổi model khi lỗi khóa, quota hoặc provider yêu cầu chờ. Xem giới hạn tại [hướng dẫn kết nối AI](docs/ai-troubleshooting.md); kiểm tra bằng `node tests/model-selection.mjs`, `node tests/model-fallback.mjs` và `node tests/chat-model-recovery.mjs`.
 
 ## Kiểm tra giao diện

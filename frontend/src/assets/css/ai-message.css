@@ -1,0 +1,56 @@
+.ai-rich-text {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    line-height: 1.7;
+}
+.ai-rich-text > :first-child { margin-top: 0; }
+.ai-rich-text > :last-child { margin-bottom: 0; }
+.ai-rich-text p { margin: .6em 0; }
+.ai-rich-text h1, .ai-rich-text h2, .ai-rich-text h3,
+.ai-rich-text h4, .ai-rich-text h5, .ai-rich-text h6 {
+    margin: .85em 0 .4em;
+    font-size: 1.05em;
+    line-height: 1.5;
+    color: inherit;
+}
+.ai-rich-text ul, .ai-rich-text ol { margin: .5em 0; padding-left: 1.45em; }
+.ai-rich-text li + li { margin-top: .3em; }
+.ai-rich-text a { color: var(--color-primary); text-decoration: underline; }
+.ai-rich-text pre, .ai-rich-text code {
+    font-family: ui-monospace, Consolas, "Liberation Mono", monospace;
+    font-size: .94em;
+}
+.ai-rich-text code { white-space: pre-wrap; padding: .12em .3em; border-radius: .25em; background: var(--color-primary-soft); }
+.ai-rich-text pre {
+    max-width: 100%;
+    min-width: 0;
+    padding: .7em;
+    overflow: auto;
+    white-space: pre;
+    border: 1px solid var(--color-border);
+    border-radius: .5em;
+    background: var(--color-surface);
+}
+.ai-rich-text pre code { padding: 0; background: none; white-space: inherit; overflow-wrap: normal; }
+.ai-rich-text .ai-math {
+    display: inline-block;
+    max-width: 100%;
+    padding: .2em .12em;
+    overflow-x: auto;
+    overflow-y: hidden;
+    vertical-align: middle;
+    overflow-wrap: normal;
+}
+.ai-rich-text .ai-math--display { display: block; margin: .5em 0; padding: .45em .2em; }
+.ai-rich-text .katex { font-size: 1.1em; }
+.ai-rich-text .katex-display { margin: .1em 0; text-align: left; }
+.ai-rich-text .katex-display > .katex { text-align: left; }
+.ai-rich-text .ai-math-fallback { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ai-rich-text .ai-table-scroll { max-width: 100%; overflow-x: auto; margin: .65em 0; }
+.ai-rich-text table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: .95em; }
+.ai-rich-text th, .ai-rich-text td { padding: .45em .6em; border: 1px solid var(--color-border); text-align: left; }
+.ai-rich-text th { background: var(--color-primary-soft); }
+.ai-rich-text blockquote { margin: .6em 0; padding-left: .8em; border-left: 3px solid var(--color-primary); }
+.ai-rich-text .ai-reply-truncated { font-size: .9em; color: var(--color-text-muted); }

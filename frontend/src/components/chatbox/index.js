@@ -1,6 +1,7 @@
 import { getChatboxTemplate } from './template.js';
 import { $, $$ } from '../../utils/dom.js';
 import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../../services/AiService.js?v=catalog-selection-v13';
+import { renderAiMessage } from '../../services/AiMessageRenderer.js?v=ai-render-v14';
 
 const DIAGNOSTIC_CODES = new Set(['AI_AUTH', 'AI_MODEL', 'AI_QUOTA', 'AI_BUSY', 'AI_UNAVAILABLE', 'AI_NETWORK',
     'AI_TIMEOUT', 'AI_RESPONSE', 'AI_REQUEST', 'AI_STARTUP_TIMEOUT', 'AI_STARTUP_RESPONSE', 'AI_REPLY_TIMEOUT', 'AI_STARTUP_FAILED', 'AI_CANCELLED']);
@@ -92,7 +93,7 @@ export class Chatbox {
                     signal: controller.signal,
                     onStatus: state => { pending.textContent = state === 'starting' ? 'Đang khởi động trợ lý…' : 'AI đang trả lời…'; }
                 });
-                pending.textContent = reply;
+                renderAiMessage(pending, reply);
                 pending.dataset.state = 'complete';
                 this.history.push({ role: 'user', content: question }, { role: 'assistant', content: reply.slice(0, 4000) });
                 this.history = this.history.slice(-6);

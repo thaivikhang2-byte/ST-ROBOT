@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="../src/assets/css/base.css">
   <link rel="stylesheet" href="../src/assets/css/layout.css">
   <link rel="stylesheet" href="../src/assets/css/components.css">
+  <link rel="stylesheet" href="../src/vendor/katex/katex.min.css?v=ai-render-v14">
+  <link rel="stylesheet" href="../src/assets/css/ai-message.css?v=ai-render-v14">
   <link rel="stylesheet" href="../src/assets/css/pages/selfstudy.css">
 </head>
 <body class="learning-page">
@@ -104,7 +106,7 @@
     <div class="pdf-panel"><div class="pdf-head"><span id="modalPdfTitle">Tài liệu giáo trình ST-Robot</span><div class="pdf-actions"><button type="button" id="downloadPdf" class="btn--primary">Tải giáo trình PDF · 6 bài</button><button type="button" onclick="closePdfModal()">Đóng</button></div></div><div class="pdf-body"><div id="printablePdfArea"><h2 id="pdfDocHeading">Tiêu đề bài học</h2><p class="small">Tài liệu tự học có bài tập và đáp án đối chiếu</p><div id="pdfDocBody"></div></div></div></div>
   </div>
   <dialog id="microbitResetDialog" class="dialog" aria-labelledby="microbitResetTitle"><div class="dialog-body"><h2 id="microbitResetTitle">Nạp lại mã mẫu của bài này?</h2><p>Mã đã chỉnh sửa của bài đang mở sẽ được thay bằng mã mẫu. Hãy tải bản cần giữ trước khi tiếp tục. Dự án của các bài khác được giữ nguyên.</p></div><div class="dialog-foot"><button id="microbitCancelReset" type="button" class="btn" onclick="document.getElementById('microbitResetDialog').close()">Giữ mã hiện tại</button><button id="microbitConfirmReset" type="button" class="btn btn--primary" onclick="resetMicrobitSource()">Nạp mã mẫu</button></div></dialog>
-  <script type="module" src="../src/app.js?v=catalog-selection-v13"></script>
+  <script type="module" src="../src/app.js?v=ai-render-v14"></script>
   <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=lesson-code-v5'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
 <script src="../src/data/curriculum.js?v=lesson-code-v5"></script>
 <script src="../src/data/lesson-pdfs.js?v=lesson-code-v5"></script>
@@ -414,6 +416,7 @@ window.addEventListener('DOMContentLoaded',initPage);
 
 <script type="module">
 import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../src/services/AiService.js?v=catalog-selection-v13';
+import { renderAiMessage } from '../src/services/AiMessageRenderer.js?v=ai-render-v14';
 window.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('tutorForm');
   const input = document.getElementById('tutorQuestion');
@@ -428,7 +431,12 @@ window.addEventListener('DOMContentLoaded', () => {
   function add(text, user) {
     const item = document.createElement('div');
     item.className = 'chat-message' + (user ? ' user' : '');
-    item.textContent = (user ? 'Bạn: ' : 'Trợ lý: ') + text;
+    if (user) item.textContent = 'Bạn: ' + text;
+    else {
+      const label = document.createElement('strong'); label.textContent = 'Trợ lý: ';
+      const content = document.createElement('div'); renderAiMessage(content, text);
+      item.append(label, content);
+    }
     messages.append(item); messages.scrollTop = messages.scrollHeight;
   }
   function clearDiagnostics() { diagnosticHost.replaceChildren(); diagnosticHost.hidden = true; }

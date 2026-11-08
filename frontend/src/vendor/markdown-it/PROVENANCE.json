@@ -1,0 +1,10 @@
+{
+  "package": "markdown-it",
+  "version": "15.0.3",
+  "source": "https://registry.npmjs.org/markdown-it/-/markdown-it-15.0.3.tgz",
+  "npmIntegrity": "sha512-+Az7Ojz3iRGu8KYMvJ6xVhvrxP3eE+vEtJX75Ow88XBpcQNV/0lGX5ZynIIBftREo4DC2jsveAMDaeltmm8QvQ==",
+  "vendoredSource": "package/dist/browser/markdown-it.esm.min.mjs",
+  "moduleFile": "markdown-it.js",
+  "modification": "Renamed browser ESM bundle to .js for the frontend server; source-map URL and trailing blank line removed.",
+  "license": "MIT"
+}
