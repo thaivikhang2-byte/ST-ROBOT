@@ -57,7 +57,9 @@ Mỗi bài có giải thích nhập môn, ví von kèm giới hạn, thuật ng�
 
 ## Ảnh lỗi và chụp màn hình
 
-`TutorAttachments.js` nhận tệp PNG/JPEG/WebP, ảnh dán hoặc một khung hình từ tab/cửa sổ/màn hình do người học chọn qua bộ chọn của trình duyệt. Đây là thao tác người học chủ động: ảnh được xem trước, bỏ hoặc gửi cùng câu hỏi. Trình duyệt không hỗ trợ chia sẻ màn hình dùng tải/dán ảnh. Nguồn chia sẻ không có âm thanh; các track dừng sau một ảnh, khi hủy/đóng/đổi bài hoặc gặp lỗi. Không lưu ảnh vào localStorage, hồ sơ thực hành hay lịch sử yêu cầu tiếp theo.
+`TutorAttachments.js` nhận tệp PNG/JPEG/WebP, ảnh dán hoặc một khung hình từ tab/cửa sổ/màn hình do người học chọn qua bộ chọn của trình duyệt. Đây là thao tác người học chủ động: ảnh được xem trước, bỏ hoặc gửi cùng câu hỏi. Trình duyệt điện thoại thường không có API chia sẻ màn hình: nút Ảnh chụp màn hình mở bộ chọn ảnh của máy, để chọn ảnh chụp bằng phím hệ thống rồi cắt ngay trong web. Không dùng camera thay cho chụp màn hình. Nguồn chia sẻ trên máy tính không có âm thanh; mọi track dừng ngay sau khi lấy khung hình, trước khi mở công cụ cắt, và cũng dừng khi hủy/đóng/đổi bài hoặc gặp lỗi. Không lưu ảnh vào localStorage, hồ sơ thực hành hay lịch sử yêu cầu tiếp theo.
+
+Sau khi chụp hoặc chọn ảnh chụp, hộp thoại cho kéo chuột/ngón tay chọn vùng, kéo góc để chỉnh kích thước, di chuyển vùng chọn hoặc nhập tọa độ theo pixel ảnh gốc. Có các lựa chọn Dùng vùng đã chọn, Dùng toàn ảnh, Chọn lại vùng và Hủy. Chỉ phần đã xác nhận được đưa vào bản nháp; chưa có ảnh nào gửi đến AI trước khi bấm Gửi. Ảnh tải/dán vẫn thêm như trước và có nút Cắt ảnh để chỉnh lại; hủy chỉnh giữ nguyên bản nháp. Đổi bài, reset hoặc đóng tutor hủy thao tác đang chờ và không để kết quả cũ ghi đè phiên mới. Bộ giải mã ảnh có đường HTMLImageElement/object URL cho trình duyệt không hỗ trợ createImageBitmap.
 
 Tệp gốc giới hạn 8 MiB, tối đa 25 triệu pixel; ảnh chuẩn hóa JPEG, cạnh dài tối đa 1600 pixel và loại bỏ metadata. Mỗi câu hỏi tối đa hai ảnh, mỗi ảnh 1.5 MiB, tổng 3 MiB. Xem trước trước khi gửi; giới hạn này chỉ là giới hạn kỹ thuật, không phải bảo đảm AI đọc đúng mọi thông báo. Nên chụp rõ mã, lỗi và vùng kết quả có liên quan.
 
@@ -68,4 +70,6 @@ Kiểm tra bổ sung:
 - `node tests/platform-guides.mjs` kiểm tra 378 tổ hợp bài/nền tảng/mức đọc, cú pháp Python, sáu sketch AVR và các công thức Arcade trong môi trường kiểm thử API.
 - `node tests/tutor-images.mjs` kiểm tra dữ liệu ảnh, giới hạn streaming, context và payload provider bằng nhà cung cấp giả lập.
 - `python3 tests/floating-tutor-smoke.py --base http://127.0.0.1:5500` kiểm tra kéo chuột/cảm ứng, bàn phím, lưu vị trí, vùng nhìn thấy và hộp thoại.
-- `python3 tests/tutor-images-smoke.py --base http://127.0.0.1:5500` kiểm tra tải/dán/chụp, xem trước, gửi, giữ khi lỗi và dừng track. Nguồn chụp và phản hồi AI được giả lập, không phát sinh lượt hỏi dịch vụ thật.
+- `python3 tests/tutor-images-smoke.py --base http://127.0.0.1:5500` kiểm tra tải/dán/chụp, cắt vùng, bộ chọn ảnh điện thoại, Safari decode fallback, xem trước, gửi, giữ khi lỗi và dừng track. Nguồn chụp và phản hồi AI được giả lập, không phát sinh lượt hỏi dịch vụ thật.
+
+- `python3 tests/image-crop-smoke.py --base http://127.0.0.1:5500` đối chiếu pixel ảnh cắt thật, tọa độ ảnh gốc, chuột/cảm ứng, kéo góc và điều khiển bàn phím. Kiểm thử điện thoại dùng giả lập viewport/cảm ứng trong Chromium; không thay cho thử nghiệm trực tiếp trên mọi máy Android/iPhone.

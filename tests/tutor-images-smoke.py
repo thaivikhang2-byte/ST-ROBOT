@@ -117,7 +117,7 @@ with sync_playwright() as p:
     page.locator('#tutorCapture').click()
     expect(attachment_status).to_contain_text('tối đa 2 ảnh')
     require(page.evaluate('captureOptions.length===0 && captureTracks.length===0'), 'Full attachment list still opened a screen picker')
-    previews.first.get_by_role('button').click()
+    previews.first.get_by_role('button', name='Bỏ ảnh 1', exact=True).click()
     expect(previews).to_have_count(1)
     require(not posts, 'Pasting or removing a preview sent an API request')
     question = 'Giải thích **lỗi này** và giữ count += presses.'
@@ -155,7 +155,17 @@ with sync_playwright() as p:
     page.locator('#tutorReset').click()
     page.evaluate(CAPTURE_MOCK, 'ok')
     page.locator('#tutorCapture').click()
+    expect(page.locator('#imgCropDialog')).to_be_visible()
+    stop_assertion()
+    expect(previews).to_have_count(0)
+    require(len(posts) == 3, 'Opening the crop editor sent the screenshot before explicit submission')
+    box = page.locator('#imgCropSurface').bounding_box()
+    page.mouse.move(box['x']+box['width']*.25,box['y']+box['height']*.25)
+    page.mouse.down();page.mouse.move(box['x']+box['width']*.75,box['y']+box['height']*.75,steps=8);page.mouse.up()
+    page.locator('#imgCropConfirm').click()
     expect(previews).to_have_count(1)
+    desktop_size = previews.locator('img').evaluate('e=>({width:e.naturalWidth,height:e.naturalHeight})')
+    require(abs(desktop_size['width']-320)<=2 and abs(desktop_size['height']-180)<=2, 'Desktop attachment ignored the selected screen region: '+str(desktop_size))
     stop_assertion()
     require(page.evaluate('captureOptions[0].audio===false && captureOptions[0].video.displaySurface==="browser"'), 'Capture requested unexpected media')
     require(page.locator('#tutorPanel').evaluate('e=>e.style.visibility') == '' and page.locator('#tutorLauncher').evaluate('e=>e.style.visibility') == '', 'Capture left the tutor invisible')
@@ -201,6 +211,10 @@ with sync_playwright() as p:
     require(preserved['live'] and preserved['hidden'] and preserved['busy'] and preserved['previews'] == 0,
             'Cancelled capture A disrupted pending capture B: '+str(preserved))
     page.evaluate('captureBlobs[1].release()')
+    expect(page.locator('#imgCropDialog')).to_be_visible()
+    page.wait_for_function('captureTracks.length===4 && captureTracks.every(track=>track.readyState==="ended" && track.testStops>=1)')
+    expect(previews).to_have_count(0)
+    page.locator('#imgCropFull').click()
     expect(previews).to_have_count(1)
     page.wait_for_function('captureTracks.length===4 && captureTracks.every(track=>track.readyState==="ended" && track.testStops>=1)')
     require(previews.locator('img').evaluate('e=>e.naturalWidth===640 && e.naturalHeight===360'), 'Stale capture A replaced the preview from capture B')
@@ -237,11 +251,69 @@ with sync_playwright() as p:
     stop_assertion()
     expect(previews).to_have_count(0)
     expect(page.locator('#tutorMessages')).to_be_empty()
-    # Unsupported capture keeps upload and paste available.
-    page.evaluate("Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:undefined})")
+    # A captured source can be cancelled without attaching or sending it.
+    page.evaluate(CAPTURE_MOCK, 'ok')
     page.locator('#tutorCapture').click()
-    expect(attachment_status).to_contain_text('Thêm ảnh hoặc dán ảnh')
-    expect(page.locator('#tutorImageInput')).to_be_enabled()
+    expect(page.locator('#imgCropDialog')).to_be_visible()
+    stop_assertion()
+    expect(previews).to_have_count(0)
+    page.locator('#imgCropCancel').click()
+    expect(page.locator('#imgCropDialog')).to_be_hidden()
+    expect(previews).to_have_count(0)
+    expect(send).to_be_enabled()
+    # Preview cropping is optional for ordinary uploads; cancelling retains the original.
+    upload()
+    expect(previews).to_have_count(1)
+    original_preview = previews.locator('img').get_attribute('src')
+    previews.locator('button[data-action="crop-image"]').click()
+    expect(page.locator('#imgCropDialog')).to_be_visible()
+    page.keyboard.press('Escape')
+    expect(page.locator('#imgCropDialog')).to_be_hidden()
+    require(previews.locator('img').get_attribute('src') == original_preview, 'Cancelling preview crop removed/replaced the prepared image')
+    previews.locator('button[data-action="crop-image"]').click()
+    expect(page.locator('#imgCropDialog')).to_be_visible()
+    # Closing the tutor while editing must discard that pending operation only.
+    page.evaluate('window.STROBOT_FLOATING_TUTOR.close()')
+    expect(page.locator('#imgCropDialog')).to_be_hidden()
+    page.locator('#tutorLauncher').click()
+    require(previews.locator('img').get_attribute('src') == original_preview, 'Closing the crop editor lost the existing draft')
+    page.locator('#tutorReset').click()
+    # Phone/Safari-style capture limitations use a real file chooser, not a dead button.
+    # Disabling createImageBitmap also exercises the HTMLImageElement decoder fallback.
+    page.set_viewport_size({'width': 390, 'height': 844})
+    page.evaluate("Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:undefined});Object.defineProperty(window,'createImageBitmap',{configurable:true,value:undefined})")
+    with page.expect_file_chooser() as chosen:
+        page.locator('#tutorCapture').click()
+    chosen.value.set_files(image_file)
+    expect(page.locator('#imgCropDialog')).to_be_visible()
+    expect(previews).to_have_count(0)
+    expect(send).to_be_disabled()
+    surface = page.locator('#imgCropSurface')
+    box = surface.bounding_box()
+    require(box and box['width'] > 0 and box['height'] > 0, 'Mobile crop surface is unavailable')
+    surface.evaluate('''(surface,r)=>{
+        const common={bubbles:true,cancelable:true,pointerId:52,pointerType:'touch',isPrimary:true};
+        surface.dispatchEvent(new PointerEvent('pointerdown',{...common,clientX:r.x+r.width*.1,clientY:r.y+r.height*.1,buttons:1}));
+        surface.dispatchEvent(new PointerEvent('pointermove',{...common,clientX:r.x+r.width*.6,clientY:r.y+r.height*.6,buttons:1}));
+        surface.dispatchEvent(new PointerEvent('pointerup',{...common,clientX:r.x+r.width*.6,clientY:r.y+r.height*.6,buttons:0}));
+    }''', box)
+    expect(page.locator('#imgCropConfirm')).to_be_enabled()
+    page.locator('#imgCropConfirm').click()
+    expect(previews).to_have_count(1)
+    mobile_size = previews.locator('img').evaluate('e=>({width:e.naturalWidth,height:e.naturalHeight})')
+    require(abs(mobile_size['width']-1280)<=3 and abs(mobile_size['height']-720)<=3, 'Phone selection was not cropped in original-image coordinates: '+str(mobile_size))
+    require(len(posts) == 3, 'Phone screenshot/crop sent an AI request without pressing Send')
+    expect(send).to_be_enabled()
+    page.locator('#tutorReset').click()
+    # Clearing/changing the lesson cancels an outstanding crop and cannot leak its image.
+    with page.expect_file_chooser() as chosen:
+        page.locator('#tutorCapture').click()
+    chosen.value.set_files(image_file)
+    expect(page.locator('#imgCropDialog')).to_be_visible()
+    page.evaluate('loadLesson(2)')
+    expect(page.locator('#imgCropDialog')).to_be_hidden()
+    expect(previews).to_have_count(0)
+    expect(send).to_be_enabled()
     # Real image form remains within a small keyboard-sized viewport, with a usable
     # message area and textarea; extra image controls scroll inside the form.
     page.set_viewport_size({'width': 375, 'height': 360})
@@ -258,4 +330,4 @@ with sync_playwright() as p:
     require(not errors, 'Browser errors: '+json.dumps(errors))
     context.close()
     browser.close()
-print('PASS tutor images: upload/paste/remove, JPEG bounds, explicit image request/context, text-only history, failure retry, capture/cancel/late-stream cleanup, stale encoder isolation, full-list capture guard, lesson reset, unsupported capture and mobile form; no paid calls')
+print('PASS tutor images: upload/paste/preview crop, explicit image requests, JPEG limits/context/history/retry, desktop capture with stopped streams, crop cancellation/stale encoder isolation, phone file picker + touch crop + decoder fallback, lesson reset and mobile layout; no paid calls')

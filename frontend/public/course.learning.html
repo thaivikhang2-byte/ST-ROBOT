@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="../src/assets/css/ai-message.css?v=ai-render-v14">
   <link rel="stylesheet" href="../src/assets/css/pages/selfstudy.css?v=workspace-v16">
   <link rel="stylesheet" href="../src/assets/css/floating-tutor.css?v=workspace-v16">
-  <link rel="stylesheet" href="../src/assets/css/tutor-attachments.css?v=workspace-v16">
+  <link rel="stylesheet" href="../src/assets/css/tutor-attachments.css?v=screen-region-v2">
   <link rel="stylesheet" href="../src/modules/learning/learning-theory.css?v=workspace-v16">
 </head>
 <body class="learning-page">
@@ -117,7 +117,7 @@
       <aside id="tutorPanel" class="ws-ai glass-panel floating-tutor" aria-label="Trợ lý học tập" hidden>
         <div class="ai-head"><button type="button" id="tutorDragHandle" class="floating-tutor-handle"><span class="ai-avatar"><svg class="icon" aria-hidden="true"><use href="../src/assets/icons.svg#message"></use></svg></span><span><strong id="tutorTitle">Trợ lý AI STEM Robotics</strong><small>Kéo để di chuyển · hỏi về bài và Lab đang chọn</small></span></button><button type="button" id="tutorClose" class="floating-tutor-close" aria-label="Thu gọn trợ lý AI">×</button></div>
         <div class="tutor-prompts" aria-label="Gợi ý hỏi trợ lý"><button type="button" onclick="prepareTutorQuestion('simple')">Giải thích dễ hiểu</button><button type="button" onclick="prepareTutorQuestion('hint')">Gợi ý bước tiếp theo</button><button type="button" onclick="prepareTutorQuestion('result')">Trao đổi về kết quả</button></div><div id="tutorMessages" aria-live="polite"></div>
-        <form id="tutorForm"><label for="tutorQuestion">Câu hỏi của bạn</label><textarea id="tutorQuestion" rows="3" maxlength="3000" placeholder="Bạn cần giải thích phần nào? Có thể gửi ảnh lỗi kèm câu hỏi."></textarea><div id="tutorAttachments" class="tutor-attachments" aria-label="Ảnh đính kèm"></div><div class="tutor-image-actions"><label for="tutorImageInput" class="tutor-image-picker">Thêm ảnh<input id="tutorImageInput" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><button id="tutorPaste" type="button">Dán ảnh</button><button id="tutorCapture" type="button">Chụp màn hình</button></div><p id="tutorAttachmentStatus" class="small" role="status" aria-live="polite"></p><div class="tutor-actions"><button id="tutorSend" type="submit" class="btn--primary">Gửi câu hỏi</button><button id="tutorReset" type="button">Trao đổi mới</button></div><p id="tutorStatus" class="small" role="status"></p><p class="small">Xem lại ảnh trước khi gửi. Khi bấm Gửi, câu hỏi, ảnh đính kèm và ngữ cảnh bài/Lab được gửi đến dịch vụ AI. Hãy đối chiếu lời giải với kết quả thực hành.</p></form>
+        <form id="tutorForm"><label for="tutorQuestion">Câu hỏi của bạn</label><textarea id="tutorQuestion" rows="3" maxlength="3000" placeholder="Bạn cần giải thích phần nào? Có thể gửi ảnh lỗi kèm câu hỏi."></textarea><div id="tutorAttachments" class="tutor-attachments" aria-label="Ảnh đính kèm"></div><div class="tutor-image-actions"><label for="tutorImageInput" class="tutor-image-picker">Thêm ảnh<input id="tutorImageInput" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><button id="tutorPaste" type="button">Dán ảnh</button><button id="tutorCapture" type="button">Chụp màn hình</button><input id="tutorCaptureInput" type="file" accept="image/png,image/jpeg,image/webp" hidden></div><p id="tutorAttachmentStatus" class="small" role="status" aria-live="polite"></p><div class="tutor-actions"><button id="tutorSend" type="submit" class="btn--primary">Gửi câu hỏi</button><button id="tutorReset" type="button">Trao đổi mới</button></div><p id="tutorStatus" class="small" role="status"></p><p class="small">Xem lại ảnh trước khi gửi. Khi bấm Gửi, câu hỏi, ảnh đính kèm và ngữ cảnh bài/Lab được gửi đến dịch vụ AI. Hãy đối chiếu lời giải với kết quả thực hành.</p></form>
       </aside>
   </div>
 
@@ -469,7 +469,7 @@ window.addEventListener('DOMContentLoaded',initPage);
 <script type="module">
 import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../src/services/AiService.js?v=workspace-v16';
 import { createFloatingTutor } from '../src/modules/learning/FloatingTutor.js?v=workspace-v16';
-import { createTutorAttachments } from '../src/modules/learning/TutorAttachments.js?v=workspace-v16';
+import { createTutorAttachments } from '../src/modules/learning/TutorAttachments.js?v=screen-region-v2';
 import { renderAiMessage } from '../src/services/AiMessageRenderer.js?v=ai-render-v14';
 window.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('tutorForm');
@@ -485,7 +485,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const panel=document.getElementById('tutorPanel'),launcher=document.getElementById('tutorLauncher');
   const floating=createFloatingTutor({panel,launcher,handle:document.getElementById('tutorDragHandle'),closeButton:document.getElementById('tutorClose')});
   window.STROBOT_FLOATING_TUTOR=floating;
-  const attachments=createTutorAttachments({form,input,fileInput:document.getElementById('tutorImageInput'),pasteButton:document.getElementById('tutorPaste'),captureButton:document.getElementById('tutorCapture'),previewHost:document.getElementById('tutorAttachments'),statusHost:document.getElementById('tutorAttachmentStatus'),panel,launcher,onChange:({busy})=>{send.disabled=Boolean(active)||busy}});
+  const attachments=createTutorAttachments({form,input,fileInput:document.getElementById('tutorImageInput'),captureInput:document.getElementById('tutorCaptureInput'),pasteButton:document.getElementById('tutorPaste'),captureButton:document.getElementById('tutorCapture'),previewHost:document.getElementById('tutorAttachments'),statusHost:document.getElementById('tutorAttachmentStatus'),panel,launcher,onChange:({busy})=>{send.disabled=Boolean(active)||busy}});
   window.STROBOT_TUTOR_ATTACHMENTS=attachments;
   function add(text, user, images=[]) {
     const item = document.createElement('div');

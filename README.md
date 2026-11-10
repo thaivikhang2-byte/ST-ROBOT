@@ -151,3 +151,9 @@ python3 tests/learning-evidence-smoke.py --base http://127.0.0.1:5500 --chromium
 ```
 
 Lệnh kiểm tra trình duyệt cần website đang chạy bằng `node start-web.cjs`. Các kiểm thử không gọi AI hoặc dịch vụ trả phí; kết quả ghi ngoài thư mục dự án.
+
+## Chụp ảnh và cắt vùng hỏi AI
+
+Trong AI Tutor, máy tính hỗ trợ chia sẻ màn hình có thể chọn tab/cửa sổ/màn hình, sau đó kéo chọn vùng cần hỏi như Snipping Tool. Trên điện thoại, chụp màn hình bằng thao tác của máy rồi bấm **Ảnh chụp màn hình** để chọn ảnh vừa chụp và cắt bằng cảm ứng ngay trong web. Trình duyệt điện thoại không cho website tự chụp màn hình hệ thống như máy tính; không yêu cầu cài thêm ứng dụng.
+
+Có thể dùng toàn ảnh, chọn lại, di chuyển/kéo góc vùng chọn hoặc bấm **Cắt ảnh** ở ảnh xem trước. Ảnh chỉ gửi khi bấm **Gửi câu hỏi**. Phần API, giới hạn ảnh, lịch sử chat, khóa học, lab và quiz giữ nguyên. Kiểm thử với `python3 tests/image-crop-smoke.py --base http://127.0.0.1:5500`, `python3 tests/tutor-images-smoke.py --base http://127.0.0.1:5500` và `node tests/tutor-images.mjs`; nguồn màn hình và dịch vụ AI đều được giả lập.
