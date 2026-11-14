@@ -1,0 +1,9 @@
+* text=auto
+*.pdf binary
+*.png binary
+*.jpg binary
+*.webp binary
+
+# Existing Prisma migration checksums depend on the exact uploaded bytes.
+backend/prisma/migrations/*.sql -text whitespace=-trailing-space,cr-at-eol
+backend/prisma/migrations/**/*.sql -text whitespace=-trailing-space,cr-at-eol

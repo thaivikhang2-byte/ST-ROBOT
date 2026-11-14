@@ -1,0 +1,1068 @@
+// ═══════════════════════════════════════════
+// Prisma schema for ST-Robot LMS
+// ═══════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ══════════════════════════════════════════════════
+// Auth & User Management
+// ══════════════════════════════════════════════════
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(50)
+  description String?  @db.VarChar(255)
+  is_default  Boolean  @default(false)
+  is_active   Boolean  @default(true)
+  group       RoleGroup @default(STUDENT)
+  status      RoleStatus @default(ACTIVE)
+  scope_type  AuthorizationScope @default(SYSTEM)
+  revision    Int @default(1)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  users             User[]
+  role_permissions  RolePermission[]
+  assignments UserRoleAssignment[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  resource    String   @db.VarChar(50)
+  action      String   @db.VarChar(50)
+  description String?  @db.VarChar(255)
+  created_at  DateTime @default(now())
+
+  role_permissions RolePermission[]
+  delegation_policies RoleDelegationPolicy[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id            String   @id @default(uuid()) @db.Uuid
+  role_id       String   @db.Uuid
+  permission_id String   @db.Uuid
+  created_at    DateTime @default(now())
+
+  role       Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([role_id, permission_id])
+  @@map("role_permissions")
+}
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  email             String    @unique @db.VarChar(255)
+  password_hash     String    @db.VarChar(255)
+  first_name        String    @db.VarChar(100)
+  last_name         String    @db.VarChar(100)
+  avatar_url        String?   @db.VarChar(500)
+  is_active         Boolean   @default(true)
+  is_email_verified Boolean   @default(false)
+  auth_version      Int       @default(0)
+  rbac_migrated     Boolean   @default(false)
+  role_id           String    @db.Uuid
+  last_login_at     DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  role           Role            @relation(fields: [role_id], references: [id])
+  refresh_tokens RefreshToken[]
+  credential_tokens CredentialToken[]
+  enrollments    Enrollment[]
+  courses        Course[]        @relation("CourseCreator")
+  progress       Progress[]
+  learner_state LearnerState?
+  video_sessions VideoSession[]
+  video_playback_progress VideoPlaybackProgress[]
+  quiz_attempts  QuizAttempt[]
+  notifications  Notification[]
+  uploads        StorageObject[] @relation("UploadedBy")
+  api_keys       ApiKey[]
+  audit_logs     AuditLog[]
+  ai_usage       AiUsageRecord[]
+  ai_buckets     AiUsageBucket[]
+  ai_quota       AiQuotaPolicy?
+  ai_conversations AiConversation[]
+  ai_memory_proposals AiMemoryProposal[] @relation("AiMemoryProposalOwner")
+  ai_memories AiMemoryEntry[] @relation("AiMemoryEntryOwner")
+  ai_memory_preferences AiMemoryPreference?
+  ai_action_proposals AiActionProposal[]
+  updated_agent_controls AiAgentControl[] @relation("AiAgentControlUpdatedBy")
+  graded_quiz_answers QuizAttemptAnswer[] @relation("QuizAnswerGrader")
+  practical_submissions PracticalSubmission[] @relation("PracticalStudent")
+  reviewed_submissions PracticalSubmission[] @relation("PracticalReviewer")
+  role_assignments UserRoleAssignment[] @relation("AssignedUser")
+  assigned_roles UserRoleAssignment[] @relation("AssignedBy")
+  delegation_policies RoleDelegationPolicy[]
+  requested_approvals ApprovalRequest[] @relation("ApprovalRequester")
+  beneficiary_approvals ApprovalRequest[] @relation("ApprovalBeneficiary")
+  approval_decisions ApprovalDecision[]
+
+  @@index([email])
+  @@index([role_id])
+  @@index([deleted_at])
+  @@map("users")
+}
+
+enum RoleGroup {
+  STUDENT
+  TEACHER
+  MANAGER
+}
+enum RoleStatus {
+  DRAFT
+  ACTIVE
+  DISABLED
+  ARCHIVED
+}
+enum AuthorizationScope {
+  SYSTEM
+  SELF
+  COURSE
+}
+enum ApprovalType {
+  TEACHER_APPLICATION
+  MANAGER_APPOINTMENT
+  ROLE_CHANGE
+  COURSE_ENROLLMENT
+}
+enum ApprovalStatus {
+  PENDING
+  PARTIALLY_APPROVED
+  APPROVED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+model AuthorizationState {
+  id String @id @default("default")
+  version Int @default(1)
+  @@map("authorization_state")
+}
+model UserRoleAssignment {
+  id String @id @default(uuid()) @db.Uuid
+  user_id String @db.Uuid
+  role_id String @db.Uuid
+  assigned_by String? @db.Uuid
+  scope_type AuthorizationScope @default(SYSTEM)
+  scope_id String @default("") @db.VarChar(36)
+  expires_at DateTime?
+  revoked_at DateTime?
+  created_at DateTime @default(now())
+  user User @relation("AssignedUser", fields: [user_id], references: [id], onDelete: Restrict)
+  role Role @relation(fields: [role_id], references: [id], onDelete: Restrict)
+  assigner User? @relation("AssignedBy", fields: [assigned_by], references: [id], onDelete: Restrict)
+  @@index([user_id, revoked_at, expires_at])
+  @@index([scope_type, scope_id])
+  @@map("user_role_assignments")
+}
+model RoleDelegationPolicy {
+  id String @id @default(uuid()) @db.Uuid
+  user_id String @db.Uuid
+  permission_id String @db.Uuid
+  scope_type AuthorizationScope
+  scope_id String @default("") @db.VarChar(36)
+  allowed_groups RoleGroup[]
+  expires_at DateTime?
+  revoked_at DateTime?
+  created_at DateTime @default(now())
+  user User @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Restrict)
+  @@index([user_id, revoked_at])
+  @@map("role_delegation_policies")
+}
+model ApprovalRequest {
+  id String @id @default(uuid()) @db.Uuid
+  type ApprovalType
+  requester_id String @db.Uuid
+  beneficiary_id String @db.Uuid
+  proposed Json
+  required_approvals Int
+  approval_count Int @default(0)
+  status ApprovalStatus @default(PENDING)
+  scope_type AuthorizationScope @default(SYSTEM)
+  scope_id String @default("") @db.VarChar(36)
+  expires_at DateTime
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  requester User @relation("ApprovalRequester", fields: [requester_id], references: [id], onDelete: Restrict)
+  beneficiary User @relation("ApprovalBeneficiary", fields: [beneficiary_id], references: [id], onDelete: Restrict)
+  decisions ApprovalDecision[]
+  @@index([status, type, created_at])
+  @@index([beneficiary_id])
+  @@map("approval_requests")
+}
+model ApprovalDecision {
+  id String @id @default(uuid()) @db.Uuid
+  request_id String @db.Uuid
+  approver_id String @db.Uuid
+  approved Boolean
+  reason String @db.VarChar(1000)
+  created_at DateTime @default(now())
+  request ApprovalRequest @relation(fields: [request_id], references: [id], onDelete: Restrict)
+  approver User @relation(fields: [approver_id], references: [id], onDelete: Restrict)
+  @@unique([request_id, approver_id])
+  @@map("approval_decisions")
+}
+
+model RefreshToken {
+  id           String   @id @default(uuid()) @db.Uuid
+  user_id      String   @db.Uuid
+  token_hash   String   @unique @db.VarChar(255)
+  family_id    String   @db.Uuid
+  expires_at   DateTime
+  is_revoked   Boolean  @default(false)
+  device_info  String?  @db.VarChar(500)
+  ip_address   String?  @db.VarChar(45)
+  created_at   DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([family_id])
+  @@index([expires_at])
+  @@map("refresh_tokens")
+}
+
+model CredentialToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  user_id     String    @db.Uuid
+  token_hash  String    @unique @db.VarChar(64)
+  purpose     String    @db.VarChar(20)
+  email       String    @db.VarChar(255)
+  expires_at  DateTime
+  consumed_at DateTime?
+  created_at  DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, purpose])
+  @@index([expires_at])
+  @@map("credential_tokens")
+}
+
+// ══════════════════════════════════════════════════
+// Course & Content
+// ══════════════════════════════════════════════════
+
+model Course {
+  id           String    @id @default(uuid()) @db.Uuid
+  title        String    @db.VarChar(255)
+  slug         String    @unique @db.VarChar(255)
+  description  String?
+  thumbnail_url String?  @db.VarChar(500)
+  status       String    @default("draft") @db.VarChar(20) // draft, published, archived
+  creator_id   String    @db.Uuid
+  category_id  String?   @db.Uuid
+  sort_order   Int       @default(0)
+  content_version Int   @default(1)
+  enrollment_approval_required Boolean @default(false)
+  ai_action_proposal_id String? @unique @db.Uuid
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  deleted_at   DateTime?
+
+  creator     User         @relation("CourseCreator", fields: [creator_id], references: [id])
+  lessons     Lesson[]
+  enrollments Enrollment[]
+  category    Category? @relation(fields: [category_id], references: [id], onDelete: Restrict)
+  ai_action_proposal AiActionProposal? @relation(fields: [ai_action_proposal_id], references: [id], onDelete: SetNull)
+
+  @@index([slug])
+  @@index([creator_id])
+  @@index([category_id])
+  @@index([status])
+  @@index([deleted_at])
+  @@map("courses")
+}
+
+model Category {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @db.VarChar(100)
+  slug        String    @unique @db.VarChar(100)
+  description String?   @db.VarChar(1000)
+  is_active   Boolean   @default(true)
+  sort_order  Int       @default(0)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+  courses     Course[]
+
+  @@index([deleted_at, is_active])
+  @@map("categories")
+}
+
+// Provider credentials and prompts deliberately have no database fields here.
+model AiProvider {
+  id      String @id @db.VarChar(20)
+  type    String @default("openai") @db.VarChar(32)
+  enabled Boolean @default(false)
+  models  AiModel[]
+  updated_at DateTime @updatedAt
+  @@map("ai_providers")
+}
+
+model AiModel {
+  id                String @id @default(uuid()) @db.Uuid
+  provider_id       String @db.VarChar(20)
+  model_id          String @db.VarChar(200)
+  enabled           Boolean @default(false)
+  is_default        Boolean @default(false)
+  premium           Boolean @default(false)
+  capabilities      String[]
+  allowed_tools     String[]
+  fallback_model_ids String[] @default([])
+  max_input_tokens  Int
+  max_output_tokens Int
+  context_tokens    Int
+  input_price       Decimal? @db.Decimal(18, 8)
+  output_price      Decimal? @db.Decimal(18, 8)
+  pricing_version   String? @db.VarChar(100)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  provider          AiProvider @relation(fields: [provider_id], references: [id], onDelete: Restrict)
+  @@unique([provider_id, model_id])
+  @@map("ai_models")
+}
+
+model AiQuotaPolicy {
+  id                 String @id @db.VarChar(50)
+  user_id            String? @unique @db.Uuid
+  daily_requests     Int @default(20)
+  daily_tokens       Int @default(50000)
+  requests_per_minute Int @default(5)
+  max_concurrent     Int @default(1)
+  lock_version       Int @default(0)
+  updated_at         DateTime @updatedAt
+  user               User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  @@map("ai_quota_policies")
+}
+
+model AiUsageBucket {
+  id             String @id @default(uuid()) @db.Uuid
+  user_id        String @db.Uuid
+  day            DateTime @db.Date
+  requests       Int @default(0)
+  charged_tokens Int @default(0)
+  user           User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  @@unique([user_id, day])
+  @@map("ai_usage_buckets")
+}
+
+model AiUsageRecord {
+  id                 String @id @default(uuid()) @db.Uuid
+  user_id            String @db.Uuid
+  provider_id        String @db.VarChar(20)
+  model_id           String @db.VarChar(200)
+  endpoint           String @db.VarChar(30)
+  status             String @default("reserved") @db.VarChar(30)
+  reserved_tokens    Int
+  input_tokens       Int?
+  output_tokens      Int?
+  total_tokens       Int?
+  charged_tokens     Int
+  pricing_version    String? @db.VarChar(100)
+  input_price        Decimal? @db.Decimal(18, 8)
+  output_price       Decimal? @db.Decimal(18, 8)
+  estimated_cost     Decimal? @db.Decimal(18, 8)
+  fallback_from      String? @db.Uuid
+  error_category     String? @db.VarChar(50)
+  provider_request_id String? @db.VarChar(200)
+  credential_id      String? @db.VarChar(64)
+  endpoint_id        String? @db.VarChar(64)
+  provider_type      String? @db.VarChar(32)
+  account_group      String? @db.VarChar(64)
+  started_at         DateTime @default(now())
+  deadline_at        DateTime
+  finished_at        DateTime?
+  user               User @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  @@index([started_at])
+  @@index([user_id, started_at])
+  @@index([status, deadline_at])
+  @@index([account_group, started_at])
+  @@index([provider_id, credential_id, started_at])
+  @@map("ai_usage_records")
+}
+
+model Lesson {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String    @db.VarChar(255)
+  content     String?
+  learning_material Json?
+  course_id   String    @db.Uuid
+  sort_order  Int       @default(0)
+  is_free     Boolean   @default(false)
+  is_required Boolean   @default(true)
+  status      String    @default("draft") @db.VarChar(20) // draft, published
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+
+  course   Course     @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  videos   Video[]
+  quizzes  Quiz[]
+  progress Progress[]
+  lab_resources LabResource[]
+  media_links LessonMedia[]
+
+  @@index([course_id])
+  @@index([deleted_at])
+  @@map("lessons")
+}
+
+model Video {
+  id               String    @id @default(uuid()) @db.Uuid
+  title            String    @db.VarChar(255)
+  description      String?
+  storage_key      String    @db.VarChar(500)
+  duration_seconds Int       @default(0)
+  status           String    @default("processing") @db.VarChar(20) // processing, ready, failed
+  lesson_id        String    @db.Uuid
+  sort_order       Int       @default(0)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  deleted_at       DateTime?
+  storage_object_id String? @unique @db.Uuid
+  provider         String @default("legacy") @db.VarChar(20)
+  provider_uid     String? @unique @db.VarChar(100)
+  hls_prefix       String? @db.VarChar(500)
+  renditions       Json?
+  processing_percent Int @default(0)
+  processing_error String? @db.VarChar(100)
+  processing_lease DateTime?
+  processing_attempts Int @default(0)
+  source_width     Int?
+  source_height    Int?
+  completion_percent Int @default(90)
+
+  lesson   Lesson         @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  sessions VideoSession[]
+  playback_progress VideoPlaybackProgress[]
+  storage_object StorageObject? @relation(fields: [storage_object_id], references: [id], onDelete: Restrict)
+
+  @@index([lesson_id])
+  @@index([deleted_at])
+  @@map("videos")
+}
+
+model VideoSession {
+  id              String    @id @default(uuid()) @db.Uuid
+  video_id        String    @db.Uuid
+  user_id         String    @db.Uuid
+  session_token   String    @unique @db.VarChar(255)
+  auth_family_id  String? @db.Uuid
+  last_position   Int       @default(0) // seconds
+  watch_duration  Int       @default(0) // total seconds watched
+  is_completed    Boolean   @default(false)
+  ip_address      String?   @db.VarChar(45)
+  user_agent      String?   @db.VarChar(500)
+  expires_at      DateTime
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  video Video @relation(fields: [video_id], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([video_id])
+  @@index([user_id])
+  @@index([session_token])
+  @@index([expires_at])
+  @@map("video_sessions")
+}
+
+model VideoPlaybackProgress {
+  id String @id @default(uuid()) @db.Uuid
+  video_id String @db.Uuid
+  user_id String @db.Uuid
+  position_seconds Int @default(0)
+  furthest_seconds Int @default(0)
+  watched_seconds Int @default(0)
+  completed_at DateTime?
+  last_watched_at DateTime @default(now())
+  version Int @default(0)
+  video Video @relation(fields: [video_id], references: [id], onDelete: Restrict)
+  user User @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  @@unique([user_id, video_id])
+  @@index([video_id])
+  @@map("video_playback_progress")
+}
+
+model VideoWebhookReceipt {
+  digest String @id @db.VarChar(64)
+  video_id String @db.Uuid
+  created_at DateTime @default(now())
+  @@index([created_at])
+  @@map("video_webhook_receipts")
+}
+
+// ══════════════════════════════════════════════════
+// Quiz & Assessment
+// ══════════════════════════════════════════════════
+
+model Quiz {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String    @db.VarChar(255)
+  description String?
+  lesson_id   String    @db.Uuid
+  pass_score  Int       @default(70) // percentage
+  time_limit  Int?      // minutes, null = no limit
+  max_attempts Int      @default(0) // 0 = unlimited
+  status       String   @default("draft") @db.VarChar(20)
+  revision     Int      @default(1)
+  requires_pass Boolean @default(false)
+  review_answers Boolean @default(false)
+  available_from DateTime?
+  available_until DateTime?
+  sort_order  Int       @default(0)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+
+  lesson    Lesson         @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@index([lesson_id])
+  @@index([deleted_at])
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id            String   @id @default(uuid()) @db.Uuid
+  quiz_id       String   @db.Uuid
+  question_text String
+  question_type String   @db.VarChar(20) // single_choice, multiple_choice, true_false
+  options       Json     // [{text, isCorrect}]
+  explanation   String?
+  points        Decimal  @default(1) @db.Decimal(12, 2)
+  accepted_answers String[] @default([])
+  case_sensitive Boolean @default(false)
+  grading_rubric String?
+  deleted_at    DateTime?
+  sort_order    Int      @default(0)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  quiz    Quiz                @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+  answers QuizAttemptAnswer[]
+
+  @@index([quiz_id])
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id         String    @id @default(uuid()) @db.Uuid
+  quiz_id    String    @db.Uuid
+  user_id    String    @db.Uuid
+  score      Decimal?  @db.Decimal(12, 2)
+  max_score  Decimal   @default(0) @db.Decimal(12, 2)
+  percentage Float?
+  is_passed  Boolean?
+  status     String    @default("in_progress") @db.VarChar(30)
+  quiz_revision Int    @default(0)
+  snapshot   Json?
+  deadline_at DateTime?
+  submitted_at DateTime?
+  graded_at DateTime?
+  submission_hash String? @db.VarChar(64)
+  started_at DateTime  @default(now())
+  finished_at DateTime?
+
+  quiz    Quiz                @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+  user    User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  answers QuizAttemptAnswer[]
+
+  @@index([quiz_id])
+  @@index([user_id])
+  @@index([user_id, quiz_id, status])
+  @@index([status, deadline_at])
+  @@map("quiz_attempts")
+}
+
+model QuizAttemptAnswer {
+  id          String   @id @default(uuid()) @db.Uuid
+  attempt_id  String   @db.Uuid
+  question_id String   @db.Uuid
+  answer      Json     // Selected option(s)
+  is_correct  Boolean?
+  points      Decimal? @db.Decimal(12, 2)
+  feedback    String?
+  graded_by   String?  @db.Uuid
+  graded_at   DateTime?
+  created_at  DateTime @default(now())
+
+  attempt  QuizAttempt  @relation(fields: [attempt_id], references: [id], onDelete: Cascade)
+  question QuizQuestion @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  grader User? @relation("QuizAnswerGrader", fields: [graded_by], references: [id], onDelete: SetNull)
+
+  @@index([attempt_id])
+  @@unique([attempt_id, question_id])
+  @@map("quiz_attempt_answers")
+}
+
+// ══════════════════════════════════════════════════
+// Enrollment & Progress
+// ══════════════════════════════════════════════════
+
+model Enrollment {
+  id          String    @id @default(uuid()) @db.Uuid
+  user_id     String    @db.Uuid
+  course_id   String    @db.Uuid
+  enrolled_at DateTime  @default(now())
+  expires_at DateTime?
+  completed_at DateTime?
+  deleted_at  DateTime?
+  status      String    @default("active") @db.VarChar(20)
+  completed_version Int?
+
+  user   User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, course_id])
+  @@index([user_id])
+  @@index([course_id])
+  @@map("enrollments")
+}
+
+model Progress {
+  id          String    @id @default(uuid()) @db.Uuid
+  user_id     String    @db.Uuid
+  lesson_id   String    @db.Uuid
+  status      String    @default("not_started") @db.VarChar(20) // not_started, in_progress, completed
+  completed_at DateTime?
+  started_at DateTime?
+  last_accessed_at DateTime?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  user   User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, lesson_id])
+  @@index([user_id])
+  @@index([lesson_id])
+  @@map("progress")
+}
+
+model LabResource {
+  id           String @id @default(uuid()) @db.Uuid
+  lesson_id    String @db.Uuid
+  title        String @db.VarChar(255)
+  platform     String @db.VarChar(30)
+  url          String @db.VarChar(2000)
+  embed_policy String @default("external") @db.VarChar(20)
+  instructions String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  deleted_at   DateTime?
+  lesson       Lesson @relation(fields: [lesson_id], references: [id], onDelete: Restrict)
+  submissions  PracticalSubmission[]
+  @@index([lesson_id, deleted_at])
+  @@map("lab_resources")
+}
+
+model PracticalSubmission {
+  id          String @id @default(uuid()) @db.Uuid
+  lab_id      String @db.Uuid
+  user_id     String @db.Uuid
+  project_url String @db.VarChar(2000)
+  notes       String
+  status      String @default("submitted") @db.VarChar(30)
+  feedback    String?
+  reviewed_by String? @db.Uuid
+  reviewed_at DateTime?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  lab         LabResource @relation(fields: [lab_id], references: [id], onDelete: Restrict)
+  student     User @relation("PracticalStudent", fields: [user_id], references: [id], onDelete: Restrict)
+  reviewer    User? @relation("PracticalReviewer", fields: [reviewed_by], references: [id], onDelete: SetNull)
+  @@index([user_id, created_at])
+  @@index([lab_id, status])
+  @@map("practical_submissions")
+}
+
+// ══════════════════════════════════════════════════
+// Storage & Files
+// ══════════════════════════════════════════════════
+
+model StorageObject {
+  id              String   @id @default(uuid()) @db.Uuid
+  original_name   String   @db.VarChar(255)
+  mime_type       String   @db.VarChar(100)
+  size            BigInt
+  checksum        String   @db.VarChar(64) // SHA-256
+  provider        String   @db.VarChar(20) // minio, r2, s3, local
+  bucket          String   @db.VarChar(100)
+  object_key      String   @db.VarChar(500)
+  reference_count Int      @default(1)
+  uploaded_by     String   @db.Uuid
+  created_at      DateTime @default(now())
+  deleted_at      DateTime?
+  status          String   @default("pending") @db.VarChar(20)
+  staging_key     String?  @db.VarChar(500)
+  upload_expires_at DateTime?
+  updated_at      DateTime @default(now()) @updatedAt
+  staging_deleted_at DateTime?
+  purged_at       DateTime?
+  scan_status     String   @default("not_scanned") @db.VarChar(20)
+
+  uploader User @relation("UploadedBy", fields: [uploaded_by], references: [id])
+  lesson_links LessonMedia[]
+  video Video?
+
+  @@index([checksum])
+  @@index([uploaded_by])
+  @@index([deleted_at])
+  @@index([status, upload_expires_at])
+  @@map("storage_objects")
+}
+
+model LessonMedia {
+  id String @id @default(uuid()) @db.Uuid
+  lesson_id String @db.Uuid
+  storage_object_id String @unique @db.Uuid
+  resource_type String @db.VarChar(20)
+  sort_order Int @default(0)
+  created_at DateTime @default(now())
+  lesson Lesson @relation(fields: [lesson_id], references: [id], onDelete: Restrict)
+  asset StorageObject @relation(fields: [storage_object_id], references: [id], onDelete: Restrict)
+  @@index([lesson_id, sort_order])
+  @@map("lesson_media")
+}
+
+// ══════════════════════════════════════════════════
+// Notification
+// ══════════════════════════════════════════════════
+
+model Notification {
+  id         String    @id @default(uuid()) @db.Uuid
+  user_id    String    @db.Uuid
+  title      String    @db.VarChar(255)
+  body       String
+  type       String    @db.VarChar(50) // system, course, quiz, reminder
+  channel    String    @default("in_app") @db.VarChar(20) // in_app, email, push
+  is_read    Boolean   @default(false)
+  read_at    DateTime?
+  data       Json?     // Extra metadata
+  created_at DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([is_read])
+  @@index([created_at])
+  @@map("notifications")
+}
+
+// ══════════════════════════════════════════════════
+// API Keys
+// ══════════════════════════════════════════════════
+
+model ApiKey {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @db.VarChar(100)
+  key_hash    String    @unique @db.VarChar(255)
+  key_prefix  String    @db.VarChar(10) // First 8 chars for display
+  scopes      String[]  // e.g., ['courses:read', 'videos:read']
+  user_id     String    @db.Uuid
+  is_active   Boolean   @default(true)
+  last_used_at DateTime?
+  expires_at  DateTime?
+  created_at  DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([key_hash])
+  @@index([user_id])
+  @@map("api_keys")
+}
+
+// ══════════════════════════════════════════════════
+// Audit & Analytics
+// ══════════════════════════════════════════════════
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String?  @db.Uuid
+  action     String   @db.VarChar(100)
+  resource   String   @db.VarChar(100)
+  resource_id String? @db.VarChar(100)
+  old_data   Json?
+  new_data   Json?
+  ip_address String?  @db.VarChar(45)
+  user_agent String?  @db.VarChar(500)
+  created_at DateTime @default(now())
+
+  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([action])
+  @@index([resource])
+  @@index([created_at])
+  @@map("audit_logs")
+}
+
+model AnalyticsEvent {
+  id         BigInt   @id @default(autoincrement())
+  event_name String   @db.VarChar(100)
+  user_id    String?  @db.Uuid
+  data       Json?
+  session_id String?  @db.VarChar(100)
+  created_at DateTime @default(now())
+
+  @@index([event_name])
+  @@index([user_id])
+  @@index([created_at])
+  @@map("analytics_events")
+}
+
+// ══════════════════════════════════════════════════
+// System Settings & Feature Flags
+// ══════════════════════════════════════════════════
+
+model Setting {
+  id         String   @id @default(uuid()) @db.Uuid
+  key        String   @unique @db.VarChar(100)
+  value      String
+  type       String   @default("string") @db.VarChar(20) // string, number, boolean, json
+  group      String   @default("general") @db.VarChar(50)
+  description String? @db.VarChar(255)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([group])
+  @@map("settings")
+}
+
+model FeatureFlag {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique @db.VarChar(100)
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  is_enabled  Boolean  @default(false)
+  metadata    Json?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("feature_flags")
+}
+
+// ══════════════════════════════════════════════════
+// Idempotency (Redis fallback to DB)
+// ══════════════════════════════════════════════════
+
+model IdempotencyRecord {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique @db.VarChar(255)
+  status_code Int
+  response    Json
+  created_at  DateTime @default(now())
+  expires_at  DateTime
+
+  @@index([key])
+  @@index([expires_at])
+  @@map("idempotency_records")
+}
+
+// ══════════════════════════════════════════════════
+// Backup
+// ══════════════════════════════════════════════════
+
+model BackupRecord {
+  id           String   @id @default(uuid()) @db.Uuid
+  filename     String   @db.VarChar(255)
+  size         BigInt
+  provider     String   @db.VarChar(20) // local, s3, r2
+  storage_path String   @db.VarChar(500)
+  status       String   @default("completed") @db.VarChar(20) // in_progress, completed, failed
+  type         String   @db.VarChar(20) // full, incremental
+  metadata     Json?
+  created_at   DateTime @default(now())
+
+  @@index([status])
+  @@index([created_at])
+  @@map("backup_records")
+}
+
+
+model OperationalAlert {
+  code String @id @db.VarChar(80)
+  severity String @db.VarChar(20)
+  status String @default("open") @db.VarChar(20)
+  opened_at DateTime @default(now())
+  last_seen_at DateTime @default(now())
+  resolved_at DateTime?
+  occurrences Int @default(1)
+  details Json?
+  @@index([status, last_seen_at])
+  @@map("operational_alerts")
+}
+
+enum AiAgentMode {
+  PERSONAL
+  EDUCATIONAL
+  MANAGEMENT
+}
+
+enum AiConversationStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum AiMemoryProposalStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED
+  REJECTED
+  EXPIRED
+}
+
+enum AiActionProposalStatus {
+  PENDING_CONFIRMATION
+  COMPLETED
+  REJECTED
+  EXPIRED
+}
+
+model AiConversation {
+  id String @id @default(uuid()) @db.Uuid
+  owner_id String @db.Uuid
+  mode AiAgentMode
+  resource_scope String? @db.VarChar(36)
+  status AiConversationStatus @default(ACTIVE)
+  last_user_activity_at DateTime @default(now())
+  expires_at DateTime
+  active_run_id String? @db.Uuid
+  active_run_started_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  owner User @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  messages AiConversationMessage[]
+  memory_proposals AiMemoryProposal[]
+  derived_memories AiMemoryEntry[]
+  action_proposals AiActionProposal[]
+  @@index([owner_id, mode, last_user_activity_at])
+  @@index([status, expires_at])
+  @@map("ai_conversations")
+}
+
+model AiActionProposal {
+  id String @id @default(uuid()) @db.Uuid
+  owner_id String @db.Uuid
+  conversation_id String @db.Uuid
+  mode AiAgentMode
+  action_type String @db.VarChar(80)
+  payload Json
+  payload_hash String @db.Char(64)
+  policy_version Int @default(1)
+  status AiActionProposalStatus @default(PENDING_CONFIRMATION)
+  expires_at DateTime
+  confirmed_at DateTime?
+  completed_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  owner User @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  conversation AiConversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  course Course?
+  @@index([owner_id, status, expires_at])
+  @@index([conversation_id, created_at])
+  @@map("ai_action_proposals")
+}
+
+model AiAgentControl {
+  id String @id @default("default") @db.VarChar(20)
+  writes_enabled Boolean @default(false)
+  revision Int @default(0)
+  updated_by_id String? @db.Uuid
+  updated_at DateTime @updatedAt
+  updated_by User? @relation("AiAgentControlUpdatedBy", fields: [updated_by_id], references: [id], onDelete: SetNull)
+  @@map("ai_agent_controls")
+}
+
+model AiConversationMessage {
+  id String @id @default(uuid()) @db.Uuid
+  conversation_id String @db.Uuid
+  role String @db.VarChar(20)
+  content String @db.Text
+  tool_calls Json?
+  tool_call_id String? @db.VarChar(200)
+  created_at DateTime @default(now())
+  conversation AiConversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  @@index([conversation_id, created_at, id])
+  @@map("ai_conversation_messages")
+}
+
+model AiMemoryProposal {
+  id String @id @default(uuid()) @db.Uuid
+  owner_id String @db.Uuid
+  conversation_id String? @db.Uuid
+  mode AiAgentMode
+  content String @db.VarChar(1000)
+  content_hash String @db.Char(64)
+  reason String @db.VarChar(500)
+  status AiMemoryProposalStatus @default(PENDING_CONFIRMATION)
+  expires_at DateTime
+  confirmed_at DateTime?
+  rejected_at DateTime?
+  created_at DateTime @default(now())
+  owner User @relation("AiMemoryProposalOwner", fields: [owner_id], references: [id], onDelete: Cascade)
+  conversation AiConversation? @relation(fields: [conversation_id], references: [id], onDelete: SetNull)
+  memory AiMemoryEntry?
+  @@unique([owner_id, conversation_id, content_hash])
+  @@index([owner_id, status, expires_at])
+  @@map("ai_memory_proposals")
+}
+
+model AiMemoryEntry {
+  id String @id @default(uuid()) @db.Uuid
+  owner_id String @db.Uuid
+  proposal_id String @unique @db.Uuid
+  mode AiAgentMode
+  content String @db.VarChar(1000)
+  source_conversation_id String? @db.Uuid
+  confirmed_at DateTime @default(now())
+  revoked_at DateTime?
+  created_at DateTime @default(now())
+  owner User @relation("AiMemoryEntryOwner", fields: [owner_id], references: [id], onDelete: Cascade)
+  proposal AiMemoryProposal @relation(fields: [proposal_id], references: [id], onDelete: Cascade)
+  source_conversation AiConversation? @relation(fields: [source_conversation_id], references: [id], onDelete: SetNull)
+  @@index([owner_id, mode, revoked_at])
+  @@map("ai_memory_entries")
+}
+
+model AiMemoryPreference {
+  owner_id String @id @db.Uuid
+  enabled Boolean @default(false)
+  updated_at DateTime @updatedAt
+  owner User @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  @@map("ai_memory_preferences")
+}
+
+// Account-owned browser learning state. Reports remain distinct from graded quiz attempts.
+model LearnerState {
+  user_id String @id @db.Uuid
+  revision Int @default(1)
+  values Json
+  summary Json
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([updated_at])
+  @@map("learner_states")
+}

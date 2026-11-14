@@ -24,7 +24,7 @@
       <span><strong>Học STEM Robotics theo từng bước.</strong> Chọn khóa ở thanh bên để bắt đầu. Tiến độ và nhật ký được lưu trên trình duyệt này.</span>
       <button type="button" onclick="document.getElementById('enrollmentBanner').style.display='none'">Đã hiểu</button>
     </div>
-    <div id="notice" role="status" aria-live="polite"></div>
+    <div id="notice" role="status" aria-live="polite">Đang mở bài học…</div>
     <div class="ws-head glass-panel">
       <div class="ws-brand">
         <svg class="icon" aria-hidden="true"><use href="../src/assets/icons.svg#cpu"></use></svg>
@@ -32,7 +32,7 @@
       </div>
       <button type="button" class="btn btn--primary btn--sm" onclick="openPdfModal()">Xem &amp; lưu PDF bài giảng</button>
     </div>
-    <main id="main" class="ws" tabindex="-1">
+    <main id="main" class="ws" tabindex="-1" inert aria-busy="true">
       <aside class="ws-side glass-panel" aria-label="Lộ trình bài học">
         <div class="ws-side-head"><h2>Lộ trình &amp; tài liệu</h2><span id="progressText">0/6 bài tự học</span></div>
         <div class="ws-side-scroll">
@@ -102,6 +102,10 @@
             <label for="transfer">4. Thay đổi một đầu vào rồi thử lại</label><textarea id="transfer" rows="2" maxlength="2000" placeholder="Tôi đổi… từ… thành… Kết quả mới là… Tôi rút ra…"></textarea>
             <details><summary>Lưu thêm ghi chú và đường dẫn dự án</summary><label for="projectUrl">Đường dẫn dự án đã lưu ở nền tảng thực hành (nếu có)</label><input id="projectUrl" type="url" maxlength="2000" placeholder="https://…"><p class="small">Tài khoản của nền tảng thực hành được quản lý riêng. Hãy lưu hoặc tải dự án ở editor trước khi đóng khung.</p><label for="journal">Ghi chú của bạn</label><textarea id="journal" maxlength="15000" rows="4" placeholder="Lỗi đã gặp, cách sửa, mã thay đổi…"></textarea></details>
             <p id="saveNotice" role="status"></p>
+            <div id="tabConflictRecovery" class="ws-card" role="alert" hidden>
+              <p>Một mục trong hồ sơ đang được sửa ở tab khác. Bản nháp của tab này vẫn được giữ và chưa ghi đè bản đang lưu.</p>
+              <div class="lab-actions"><button type="button" onclick="document.getElementById('exportNotes').click()">Tải hồ sơ bản nháp</button><button type="button" onclick="useLatestTabCopy()">Bỏ bản nháp tab này, dùng bản đang lưu</button></div>
+            </div>
             <div class="lab-actions"><button type="button" id="exportNotes">Tải hồ sơ thực hành khóa này</button><label class="portfolio-import" for="importNotes">Khôi phục từ tệp JSON<input id="importNotes" type="file" accept="application/json,.json"></label></div>
             <details><summary>Kiểm tra lại kiến thức</summary><form id="quizForm"><h3 id="quizQuestion"></h3><div id="quizOptions"></div><button type="submit" class="btn--primary">Kiểm tra đáp án</button><p id="quizFeedback" role="status"></p></form></details>
             <details><summary>Đối chiếu sau khi tự làm</summary><p id="solution"></p><h3>Tiêu chí đối chiếu · 100 điểm</h3><ul id="rubric"></ul><p class="small">Dùng kết quả quan sát và lời giải thích để tự đối chiếu hoặc nhờ giáo viên góp ý theo các tiêu chí này.</p></details>
@@ -126,8 +130,8 @@
   </div>
   <dialog id="portfolioImportDialog" class="dialog" aria-labelledby="portfolioImportTitle"><div class="dialog-body"><h2 id="portfolioImportTitle">Khôi phục hồ sơ thực hành</h2><p id="portfolioImportPreview"></p><p>Các bài có trong tệp sẽ thay thế bản trên trình duyệt. Các bài khác và các khóa khác được giữ lại. Bạn có thể tải hồ sơ hiện tại trước khi khôi phục.</p></div><div class="dialog-foot"><button type="button" class="btn" onclick="document.getElementById('portfolioImportDialog').close()">Giữ bản hiện tại</button><button id="confirmImportNotes" type="button" class="btn btn--primary">Khôi phục các bài trong tệp</button></div></dialog>
   <dialog id="microbitResetDialog" class="dialog" aria-labelledby="microbitResetTitle"><div class="dialog-body"><h2 id="microbitResetTitle">Nạp lại mã mẫu của bài này?</h2><p>Mã đã chỉnh sửa của bài đang mở sẽ được thay bằng mã mẫu. Hãy tải bản cần giữ trước khi tiếp tục. Dự án của các bài khác được giữ nguyên.</p></div><div class="dialog-foot"><button id="microbitCancelReset" type="button" class="btn" onclick="document.getElementById('microbitResetDialog').close()">Giữ mã hiện tại</button><button id="microbitConfirmReset" type="button" class="btn btn--primary" onclick="resetMicrobitSource()">Nạp mã mẫu</button></div></dialog>
-  <script type="module" src="../src/app.js?v=guided-learning-v15"></script>
-  <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=lesson-code-v5'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
+  <script type="module" src="../src/app.js?v=account-sync-v1"></script>
+  <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=account-sync-v1'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
 <script type="module">import { mountLessonBench } from '../src/modules/learning/LessonBench.js?v=guided-learning-v15'; import * as portfolio from '../src/modules/learning/PracticePortfolio.js?v=guided-learning-v15'; window.STROBOT_MOUNT_LESSON_BENCH=mountLessonBench; window.STROBOT_PRACTICE_PORTFOLIO=portfolio;</script>
 <script type="module">import { getPlatformGuide } from '../src/modules/learning/PlatformGuides.js?v=workspace-v16'; window.STROBOT_PLATFORM_GUIDE=getPlatformGuide;</script>
 <script src="../src/data/curriculum.js?v=workspace-v16"></script>
@@ -264,19 +268,29 @@ window.STROBOT_COURSE_LABS = {
 const COURSES=window.STROBOT_CURRICULUM;
 const PDFS=window.STROBOT_PDFS;
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const STORAGE='strobot.original.course.v3';let state={};try{state=JSON.parse(localStorage.getItem(STORAGE)||'{}')}catch{}if(!state||typeof state!=='object'||Array.isArray(state))state={};
+const STORAGE='strobot.original.course.v3';let state={},learningStorage=null,learnerSyncService=null,tabEditConflict=false;
 const qs=new URLSearchParams(location.search),aliases={vex:'vex-iq',vexiq:'vex-iq',vexcode:'vex-vr',vexvr:'vex-vr',spike:'lego-spike',lego:'lego-spike','micro:bit':'microbit',arduino_uno:'arduino'};
 let requested=(qs.get('course')||qs.get('courseId')||qs.get('khoa')||location.hash.slice(1)||'').toLowerCase();requested=aliases[requested]||requested;
 let course=COURSES.find(c=>c.id===requested)||COURSES.find(c=>c.id===state.last)||COURSES[0],currentLessonIndex=0,pdfURL=null,frameKey='',busy=false;
 let microbitEditor=null,localBench=null,pendingImport=null,labNeedsStart=true,activePlatformGuide=null;
-let learningLevel='beginner';try{const level=localStorage.getItem('strobot.learning.level.v1');if(['beginner','intermediate','advanced'].includes(level))learningLevel=level}catch{}
+let learningLevel='beginner';
 const labs=window.STROBOT_LAB_PLATFORMS;
 function lesson(){return course.lessons[currentLessonIndex]}function record(){state[course.id]??={};const id=lesson().id;state[course.id][id]??={note:'',choice:null,done:false};return state[course.id][id]}
-function save(){try{state.last=course.id;localStorage.setItem(STORAGE,JSON.stringify(state));$('saveNotice').textContent='Đã lưu trên trình duyệt này.';return true}catch{$('saveNotice').textContent='Không lưu được: hãy tải nhật ký để tránh mất dữ liệu.';return false}}
+function save(){try{state.last=course.id;learningStorage.setItem(STORAGE,JSON.stringify(state));tabEditConflict=learnerSyncService?.hasTabDrafts(learningStorage?.ownerId)||false;$('tabConflictRecovery').hidden=!tabEditConflict;$('saveNotice').textContent=learnerSyncService?.status.message||'Đã lưu trên trình duyệt này.';return true}catch(error){if(error?.code==='TAB_EDIT_CONFLICT'){tabEditConflict=true;$('tabConflictRecovery').hidden=false;$('saveNotice').textContent=error.message;toast(error.message)}else $('saveNotice').textContent='Không lưu được: hãy tải nhật ký để tránh mất dữ liệu.';return false}}
+function useLatestTabCopy(){if(!tabEditConflict||!confirm('Bỏ bản nháp chưa lưu của tab này và dùng bản đang lưu? Hãy tải hồ sơ bản nháp trước nếu cần giữ lại.'))return;try{const latest=JSON.parse(learningStorage?.getItem(STORAGE)||'{}');if(!latest||typeof latest!=='object'||Array.isArray(latest))throw Error();state=latest;learnerSyncService?.discardTabDraft(STORAGE,learningStorage?.ownerId);tabEditConflict=false;$('tabConflictRecovery').hidden=true;loadLesson(currentLessonIndex);$('saveNotice').textContent='Đã nạp bản đang lưu theo lựa chọn của bạn.'}catch{toast('Chưa đọc được bản đang lưu. Bản nháp trong tab vẫn được giữ.')}}
+window.addEventListener('beforeunload',event=>{if(tabEditConflict){event.preventDefault();event.returnValue=''}});
 function toast(t){$('notice').textContent=t}
-function initPage(){
+async function initPage(){
+ const sync=await import('../src/services/LearnerSyncService.js');await sync.learnerSync.ready();learnerSyncService=sync.learnerSync;learningStorage=sync.getLearnerStorage();
+ try{state=JSON.parse(learningStorage?.getItem(STORAGE)||'{}')}catch{}if(!state||typeof state!=='object'||Array.isArray(state))state={};
+ course=COURSES.find(c=>c.id===requested)||COURSES.find(c=>c.id===state.last)||COURSES[0];
+ try{const level=learningStorage?.getItem('strobot.learning.level.v1');if(['beginner','intermediate','advanced'].includes(level))learningLevel=level}catch{}
+ document.addEventListener('strobot:sync-status',event=>{$('saveNotice').textContent=event.detail.message});
+ document.addEventListener('strobot:learner-scope-changed',()=>{location.reload()});
+ document.addEventListener('strobot:learner-data-updated',()=>{if(tabEditConflict)return;try{const fresh=JSON.parse(learningStorage?.getItem(STORAGE)||'{}');if(fresh&&typeof fresh==='object'&&!Array.isArray(fresh)){state=fresh;loadLesson(currentLessonIndex)}}catch{}});
+ $('saveNotice').textContent=learnerSyncService.status.message;
  $('learningLevel').value=learningLevel;
- $('learningLevel').onchange=()=>{learningLevel=$('learningLevel').value;try{localStorage.setItem('strobot.learning.level.v1',learningLevel)}catch{}renderLearningExplanation();renderPlatformGuide(frameKey||defaultLabKey())};
+ $('learningLevel').onchange=()=>{learningLevel=$('learningLevel').value;try{learningStorage.setItem('strobot.learning.level.v1',learningLevel)}catch{}renderLearningExplanation();renderPlatformGuide(frameKey||defaultLabKey())};
  $('courseSelect').innerHTML=COURSES.map(c=>'<option value="'+c.id+'">'+esc(c.name)+' · 6 bài</option>').join('');$('courseSelect').value=course.id;
  $('courseSelect').onchange=e=>{course=COURSES.find(c=>c.id===e.target.value);currentLessonIndex=0;state.last=course.id;save();updateURL();loadLesson(0)};
  let li=course.lessons.findIndex(l=>l.id===qs.get('lesson'));loadLesson(li>=0?li:0);
@@ -295,6 +309,7 @@ function initPage(){
   if(courseLabKeys().includes(requestedLab))selectLabPlatform(requestedLab);
   switchMainTab('lab');
  }
+ $('main').inert=false;$('main').setAttribute('aria-busy','false');toast('');
 }
 function updateURL(){try{const u=new URL(location.href);u.searchParams.set('course',course.id);u.searchParams.set('lesson',lesson().id);history.replaceState(null,'',u)}catch{}}
 function renderLessons(){const records=state[course.id]||{};let n=course.lessons.filter(l=>records[l.id]?.done).length;$('progressText').textContent=n+'/6 bài tự học';$('lessonList').innerHTML=course.lessons.map((l,i)=>'<button class="lesson-item '+(i===currentLessonIndex?'selected':'')+'" aria-current="'+(i===currentLessonIndex?'step':'false')+'" onclick="loadLesson('+i+')"><span class="lesson-number">'+(records[l.id]?.done?'✓':i+1)+'</span><span>'+esc(l.title)+'<small>50 phút · Lý thuyết + thực hành</small></span></button>').join('')}
@@ -302,6 +317,7 @@ function loadLesson(i) {
  microbitEditor?.destroy();microbitEditor=null;localBench?.destroy();localBench=null;
  currentLessonIndex=Number.isInteger(i)&&course.lessons[i]?i:0;labNeedsStart=true;
  const l=lesson(),r=record();
+ void learnerSyncService?.recordActivity('lesson_opened',course.id,l.id,learningStorage?.ownerId);
  $('courseName').textContent='Khóa học: '+course.name;
  $('lessonBadge').textContent=course.tag+' · BÀI '+(currentLessonIndex+1)+'/6';
  $('lessonTitle').textContent=l.title;
@@ -368,7 +384,7 @@ function switchMainTab(t) {
  $('tabBtnTheory').setAttribute('aria-pressed',String(t==='theory'));
  $('tabBtnLab').setAttribute('aria-pressed',String(t==='lab'));
  if(t==='lab'&&!frameKey)selectLabPlatform(defaultLabKey());
- if(t==='lab'&&labNeedsStart){$('labView').scrollTop=0;labNeedsStart=false}
+ if(t==='lab'&&labNeedsStart){$('labView').scrollTop=0;labNeedsStart=false;void learnerSyncService?.recordActivity('lab_opened',course.id,lesson().id,learningStorage?.ownerId)}
 }
 function defaultLabKey() { return course.lab==='circuit'?'avr':course.lab; }
 function canEmbedPlatform(cfg) {
@@ -430,7 +446,7 @@ function fullscreenLabFrame() {
 function markLessonComplete(){
  const r=record(),check=window.STROBOT_PRACTICE_PORTFOLIO.assessPracticeRecord(r,{lesson:lesson(),course});
  if(!check.ready){switchMainTab('lab');toast(check.missing.join(' · '));if(r.choice!==lesson().answer)$('quizForm').parentElement.open=true;return}
- r.done=true;r.completionSource='self-report';r.completedAt=new Date().toISOString();const persisted=save();renderEvidenceStatus();renderLessons();toast(persisted?'Đã ghi nhận bạn tự xác nhận hoàn thành. Tiếp tục bài kế tiếp khi sẵn sàng.':'Đã ghi nhận trong phiên này. Hãy tải hồ sơ để giữ kết quả.');
+ r.done=true;r.completionSource='self-report';r.completedAt=new Date().toISOString();const persisted=save();if(persisted)void learnerSyncService?.recordActivity('lesson_completed',course.id,lesson().id,learningStorage?.ownerId);renderEvidenceStatus();renderLessons();toast(persisted?'Đã ghi nhận bạn tự xác nhận hoàn thành. Tiếp tục bài kế tiếp khi sẵn sàng.':'Đã ghi nhận trong phiên này. Hãy tải hồ sơ để giữ kết quả.');
 }
 function renderEvidenceStatus(){
  const r=record(),e=r.modelEvidence;

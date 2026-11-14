@@ -1,3 +1,4 @@
+import { getLearnerStorage } from '../../services/LearnerSyncService.js';
 // Official Python Editor controller protocol: python.microbit.org/src/fs/host.ts.
 // The editor sends changes after a one-second debounce; it has no flush API.
 export const MICROBIT_EDITOR_ORIGIN = 'https://python.microbit.org';
@@ -62,7 +63,7 @@ export function normalizeMicrobitProject(project) {
 export class MicrobitEditorBridge {
     constructor(options = {}) {
         this._window = options.window ?? globalThis.window;
-        try { this._storage = Object.hasOwn(options, 'storage') ? options.storage : this._window?.localStorage; }
+        try { this._storage = Object.hasOwn(options, 'storage') ? options.storage : getLearnerStorage(); }
         catch { this._storage = null; }
         this._listener = event => this._receive(event);
         this._frame = null;

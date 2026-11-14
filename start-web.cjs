@@ -11,7 +11,7 @@ if (!fs.existsSync(path.join(root, 'public', 'index.html'))) {
   process.exit(1);
 }
 const types = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.ico':'image/x-icon', '.pdf':'application/pdf', '.woff2':'font/woff2', '.woff':'font/woff', '.ttf':'font/ttf', '.webp':'image/webp' };
-const entryPages = new Set(['index.html', 'gioithieu.html', 'kit.html', 'hoclieu.html', 'course.learning.html', 'quiz.html', 'assessment.html', 'dangky.html']);
+const entryPages = new Set(['index.html', 'gioithieu.html', 'kit.html', 'hoclieu.html', 'course.learning.html', 'quiz.html', 'assessment.html', 'dangky.html', 'account.html']);
 function createFrontendServer() {
 return http.createServer((req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405, {'Allow':'GET, HEAD'}); return res.end(); }

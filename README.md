@@ -1,6 +1,6 @@
 # ST-Robot
 
-Bản giao diện đồng bộ theo `frontend.rar`: thanh điều hướng, trang chủ, giới thiệu, bộ kit, danh mục khóa học, quiz, đăng ký và không gian tự học. Giữ dữ liệu và chức năng của ST-ROBOT; không nhập backend/database của bản mẫu, không nhập thư viện video hoặc liên kết YouTube.
+Bản giao diện đồng bộ theo `frontend.rar`: thanh điều hướng, trang chủ, giới thiệu, bộ kit, danh mục khóa học, quiz và không gian tự học. Giữ các chức năng học, lab và AI Tutor của ST-ROBOT; bổ sung backend tài khoản, PostgreSQL, phân quyền, đồng bộ tiến độ và agent từ mã nguồn được gửi. Không thêm video hoặc liên kết YouTube vào giao diện.
 
 ## Mở website
 
@@ -31,7 +31,15 @@ Các trang HTML ở thư mục gốc chuyển về `frontend/public/` và giữ 
 - AI trang chủ, AI Tutor và bộ gợi ý dạng câu cùng gọi dịch vụ `st-robot-1.onrender.com`; khóa bí mật được giữ trên máy chủ.
 - Chế độ sáng/tối và menu điện thoại.
 
-Tiến độ và nhật ký lưu trong trình duyệt. Biểu mẫu đăng ký hiện chỉ mở khóa tự học; không tạo tài khoản, gửi thông tin liên hệ hay xác nhận thanh toán.
+Người học khách vẫn lưu tiến độ và nhật ký trong trình duyệt. Trang **Tài khoản** hỗ trợ đăng ký, đăng nhập, xác minh email, khôi phục mật khẩu, đồng bộ dữ liệu giữa các thiết bị, tham gia khóa và các bảng quản lí theo quyền. Dữ liệu khách được giữ riêng; người học chủ động chọn nhập vào tài khoản.
+
+## Backend tài khoản và database
+
+Mã nguồn ở `backend/`; cấu hình chạy local bằng Docker ở `docker-compose.yml`. Với một bản local mới, chạy `node scripts/init-backend.cjs`, rồi `docker compose up --build -d`. Không ghi đè `.env` đã có hoặc xóa volume database để cập nhật.
+
+**GitHub Pages chỉ chạy frontend.** Muốn sử dụng tài khoản/database trên website công khai, cần triển khai backend HTTPS, PostgreSQL, Redis và SMTP, rồi đặt API công khai trong `frontend/src/config/backend.config.js`. Khi chưa cấu hình, giao diện tài khoản báo rõ tình trạng và học khách vẫn hoạt động. Dịch vụ AI Tutor hiện tại được giữ riêng.
+
+Xem [hướng dẫn chạy, quản trị viên và triển khai](docs/backend-deployment.md) và [cấu hình agent](docs/backend-agent.md). Không có tài khoản quản trị mặc định; các tệp `.env`, khóa và dữ liệu riêng không được đưa lên GitHub.
 
 ## AI server
 

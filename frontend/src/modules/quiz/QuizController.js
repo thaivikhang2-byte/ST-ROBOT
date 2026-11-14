@@ -1,5 +1,5 @@
-import { QuizService } from './QuizService.js?v=guided-learning-v15';
-import { ReviewService } from './ReviewService.js?v=guided-learning-v15';
+import { QuizService } from './QuizService.js?v=account-sync-v1';
+import { ReviewService } from './ReviewService.js?v=account-sync-v1';
 import { QuizRenderer } from './QuizRenderer.js?v=simple-quiz-v7';
 import { createAutomaticPractice, getDifficultyLevel, listAutomaticTemplates } from './generation/AutomaticPractice.js?v=guided-learning-v15';
 

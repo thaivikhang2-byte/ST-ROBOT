@@ -1,3 +1,4 @@
+import { getLearnerStorage, learnerSync } from '../../services/LearnerSyncService.js';
 import { quizCourses, quizQuestions } from '../../data/quiz.js?v=guided-learning-v15';
 
 export const QUIZ_HISTORY_KEY = 'strobot.quiz.history.v1';
@@ -7,7 +8,7 @@ export class QuizService {
     constructor({ random = Math.random, storage } = {}) {
         this.random = random;
         if (storage !== undefined) this.storage = storage;
-        else { try { this.storage = typeof window === 'undefined' ? null : window.localStorage; } catch { this.storage = null; } }
+        else { try { this.storage = getLearnerStorage(); } catch { this.storage = null; } }
     }
     getCourses() { return quizCourses.map(c => ({ ...c, lessons: c.lessons.map(l => ({ ...l })) })); }
     getLessons(courseId) { return this.getCourses().find(c => c.id === courseId)?.lessons || []; }
@@ -84,6 +85,7 @@ export class QuizService {
             const record = { id, courseId, lessonId, correct, total, percentage, createdAt };
             const records = [record, ...this.readHistory().filter(r => r.id !== id)].slice(0, 20);
             this.storage.setItem(QUIZ_HISTORY_KEY, JSON.stringify(records));
+            void learnerSync.recordActivity('quiz_completed', courseId, lessonId === 'all' ? undefined : lessonId, this.storage.ownerId);
             return true;
         } catch { return false; }
     }

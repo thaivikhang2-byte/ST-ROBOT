@@ -1,0 +1,52 @@
+name: Backend and account checks
+
+on:
+  push:
+    branches: [main]
+    paths: ['backend/**', 'frontend/**', 'tests/**', '.github/workflows/backend.yml']
+  pull_request:
+    paths: ['backend/**', 'frontend/**', 'tests/**', '.github/workflows/backend.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: strobot_test
+          POSTGRES_PASSWORD: ci-disposable-only
+          POSTGRES_DB: strobot_ci_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U strobot_test -d strobot_ci_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://strobot_test:ci-disposable-only@localhost:5432/strobot_ci_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install and generate
+        working-directory: backend
+        run: npm ci && npm run prisma:generate
+      - name: Apply production migrations and initialize twice
+        working-directory: backend
+        run: npm run db:migrate && npm run db:seed && npm run db:seed
+      - name: Compile and test backend
+        working-directory: backend
+        run: npm run build && npm run typecheck && npm test
+      - name: Account and learning storage regression checks
+        run: >-
+          node tests/account-service.mjs &&
+          node tests/learner-sync.mjs &&
+          node tests/quiz-service.mjs &&
+          node tests/adaptive-review.mjs &&
+          node tests/microbit-editor-bridge.mjs

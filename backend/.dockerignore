@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+.mail-outbox
+.ai-secrets
+.private
+.backups
+backups
+uploads
+*.log
+*.tsbuildinfo

@@ -1,3 +1,4 @@
+import { getLearnerStorage, learnerSync } from '../../services/LearnerSyncService.js';
 import { quizCourses, quizQuestions } from '../../data/quiz.js?v=guided-learning-v15';
 import { resolveGeneratedQuestion, getGenerationCapacity } from './generation/QuestionEngine.js?v=generated-v6';
 
@@ -15,7 +16,7 @@ export class ReviewService {
     constructor({ storage, now = () => Date.now() } = {}) {
         this.now = now;
         if (storage !== undefined) this.storage = storage;
-        else { try { this.storage = typeof window === 'undefined' ? null : window.localStorage; } catch { this.storage = null; } }
+        else { try { this.storage = getLearnerStorage(); } catch { this.storage = null; } }
     }
     validAttempt(attempt) {
         return attempt && typeof attempt === 'object'
@@ -70,6 +71,10 @@ export class ReviewService {
         if (status === 'blocked') return { saved: false, reason: 'blocked' };
         if (attempts.some(previous => previous.id === id)) return { saved: true, duplicate: true };
         const saved = this.write([...attempts, this.cleanAttempt(attempt)]);
+        if (saved) {
+            const lessons = new Set(attempt.answers.map(answer => resolveQuestion(answer.questionId).lessonId));
+            void learnerSync.recordActivity('quiz_completed', courseId, lessons.size === 1 ? [...lessons][0] : undefined, this.storage.ownerId);
+        }
         return { saved, reason: saved ? 'ok' : 'blocked', replacedCorruptData: saved && status === 'corrupt' };
     }
     evidence(courseId) {

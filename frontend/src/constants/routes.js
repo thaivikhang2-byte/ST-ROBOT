@@ -8,5 +8,6 @@ export const ROUTES = {
     ASSESSMENT: PathResolver.page('assessment.html'),
     HOC_LIEU: PathResolver.page('hoclieu.html'),
     COURSE_LEARNING: PathResolver.page('course.learning.html'),
-    DANG_KY: PathResolver.page('dangky.html')
+    DANG_KY: PathResolver.page('dangky.html'),
+    ACCOUNT: PathResolver.page('account.html')
 };

@@ -1,4 +1,4 @@
-import { ROUTES } from '../../constants/routes.js';
+import { ROUTES } from '../../constants/routes.js?v=account-sync-v1';
 import { icon } from '../ui/icon.js';
 
 export const NAV_ITEMS = [
@@ -8,6 +8,7 @@ export const NAV_ITEMS = [
     { href: ROUTES.HOC_LIEU, label: 'Khóa học & Học liệu' },
     { href: ROUTES.COURSE_LEARNING, label: 'Tự học' },
     { href: ROUTES.QUIZ, label: 'Kiểm tra' },
+    { href: ROUTES.ACCOUNT, label: 'Tài khoản' },
 ];
 
 export const getNavbarTemplate = () => `
