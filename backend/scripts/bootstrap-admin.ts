@@ -6,9 +6,10 @@ import { RegisterDto } from '../src/modules/auth/dto/register.dto';
 import { importLearning } from '../prisma/import-learning';
 
 // Explicit operator-only process. No default credentials; never promotes an existing account.
-export async function bootstrapAdministrator(
+async function createAdministrator(
   prisma: PrismaClient,
-  environment: NodeJS.ProcessEnv = process.env,
+  environment: NodeJS.ProcessEnv,
+  skipExisting = false,
 ) {
   if (environment.ALLOW_INITIAL_ADMIN_BOOTSTRAP !== 'true')
     throw new Error('Explicit initial bootstrap opt-in is required');
@@ -20,19 +21,25 @@ export async function bootstrapAdministrator(
   });
   if ((await validate(dto)).length) throw new Error('Bootstrap credentials failed validation');
   const attested = environment.BOOTSTRAP_ADMIN_VERIFIED === 'true';
+  // CPU-limited hosts must not hold the database lock while bcrypt runs.
+  const passwordHash = await hashPassword(dto.password);
   return prisma.$transaction(async (tx) => {
       await tx.authorizationState.update({
         where: { id: 'default' },
         data: { version: { increment: 1 } },
       });
       const role = await tx.role.findUniqueOrThrow({ where: { name: 'superadmin' } });
+      // The authorization-state row lock is shared with the operator bootstrap
+      // and held until commit. Check all historical assignments, including
+      // revoked/expired assignments and disabled/deleted accounts.
+      const recovery = (await tx.user.count({ where: { OR: [
+        { role_id: role.id }, { role_assignments: { some: { role_id: role.id } } },
+      ] } })) > 0;
+      if (skipExisting && recovery) return { created: false as const };
       if (!role.is_active || role.status !== 'ACTIVE' || role.group !== 'MANAGER')
         throw new Error('The active system administrator role is required');
       // Lock the role so concurrent bootstrap requests cannot create two initial accounts.
       await tx.role.update({ where: { id: role.id }, data: { updated_at: new Date() } });
-      const recovery = (await tx.user.count({ where: { OR: [
-        { role_id: role.id }, { role_assignments: { some: { role_id: role.id } } },
-      ] } })) > 0;
       const reason = environment.BOOTSTRAP_RECOVERY_REASON?.trim();
       if (
         recovery &&
@@ -47,7 +54,7 @@ export async function bootstrapAdministrator(
       const user = await tx.user.create({
         data: {
           email: dto.email,
-          password_hash: await hashPassword(dto.password),
+          password_hash: passwordHash,
           first_name: dto.firstName,
           last_name: dto.lastName,
           role_id: role.id,
@@ -68,8 +75,34 @@ export async function bootstrapAdministrator(
           },
         },
       });
-      return { id: user.id, verified: attested };
-  });
+      return { created: true as const, id: user.id, verified: attested };
+  }, { maxWait: 30000, timeout: 30000 });
+}
+
+// Explicit operator CLI retains its protected recovery flow and return shape.
+export async function bootstrapAdministrator(
+  prisma: PrismaClient,
+  environment: NodeJS.ProcessEnv = process.env,
+) {
+  const result = await createAdministrator(prisma, environment);
+  if (!result.created) throw new Error('Administrator was not created');
+  return { id: result.id, verified: result.verified };
+}
+
+// Render's first-start route never accepts recovery flags from its environment.
+// The explicit enable flag is the operator's identity attestation.
+export async function bootstrapInitialAdministrator(
+  prisma: PrismaClient,
+  environment: NodeJS.ProcessEnv,
+) {
+  if (environment.INITIAL_ADMIN_ENABLED !== 'true')
+    throw new Error('Explicit initial administrator startup opt-in is required');
+  return createAdministrator(prisma, {
+    ALLOW_INITIAL_ADMIN_BOOTSTRAP: 'true',
+    BOOTSTRAP_ADMIN_EMAIL: environment.INITIAL_ADMIN_EMAIL,
+    BOOTSTRAP_ADMIN_PASSWORD: environment.INITIAL_ADMIN_PASSWORD,
+    BOOTSTRAP_ADMIN_VERIFIED: 'true',
+  }, true);
 }
 
 async function main() {

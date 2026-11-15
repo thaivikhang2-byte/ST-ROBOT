@@ -4,6 +4,8 @@ Bản này giữ giao diện, 30 bài học, lab, quiz và AI Tutor của GitHub
 
 ## GitHub Pages và máy chủ
 
+Nếu dùng Render Free, làm theo [hướng dẫn từng bước](render-free-deployment.md). Bản này hỗ trợ vault AI mã hóa trong PostgreSQL và tạo admin đầu tiên khi startup, không cần Shell hay đĩa trả phí.
+
 GitHub Pages chỉ phục vụ frontend. Đẩy repository không khởi động PostgreSQL, Redis hoặc NestJS. Dịch vụ AI Tutor hiện có ở Render vẫn hoạt động độc lập; không thay nó bằng backend mới khi chưa cấu hình đủ dịch vụ.
 
 Frontend production mặc định để trống API tài khoản. Trang **Tài khoản** hiển thị tình trạng chưa kết nối, còn các chức năng học khách vẫn dùng được. Sau khi backend HTTPS hoạt động, sửa duy nhất địa chỉ công khai trong `frontend/src/config/backend.config.js`:
@@ -14,7 +16,7 @@ apiBaseUrl: 'https://TEN-MAY-CHU-CUA-BAN/api',
 
 Không đặt mật khẩu, JWT secret hoặc khóa AI trong frontend. Backend production phải đặt:
 
-- `DATABASE_URL`: PostgreSQL bền vững; `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`: Redis.
+- `DATABASE_URL`: PostgreSQL bền vững; `REDIS_URL` hoặc `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`: Redis.
 - `JWT_SECRET` và `JWT_REFRESH_SECRET`: hai chuỗi ngẫu nhiên khác nhau, mỗi chuỗi ít nhất 32 ký tự.
 - `NODE_ENV=production` và `CORS_ORIGIN=https://thaivikhang2-byte.github.io`.
 - Với đăng ký email công khai: `MAIL_PROVIDER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM`; tài khoản SMTP nếu máy chủ yêu cầu. Với tài khoản nội bộ do quản trị tạo: dùng đồng thời `MANAGED_ACCOUNTS_ENABLED=true`, `FEATURE_REGISTRATION_ENABLED=false`, `MAIL_PROVIDER=disabled`; xem [managed-accounts.md](managed-accounts.md).

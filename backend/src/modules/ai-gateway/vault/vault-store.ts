@@ -3,23 +3,23 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import {
   AiVault,
-  VaultProvider,
-  VaultCredential,
   validateVault,
   credentialAad,
 } from './vault-schema';
 import { masterKey, encryptCredential, decryptCredential } from './credential-crypto';
+import { EncryptedVaultStore, VaultConflict } from './vault-store-base';
+export { VaultConflict } from './vault-store-base';
 
-export class VaultConflict extends Error {}
 const isFsCode = (error: unknown, code: string) =>
   typeof error === 'object' && error !== null && 'code' in error && error.code === code;
-export class VaultStore {
+export class VaultStore extends EncryptedVaultStore {
   readonly filename: string;
   constructor(
     filename: string,
-    private readonly encodedKey: string,
-    readonly keyId: string,
+    encodedKey: string,
+    keyId: string,
   ) {
+    super(encodedKey, keyId);
     if (
       !filename ||
       filename.includes('\0') ||
@@ -28,10 +28,6 @@ export class VaultStore {
     )
       throw new Error('Invalid deployment vault path');
     this.filename = path.resolve(filename);
-    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(keyId)) throw new Error('Invalid AI vault key version');
-  }
-  private key() {
-    return masterKey(this.encodedKey);
   }
   private async directory() {
     const parent = path.dirname(this.filename);
@@ -69,19 +65,6 @@ export class VaultStore {
     } catch (error) {
       if (isFsCode(error, 'ENOENT')) return { version: 1, revision: 0, providers: [] };
       throw error;
-    } finally {
-      key.fill(0);
-    }
-  }
-  decrypt(provider: VaultProvider, credential: VaultCredential): Buffer {
-    const key = this.key();
-    try {
-      return decryptCredential(
-        credential.encrypted,
-        key,
-        this.keyId,
-        credentialAad(provider, credential, this.keyId),
-      );
     } finally {
       key.fill(0);
     }
@@ -170,58 +153,6 @@ export class VaultStore {
       } finally {
         key.fill(0);
       }
-    });
-  }
-  async replaceProvider(expectedRevision: number, provider: Omit<VaultProvider, 'credentials'>) {
-    return this.update(expectedRevision, (vault, key) => {
-      const index = vault.providers.findIndex((p) => p.id === provider.id),
-        prior = vault.providers[index];
-      const next: VaultProvider = { ...provider, credentials: [] };
-      for (const credential of prior?.credentials ?? []) {
-        const plaintext = decryptCredential(
-          credential.encrypted,
-          key,
-          this.keyId,
-          credentialAad(prior, credential, this.keyId),
-        );
-        try {
-          next.credentials.push({
-            ...credential,
-            encrypted: encryptCredential(
-              plaintext,
-              key,
-              this.keyId,
-              credentialAad(next, credential, this.keyId),
-            ),
-          });
-        } finally {
-          plaintext.fill(0);
-        }
-      }
-      if (index < 0) vault.providers.push(next);
-      else vault.providers[index] = next;
-    });
-  }
-  async addCredential(
-    expectedRevision: number,
-    providerId: string,
-    credential: Omit<VaultCredential, 'encrypted'>,
-    plaintext: Buffer,
-  ) {
-    return this.update(expectedRevision, (vault, key) => {
-      const provider = vault.providers.find((p) => p.id === providerId);
-      if (!provider) throw new Error('AI provider not configured');
-      if (provider.credentials.some((c) => c.id === credential.id))
-        throw new VaultConflict('AI credential ID already exists');
-      provider.credentials.push({
-        ...credential,
-        encrypted: encryptCredential(
-          plaintext,
-          key,
-          this.keyId,
-          credentialAad(provider, credential, this.keyId),
-        ),
-      });
     });
   }
   async rotate(expectedRevision: number, newEncodedKey: string, newKeyId: string) {

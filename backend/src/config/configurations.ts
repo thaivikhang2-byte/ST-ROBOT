@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════
 
 import { registerAs } from '@nestjs/config';
+import { redisConnection } from './redis-connection';
 
 export const appConfig = registerAs('app', () => ({
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -29,6 +30,11 @@ export const loggingConfig = registerAs('logging', () => ({
     'METRICS_SCRAPE_TOKEN',
     'BACKUP_ENCRYPTION_KEY',
     'CLOUDFLARE_STREAM_API_TOKEN',
+    'REDIS_URL',
+    'REDIS_PASSWORD',
+    'DATABASE_URL',
+    'INITIAL_ADMIN_PASSWORD',
+    'BOOTSTRAP_ADMIN_PASSWORD',
   ]
     .map((key) => process.env[key] || '')
     .filter(Boolean),
@@ -62,11 +68,7 @@ export const databaseConfig = registerAs('database', () => ({
   url: process.env.DATABASE_URL,
 }));
 
-export const redisConfig = registerAs('redis', () => ({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-  password: process.env.REDIS_PASSWORD || undefined,
-}));
+export const redisConfig = registerAs('redis', () => redisConnection(process.env));
 
 export const jwtConfig = registerAs('jwt', () => ({
   secret: process.env.JWT_SECRET,
@@ -104,12 +106,13 @@ export const aiConfig = registerAs('ai', () => ({
 }));
 
 export const aiVaultConfig = registerAs('aiVault', () => ({
+  storage: (process.env.AI_VAULT_STORAGE || 'file') as 'file' | 'database',
   path: process.env.AI_PROVIDERS_CONFIG_PATH || 'config/ai-providers.enc.json',
   masterKey: process.env.AI_CREDENTIALS_MASTER_KEY || '',
   keyId: process.env.AI_CREDENTIALS_KEY_ID || 'master-v1',
   allowedEndpoints: (
     process.env.AI_APPROVED_BASE_URLS ||
-    'https://api.openai.com/v1,https://api.anthropic.com,https://generativelanguage.googleapis.com,https://openrouter.ai/api/v1,https://api.cloudflare.com/client/v4,https://gateway.ai.cloudflare.com/v1'
+    'https://api.openai.com/v1,https://api.anthropic.com,https://generativelanguage.googleapis.com,https://llm.wokushop.com/v1,https://openrouter.ai/api/v1,https://api.cloudflare.com/client/v4,https://gateway.ai.cloudflare.com/v1'
   )
     .split(',')
     .map((v) => v.trim())

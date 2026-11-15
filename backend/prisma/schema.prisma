@@ -308,7 +308,18 @@ model Category {
   @@map("categories")
 }
 
-// Provider credentials and prompts deliberately have no database fields here.
+// Only non-secret provider accounting metadata is stored in this model.
+// Optional deployment vault: AES-GCM envelopes and public metadata only. TEXT preserves
+// JSON property order used by credential AAD; converting this payload to JSONB is unsafe.
+model AiProviderVault {
+  id String @id @default("default") @db.VarChar(20)
+  revision BigInt @default(0)
+  payload String @db.Text
+  backup_payload String? @db.Text
+  updated_at DateTime @updatedAt
+  @@map("ai_provider_vaults")
+}
+
 model AiProvider {
   id      String @id @db.VarChar(20)
   type    String @default("openai") @db.VarChar(32)

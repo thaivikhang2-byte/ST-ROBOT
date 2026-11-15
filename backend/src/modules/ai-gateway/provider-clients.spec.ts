@@ -14,6 +14,7 @@ describe('Provider client security configuration', () => {
     await fs.mkdir(root, { recursive: true });
     const folder = await fs.mkdtemp(path.join(root, 'clients-'));
     const vault = new AiVaultService({
+      storage: 'file',
       path: path.join(folder, 'vault.json'),
       masterKey: randomBytes(32).toString('base64'),
       keyId: 'v1',

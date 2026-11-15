@@ -8,7 +8,9 @@ import * as Joi from 'joi';
 export const envValidationSchema = Joi.object({
   // App
   NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
-  APP_PORT: Joi.number().default(3000),
+  // Keep this optional: a Joi default would populate process.env.APP_PORT and
+  // override Render's PORT before the app configuration factory runs.
+  APP_PORT: Joi.number().integer().min(1).max(65535).optional(),
   PORT: Joi.number().integer().min(1).max(65535).optional(),
   APP_NAME: Joi.string().default('ST-Robot-LMS'),
   API_PREFIX: Joi.string().default('api'),
@@ -21,6 +23,9 @@ export const envValidationSchema = Joi.object({
   REDIS_HOST: Joi.string().default('localhost'),
   REDIS_PORT: Joi.number().default(6379),
   REDIS_PASSWORD: Joi.string().allow('').default(''),
+  REDIS_USERNAME: Joi.string().allow('').optional(),
+  REDIS_DB: Joi.number().integer().min(0).max(15).default(0),
+  REDIS_URL: Joi.string().uri({ scheme: ['redis', 'rediss'] }).allow('').optional(),
 
   // JWT
   JWT_SECRET: Joi.string().min(32).required(),
@@ -33,6 +38,10 @@ export const envValidationSchema = Joi.object({
     .default('7d'),
   JWT_ISSUER: Joi.string().optional(),
   JWT_AUDIENCE: Joi.string().optional(),
+  INITIAL_ADMIN_ENABLED: Joi.boolean().default(false),
+  INITIAL_ADMIN_EMAIL: Joi.string().email().allow('').optional(),
+  INITIAL_ADMIN_PASSWORD: Joi.string().allow('').optional(),
+  INITIAL_ADMIN_CATALOG_RETRY_ID: Joi.string().guid({ version: ['uuidv4', 'uuidv5'] }).optional(),
   TRUST_PROXY: Joi.string().allow('').default(''),
 
   // Mail
@@ -75,6 +84,7 @@ export const envValidationSchema = Joi.object({
   AI_CF_GATEWAY_URL: Joi.string().uri({ scheme: ['https'] }).allow('').default(''),
   AI_USAGE_RETENTION_DAYS: Joi.number().integer().min(0).max(3650).default(0),
   AI_PROVIDERS_CONFIG_PATH: Joi.string().allow('').optional(),
+  AI_VAULT_STORAGE: Joi.string().valid('file', 'database').default('file'),
   AI_CREDENTIALS_MASTER_KEY: Joi.string().allow('').optional(),
   AI_CREDENTIALS_KEY_ID: Joi.string().default('master-v1'),
   AI_APPROVED_BASE_URLS: Joi.string().allow('').optional(),

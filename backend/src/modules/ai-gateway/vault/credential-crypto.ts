@@ -9,6 +9,7 @@ export interface EncryptedCredential {
   ciphertext: string;
 }
 export function masterKey(encoded: string): Buffer {
+  if (/^[a-fA-F0-9]{64}$/.test(encoded)) return Buffer.from(encoded, 'hex');
   if (!/^[A-Za-z0-9+/]{43}=$/.test(encoded)) throw new Error('Invalid AI vault master key');
   const key = Buffer.from(encoded, 'base64');
   if (key.length !== 32 || key.toString('base64') !== encoded)

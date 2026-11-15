@@ -17,6 +17,9 @@ export class RedisService implements ICacheStore, OnModuleInit, OnModuleDestroy 
       host: this.configService.get<string>('redis.host', 'localhost'),
       port: this.configService.get<number>('redis.port', 6379),
       password: this.configService.get<string>('redis.password') || undefined,
+      username: this.configService.get<string>('redis.username') || undefined,
+      db: this.configService.get<number>('redis.db', 0),
+      tls: this.configService.get('redis.tls') || undefined,
       retryStrategy: (times) => {
         const delay = Math.min(times * 100, 5000);
         return delay;
@@ -29,8 +32,8 @@ export class RedisService implements ICacheStore, OnModuleInit, OnModuleDestroy 
   async onModuleInit(): Promise<void> {
     try {
       await this.client.connect();
-    } catch (error) {
-      console.warn('Redis connection failed, running without cache:', error);
+    } catch {
+      console.warn('Redis connection unavailable; requests requiring rate limits or queues remain unavailable.');
     }
   }
 

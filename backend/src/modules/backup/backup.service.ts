@@ -35,6 +35,7 @@ export interface BackupManifest {
   parts: BackupPart[];
   bucket: string | null;
   vault: boolean;
+  vaultStorage?: 'file' | 'database';
   requiredKeys: string[];
   limitations: string[];
 }
@@ -151,6 +152,7 @@ export class BackupService {
             parts: [],
             bucket: this.storage.name === 'disabled' ? null : this.storage.settings.bucket,
             vault: false,
+            vaultStorage: this.vault.storage === 'database' ? 'database' : 'file',
             requiredKeys: [],
             limitations: [
               'Object keys are copied and authenticated during the DB snapshot. Concurrent deletion makes the backup fail; uploads not referenced by the snapshot may be extra.',
@@ -266,12 +268,18 @@ export class BackupService {
               }
             }
           }
-          try {
-            const bytes = await readFile(this.vault.path);
-            manifest.parts.push(await part(Readable.from(bytes), 'vault.enc'));
-            manifest.vault = true;
-          } catch (e) {
-            if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
+          if (this.vault.storage === 'database') {
+            // The encrypted vault row is included in the same PostgreSQL dump.
+            // Never read a stale local file when this deployment uses DB storage.
+            manifest.vault = (await tx.aiProviderVault.count()) > 0;
+          } else {
+            try {
+              const bytes = await readFile(this.vault.path);
+              manifest.parts.push(await part(Readable.from(bytes), 'vault.enc'));
+              manifest.vault = true;
+            } catch (e) {
+              if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
+            }
           }
           await part(Readable.from(JSON.stringify(manifest)), 'manifest.enc');
         },

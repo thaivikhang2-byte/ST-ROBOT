@@ -1,4 +1,4 @@
-import { accountService } from '../../services/AccountService.js';
+import { accountService, ACCOUNT_CONNECTION_EVENT } from '../../services/AccountService.js';
 import { learnerSync } from '../../services/LearnerSyncService.js';
 import { attachAgentPanel } from './AgentPanel.js';
 import { workspaceAccess, canUpdateStudentStatus, readLearningDashboard } from './LearningDashboard.js';
@@ -84,6 +84,8 @@ export class AccountPage {
         });
     }
     async init() {
+        globalThis.window?.addEventListener(ACCOUNT_CONNECTION_EVENT, () => this.renderConnection());
+        this.renderConnection();
         void this.loadAuthOptions();
         for (const button of this.root.querySelectorAll('[data-auth-mode]')) button.addEventListener('click', () => this.mode(button.dataset.authMode));
         this.bindForm('#account-login', async data => {
@@ -221,6 +223,20 @@ export class AccountPage {
         this.$('#account-sync-use-server').hidden = !detail.conflict;
         this.$('#account-sync-keep-local').hidden = !detail.conflict;
     }
+    renderConnection() {
+        const output = this.$('#account-server-status');
+        if (!output) return;
+        output.setAttribute('role', 'status');
+        output.textContent = !accountService.configured
+            ? 'Tính năng tài khoản và đồng bộ chưa được mở trên máy chủ này. Các khóa học vẫn hoạt động và lưu trên thiết bị.'
+            : accountService.connectionStatus === 'connecting'
+                ? 'Đang kết nối máy chủ tài khoản. Lần đầu có thể mất khoảng một phút; vui lòng giữ trang này.'
+                : accountService.user && accountService.sessionOffline
+                    ? 'Đang dùng bản lưu tài khoản trên thiết bị. Chưa xác nhận lại được phiên với máy chủ; học tập vẫn được lưu đúng tài khoản và sẽ thử đồng bộ khi có mạng.'
+                    : accountService.connectionStatus === 'error'
+                        ? 'Chưa kết nối được máy chủ tài khoản. Kiểm tra mạng rồi thử lại; dữ liệu học trên thiết bị vẫn được giữ.'
+                        : accountService.user ? 'Đã kết nối tài khoản.' : 'Chưa đăng nhập. Đăng nhập để mở dữ liệu học tập theo tài khoản.';
+    }
     renderUser(user) {
         this.managementVersion++;
         this.enrollmentVersion++;
@@ -228,10 +244,7 @@ export class AccountPage {
         this.$('#account-auth').hidden = !!user;
         this.$('#account-activity-content').replaceChildren();
         if (this.passwordTarget && (this.passwordTarget.ownerId !== user?.id || !canUpdateStudentStatus(user, this.passwordTarget, { offline: accountService.sessionOffline }))) this.$('#account-student-password-dialog').close();
-        this.$('#account-server-status').textContent = !accountService.configured
-            ? 'Tính năng tài khoản và đồng bộ chưa được mở trên máy chủ này. Các khóa học vẫn hoạt động và lưu trên thiết bị.'
-            : user && accountService.sessionOffline ? 'Đang dùng bản lưu tài khoản trên thiết bị. Chưa xác nhận lại được phiên với máy chủ; học tập vẫn được lưu đúng tài khoản và sẽ thử đồng bộ khi có mạng.'
-                : user ? 'Đã kết nối tài khoản.' : 'Chưa đăng nhập. Đăng nhập để mở dữ liệu học tập theo tài khoản.';
+        this.renderConnection();
         for (const button of this.root.querySelectorAll('#account-auth button, #account-auth input')) button.disabled = !accountService.configured;
         if (!user) {
             this.workspaceOwner = null;

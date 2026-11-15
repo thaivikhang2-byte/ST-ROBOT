@@ -51,7 +51,11 @@ with sync_playwright() as p:
                 return
             path = parsed.path.removeprefix('/api')
             status = 200
-            if path == '/v1/auth/refresh':
+            if path == '/system/health/live':
+                require(request.method == 'GET' and not request.headers.get('authorization') and not request.post_data,
+                        'Connection check must not include account credentials')
+                data = {'status': 'ok'}
+            elif path == '/v1/auth/refresh':
                 data = {'tokens': tokens}
             elif path == '/v1/auth/me':
                 data = user

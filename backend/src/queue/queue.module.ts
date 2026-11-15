@@ -20,6 +20,9 @@ import { ConfigService } from '@nestjs/config';
           host: configService.get<string>('redis.host', 'localhost'),
           port: configService.get<number>('redis.port', 6379),
           password: configService.get<string>('redis.password') || undefined,
+          username: configService.get<string>('redis.username') || undefined,
+          db: configService.get<number>('redis.db', 0),
+          tls: configService.get('redis.tls') || undefined,
         },
         defaultJobOptions: {
           removeOnComplete: true,

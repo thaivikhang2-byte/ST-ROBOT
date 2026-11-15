@@ -46,6 +46,7 @@ jobs:
       - name: Account and learning storage regression checks
         run: >-
           node tests/account-service.mjs &&
+          node tests/account-connection.mjs &&
           node tests/account-dashboard.mjs &&
           node tests/ai-admin-setup.mjs &&
           node tests/tutor-learning-context.mjs &&

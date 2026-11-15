@@ -95,7 +95,10 @@ def main():
             body = json.loads(request.post_data or '{}')
             actor = tokens.get(request.headers.get('authorization', '').removeprefix('Bearer '))
             data = {}
-            if path == '/v1/auth/options':
+            if path == '/system/health/live':
+                assert request.method == 'GET' and not request.headers.get('authorization') and not request.post_data
+                data = {'status': 'ok'}
+            elif path == '/v1/auth/options':
                 data = {'registrationEnabled': False, 'emailDeliveryEnabled': False, 'managedAccountsEnabled': True}
             elif path == '/v1/auth/login':
                 user = profiles[body['email']]

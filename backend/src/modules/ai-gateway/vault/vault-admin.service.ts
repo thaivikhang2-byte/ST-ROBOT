@@ -22,7 +22,7 @@ export class VaultAdminService {
       await tx.aiQuotaPolicy.update({ where: { id: 'default' }, data: { lock_version: { increment: 1 } } });
       const existing = await tx.aiProvider.findUnique({ where: { id } });
       if (existing && existing.type !== dto.provider.type) throw new ForbiddenException('Existing provider type is immutable');
-      const result = await this.vault.replace(dto.expectedRevision, dto.provider);
+      const result = await this.vault.replace(dto.expectedRevision, dto.provider, tx);
       const provider = result.providers.find((p) => p.id === id)!;
       await tx.aiProvider.upsert({ where: { id }, create: { id, type: provider.type, enabled: provider.enabled }, update: { enabled: provider.enabled } });
       await auditContent(tx, 'ai.provider_configured', actor, 'ai_provider', id);
@@ -37,7 +37,7 @@ export class VaultAdminService {
         await tx.aiQuotaPolicy.update({ where: { id: 'default' }, data: { lock_version: { increment: 1 } } });
         const result = await this.vault.add(dto.expectedRevision, id, {
           id: dto.id ?? randomUUID(), enabled: dto.enabled, endpointIds: dto.endpointIds, limits: dto.limits,
-        }, bytes);
+        }, bytes, tx);
         await auditContent(tx, 'ai.credential_added', actor, 'ai_provider', id);
         return result;
       });
@@ -47,8 +47,8 @@ export class VaultAdminService {
     return this.prisma.$transaction(async (tx) => {
       await tx.aiQuotaPolicy.update({ where: { id: 'default' }, data: { lock_version: { increment: 1 } } });
       const result = credential
-        ? await this.vault.removeCredential(dto.expectedRevision, id, credential)
-        : await this.vault.removeProvider(dto.expectedRevision, id);
+        ? await this.vault.removeCredential(dto.expectedRevision, id, credential, tx)
+        : await this.vault.removeProvider(dto.expectedRevision, id, tx);
       if (!credential) await tx.aiProvider.updateMany({ where: { id }, data: { enabled: false } });
       await auditContent(tx, credential ? 'ai.credential_removed' : 'ai.provider_removed', actor, 'ai_provider', id);
       return result;

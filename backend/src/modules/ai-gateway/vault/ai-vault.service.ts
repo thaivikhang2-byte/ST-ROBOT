@@ -1,16 +1,27 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { aiVaultConfig } from '../../../config/configurations';
 import { AiError } from '../ai.error';
 import { ErrorCode } from '../../../shared/sdk/errors/error-codes.enum';
 import { ConflictException, NotFoundException } from '../../../shared/sdk/errors/domain.exception';
 import { VaultStore, VaultConflict } from './vault-store';
+import { DatabaseVaultStore, VaultDatabaseClient } from './database-vault-store';
+import { PrismaService } from '../../../database/prisma.service';
 import { AiVault, VaultProvider, validateVault, VaultCredential } from './vault-schema';
 
 @Injectable()
 export class AiVaultService {
-  constructor(@Inject(aiVaultConfig.KEY) readonly config: ConfigType<typeof aiVaultConfig>) {}
-  store() {
+  constructor(
+    @Inject(aiVaultConfig.KEY) readonly config: Omit<ConfigType<typeof aiVaultConfig>, 'storage'> & { storage?: 'file' | 'database' },
+    @Optional() private readonly prisma?: PrismaService,
+  ) {}
+  store(database?: VaultDatabaseClient) {
+    if (this.config.storage === 'database') {
+      const client = database ?? this.prisma;
+      if (!client) throw new Error('Database vault storage requires PostgreSQL');
+      return new DatabaseVaultStore(client, this.config.masterKey, this.config.keyId);
+    }
+    if (this.config.storage && this.config.storage !== 'file') throw new Error('Invalid AI vault storage');
     return new VaultStore(this.config.path, this.config.masterKey, this.config.keyId);
   }
   private failure(error: unknown): never {
@@ -22,15 +33,15 @@ export class AiVaultService {
       'Encrypted AI configuration unavailable',
     );
   }
-  async read(): Promise<AiVault> {
+  async read(database?: VaultDatabaseClient): Promise<AiVault> {
     try {
-      return await this.store().read();
+      return await this.store(database).read();
     } catch (error) {
       return this.failure(error);
     }
   }
-  async metadata() {
-    const vault = await this.read();
+  async metadata(database?: VaultDatabaseClient) {
+    const vault = await this.read(database);
     return {
       version: vault.version,
       revision: vault.revision,
@@ -63,7 +74,7 @@ export class AiVaultService {
       return false;
     }
   }
-  async replace(revision: number, metadata: Record<string, unknown>) {
+  async replace(revision: number, metadata: Record<string, unknown>, database?: VaultDatabaseClient) {
     if ('credentials' in metadata)
       throw new AiError(
         ErrorCode.VALIDATION_ERROR,
@@ -90,8 +101,8 @@ export class AiVaultService {
       if (!isEndpointApproved(endpoint.baseUrl))
         throw new AiError(ErrorCode.FORBIDDEN, 403, 'Endpoint is not deployment-approved');
     try {
-      await this.store().replaceProvider(revision, provider);
-      return this.metadata();
+      await this.store(database).replaceProvider(revision, provider);
+      return this.metadata(database);
     } catch (error) {
       return this.failure(error);
     }
@@ -101,37 +112,38 @@ export class AiVaultService {
     providerId: string,
     metadata: Omit<VaultCredential, 'encrypted'>,
     key: Buffer,
+    database?: VaultDatabaseClient,
   ) {
     try {
-      await this.store().addCredential(revision, providerId, metadata, key);
-      return this.metadata();
+      await this.store(database).addCredential(revision, providerId, metadata, key);
+      return this.metadata(database);
     } catch (error) {
       return this.failure(error);
     } finally {
       key.fill(0);
     }
   }
-  async removeCredential(revision: number, providerId: string, id: string) {
+  async removeCredential(revision: number, providerId: string, id: string, database?: VaultDatabaseClient) {
     try {
-      await this.store().update(revision, (v) => {
+      await this.store(database).update(revision, (v) => {
         const p = v.providers.find((p) => p.id === providerId);
         if (!p) throw new NotFoundException('AI provider');
         if (!p.credentials.some((c) => c.id === id)) throw new NotFoundException('AI credential');
         p.credentials = p.credentials.filter((c) => c.id !== id);
       });
-      return this.metadata();
+      return this.metadata(database);
     } catch (error) {
       return this.failure(error);
     }
   }
-  async removeProvider(revision: number, id: string) {
+  async removeProvider(revision: number, id: string, database?: VaultDatabaseClient) {
     try {
-      await this.store().update(revision, (v) => {
+      await this.store(database).update(revision, (v) => {
         if (!v.providers.some((p) => p.id === id)) throw new NotFoundException('AI provider');
         v.providers = v.providers.filter((p) => p.id !== id);
         if (v.defaultProviderId === id) delete v.defaultProviderId;
       });
-      return this.metadata();
+      return this.metadata(database);
     } catch (error) {
       return this.failure(error);
     }

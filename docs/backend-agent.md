@@ -30,9 +30,11 @@ quản lí có quyền AI. GitHub Pages chỉ chạy frontend; việc push code 
 động các dịch vụ này.
 
 1. Lưu bí mật `AI_CREDENTIALS_MASTER_KEY` trong cấu hình bí mật của máy chủ. Giá
-   trị là 32 byte ngẫu nhiên mã hóa base64; `AI_CREDENTIALS_KEY_ID` mặc định
+   trị là 32 byte ngẫu nhiên mã hóa base64 hoặc 64 ký tự hex; `AI_CREDENTIALS_KEY_ID` mặc định
    `master-v1`. Không commit giá trị này.
-2. Đặt `AI_PROVIDERS_CONFIG_PATH` vào tệp `.json` trên ổ đĩa bền vững riêng, ngoài
+2. Trên Render Free, đặt `AI_VAULT_STORAGE=database` để lưu vault mã hóa vào PostgreSQL;
+   không cần đĩa trả phí. Với máy chủ dùng `AI_VAULT_STORAGE=file` (mặc định),
+   đặt `AI_PROVIDERS_CONFIG_PATH` vào tệp `.json` trên ổ đĩa bền vững riêng, ngoài
    thư mục public và Git, ví dụ `/app/private-ai/providers.enc.json`. Backend yêu
    cầu tệp thuộc người dùng chạy ứng dụng và quyền `0600`, thư mục riêng `0700`.
    Sao lưu cả kho khóa mã hóa và master key theo quy trình vận hành riêng.
@@ -50,8 +52,10 @@ Người quản lí có thể dùng mục **Quản trị → Cấu hình AI** tr
 để cấu hình provider, khóa, model và bật/tắt chat. Key chỉ gửi tới API credential
 qua HTTPS, được mã hóa trên server, xóa khỏi ô nhập và không lưu trong browser
 storage. Thao tác khám phá model chỉ chạy khi người vận hành bấm nút; lưu cấu hình
-không tự gửi một câu hỏi AI tính phí. Kho khóa cần ổ đĩa bền vững và master key
-riêng trong cấu hình máy chủ.
+không tự gửi một câu hỏi AI tính phí. Kho khóa cần PostgreSQL bền vững ở chế độ
+database hoặc ổ đĩa bền vững ở chế độ file, cùng master key riêng trong cấu hình
+máy chủ. Không tự nhập file vault cũ vào database. Công cụ bảo trì file từ chối
+chế độ database; khôi phục database bằng bản sao lưu PostgreSQL và đúng master key.
 
 Các khóa `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` trong `.env` riêng lẻ không tự động
 thiết lập vault của backend này. AI cũ có cấu hình nhà cung cấp riêng.

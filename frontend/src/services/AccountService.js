@@ -1,6 +1,12 @@
 import { resolveBackendUrl } from '../config/backend.config.js';
 
 export const ACCOUNT_SESSION_KEY = 'strobot.account.session.v1';
+export const ACCOUNT_CONNECTION_EVENT = 'strobot:account-connection';
+
+const abortedRequest = () => new AccountError('Kết nối đã bị hủy. Vui lòng thử lại.', 0, 'REQUEST_ABORTED');
+const changedSession = () => new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
+const connectionFailure = () => new AccountError('Chưa kết nối được máy chủ. Vui lòng thử lại sau.', 0, 'NETWORK_ERROR');
+const duration = (value, fallback, maximum) => Number.isFinite(value) && value > 0 ? Math.min(value, maximum) : fallback;
 
 export class AccountError extends Error {
     constructor(message, status = 0, code = 'ACCOUNT_ERROR') {
@@ -16,7 +22,7 @@ const browserStorage = () => {
 };
 
 export class AccountService {
-    constructor({ baseUrl = resolveBackendUrl(), fetchImpl = globalThis.fetch?.bind(globalThis), storage = browserStorage() } = {}) {
+    constructor({ baseUrl = resolveBackendUrl(), fetchImpl = globalThis.fetch?.bind(globalThis), storage = browserStorage(), warmup = typeof globalThis.window !== 'undefined' } = {}) {
         this.baseUrl = baseUrl;
         this.fetchImpl = fetchImpl;
         this.storage = storage;
@@ -28,6 +34,18 @@ export class AccountService {
         this._generation = 0;
         this._authIntent = 0;
         this._listeners = new Set();
+        // Browser requests wait for a sleeping server before starting their normal API timeout.
+        // Injected clients can opt in with `warmup: true` or provide shorter durations for tests.
+        const timing = warmup && typeof warmup === 'object' ? warmup : {};
+        this._warmup = warmup ? {
+            timeoutMs: duration(timing.timeoutMs, 90000, 90000),
+            requestTimeoutMs: duration(timing.requestTimeoutMs, 15000, 90000),
+            retryDelayMs: duration(timing.retryDelayMs, 1000, 10000),
+            ttlMs: duration(timing.ttlMs, 300000, 900000),
+        } : null;
+        this._connectionUntil = 0;
+        this._connectionFlight = null;
+        this.connectionStatus = 'idle';
         this.sessionError = null;
         this.sessionOffline = false;
         this._cachedUser = null;
@@ -54,6 +72,111 @@ export class AccountService {
         return () => this._listeners.delete(listener);
     }
     onAuthChange(listener) { return this.subscribe(listener); }
+
+    _connection(status) {
+        if (this.connectionStatus === status) return;
+        this.connectionStatus = status;
+        if (typeof globalThis.dispatchEvent === 'function' && typeof globalThis.CustomEvent === 'function')
+            globalThis.dispatchEvent(new CustomEvent(ACCOUNT_CONNECTION_EVENT, { detail: { status } }));
+    }
+
+    _waitWithSignal(promise, signal, onAbort) {
+        if (!signal) return promise;
+        return new Promise((resolve, reject) => {
+            const abort = () => { cleanup(); onAbort?.(); reject(abortedRequest()); };
+            const cleanup = () => signal.removeEventListener('abort', abort);
+            if (signal.aborted) abort();
+            else signal.addEventListener('abort', abort, { once: true });
+            promise.then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
+        });
+    }
+
+    async _healthAttempt(signal, timeoutMs) {
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        const timer = setTimeout(abort, timeoutMs);
+        signal.addEventListener('abort', abort, { once: true });
+        if (signal.aborted) controller.abort();
+        try {
+            // This fixed endpoint never receives cookies, bearer tokens or request bodies.
+            return await this._waitWithSignal((async () => {
+                const response = await this.fetchImpl(this.baseUrl + '/system/health/live', {
+                    method: 'GET', credentials: 'omit', cache: 'no-store', redirect: 'error',
+                    headers: { Accept: 'application/json' }, signal: controller.signal,
+                });
+                if ([502, 503, 504].includes(response.status)) throw connectionFailure();
+                // Health authorization/configuration errors must never invalidate an account session.
+                if (!response.ok) throw new AccountError('Máy chủ tài khoản chưa sẵn sàng. Vui lòng thử lại sau.', 0, 'BACKEND_UNAVAILABLE');
+                const payload = await response.json().catch(() => null);
+                if (payload?.success !== true || payload?.data?.status !== 'ok')
+                    throw new AccountError('Máy chủ trả về dữ liệu không hợp lệ.', 0, 'BACKEND_UNAVAILABLE');
+            })(), controller.signal);
+        } catch (error) {
+            if (signal.aborted) throw abortedRequest();
+            if (error instanceof AccountError && error.code !== 'REQUEST_ABORTED') throw error;
+            throw connectionFailure();
+        } finally {
+            clearTimeout(timer);
+            signal.removeEventListener('abort', abort);
+        }
+    }
+
+    async _warmConnection(flight) {
+        if (flight.controller.signal.aborted) throw abortedRequest();
+        const deadline = Date.now() + this._warmup.timeoutMs;
+        this._connection('connecting');
+        try {
+            while (Date.now() < deadline) {
+                if (flight.controller.signal.aborted) throw abortedRequest();
+                try {
+                    await this._healthAttempt(flight.controller.signal, Math.min(this._warmup.requestTimeoutMs, deadline - Date.now()));
+                    if (this._connectionFlight === flight) {
+                        this._connectionUntil = Date.now() + this._warmup.ttlMs;
+                        this._connection('ready');
+                    }
+                    return;
+                } catch (error) {
+                    if (error.code !== 'NETWORK_ERROR') throw error;
+                    const delay = Math.min(this._warmup.retryDelayMs, deadline - Date.now());
+                    if (delay <= 0) throw connectionFailure();
+                    let timer;
+                    try {
+                        await this._waitWithSignal(new Promise(resolve => { timer = setTimeout(resolve, delay); }), flight.controller.signal);
+                    } finally { clearTimeout(timer); }
+                }
+            }
+            throw connectionFailure();
+        } catch (error) {
+            if (this._connectionFlight === flight) this._connection(error.code === 'REQUEST_ABORTED' ? 'idle' : 'error');
+            throw error;
+        }
+    }
+
+    _ensureConnection(signal) {
+        if (signal?.aborted) return Promise.reject(abortedRequest());
+        if (!this._warmup || Date.now() < this._connectionUntil) return Promise.resolve();
+        let flight = this._connectionFlight;
+        if (!flight) {
+            flight = { controller: new AbortController(), waiters: 0 };
+            this._connectionFlight = flight;
+            // Initialize the shared promise before notifying connection listeners, which may
+            // themselves start another account request.
+            flight.promise = Promise.resolve().then(() => this._warmConnection(flight)).finally(() => {
+                if (this._connectionFlight === flight) this._connectionFlight = null;
+            });
+        }
+        flight.waiters++;
+        const leave = () => {
+            if (--flight.waiters === 0 && this._connectionFlight === flight) {
+                this._connectionFlight = null;
+                flight.controller.abort();
+                this._connection('idle');
+            }
+        };
+        let left = false;
+        const leaveOnce = () => { if (!left) { left = true; leave(); } };
+        return this._waitWithSignal(flight.promise, signal, leaveOnce).finally(leaveOnce);
+    }
 
     _notify() {
         for (const listener of this._listeners) {
@@ -108,7 +231,7 @@ export class AccountService {
                 if (generation !== this._generation || error.code === 'SESSION_CHANGED') return this._user;
                 this.sessionError = error;
                 if (error.status === 401) this._clear();
-                else if (this._cachedUser && ['NETWORK_ERROR', 'REQUEST_ABORTED'].includes(error.code)) {
+                else if (this._cachedUser && ['NETWORK_ERROR', 'REQUEST_ABORTED', 'BACKEND_UNAVAILABLE'].includes(error.code)) {
                     // A cached identity scopes offline work only. The server still authorizes every API call.
                     this._user = this._cachedUser;
                     this._accessToken = '';
@@ -122,12 +245,21 @@ export class AccountService {
         return this._readyPromise;
     }
 
-    async _send(path, { method = 'GET', body, auth = true, headers = {}, timeoutMs = 20000, signal } = {}) {
+    _checkPath(path) {
         if (!this.configured) throw new AccountError('Máy chủ tài khoản chưa được cấu hình. Bạn vẫn có thể học và lưu trên thiết bị.', 0, 'BACKEND_NOT_CONFIGURED');
         // Only this configured API may receive the bearer token.
         if (!/^\/v1\/[a-zA-Z0-9/_?=&%.:+-]*$/.test(path) || path.includes('..'))
             throw new AccountError('Đường dẫn API không hợp lệ.', 0, 'INVALID_API_PATH');
         if (!this.fetchImpl) throw new AccountError('Trình duyệt không hỗ trợ kết nối máy chủ.', 0, 'NETWORK_ERROR');
+    }
+
+    async _send(path, { method = 'GET', body, auth = true, headers = {}, timeoutMs = 20000, signal, sessionGuard } = {}) {
+        this._checkPath(path);
+        if (sessionGuard && !sessionGuard()) throw changedSession();
+        await this._ensureConnection(signal);
+        // A delayed connection must not attach a new account's token to an old account's body.
+        if (sessionGuard && !sessionGuard()) throw changedSession();
+        if (signal?.aborted) throw abortedRequest();
         const controller = new AbortController();
         const abort = () => controller.abort();
         if (signal?.aborted) controller.abort();
@@ -135,16 +267,18 @@ export class AccountService {
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         try {
             const response = await this.fetchImpl(this.baseUrl + path, {
-                method, credentials: 'omit', cache: 'no-store', signal: controller.signal,
+                method, credentials: 'omit', cache: 'no-store', redirect: 'error', signal: controller.signal,
                 headers: { Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
                     ...headers, ...(auth && this._accessToken ? { Authorization: `Bearer ${this._accessToken}` } : {}) },
                 ...(body === undefined ? {} : { body: JSON.stringify(body) }),
             });
             const payload = await response.json().catch(() => null);
+            if (controller.signal.aborted) throw abortedRequest();
             if (!response.ok || payload?.success === false)
                 throw new AccountError(typeof payload?.message === 'string' ? payload.message : 'Không thể thực hiện yêu cầu. Vui lòng thử lại.', response.status, payload?.error?.code || 'HTTP_ERROR');
             if (!payload || payload.success !== true || !Object.hasOwn(payload, 'data'))
                 throw new AccountError('Máy chủ trả về dữ liệu không hợp lệ.', response.status, 'INVALID_RESPONSE');
+            if (this._warmup) this._connectionUntil = Date.now() + this._warmup.ttlMs;
             return payload.data;
         } catch (error) {
             if (error instanceof AccountError) throw error;
@@ -159,7 +293,7 @@ export class AccountService {
         if (this._refreshPromise) return this._refreshPromise;
         const token = this._refreshToken, generation = this._generation;
         if (!token) return Promise.reject(new AccountError('Vui lòng đăng nhập để tiếp tục.', 401, 'UNAUTHORIZED'));
-        this._refreshPromise = this._send('/v1/auth/refresh', { method: 'POST', body: { refreshToken: token }, auth: false })
+        this._refreshPromise = this._send('/v1/auth/refresh', { method: 'POST', body: { refreshToken: token }, auth: false, sessionGuard: () => generation === this._generation })
             .then(async data => {
                 if (generation !== this._generation) throw new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
                 this._tokens(data.tokens);
@@ -180,26 +314,36 @@ export class AccountService {
     }
 
     async request(path, options = {}) {
-        if (!this.configured) throw new AccountError('Máy chủ tài khoản chưa được cấu hình. Bạn vẫn có thể học và lưu trên thiết bị.', 0, 'BACKEND_NOT_CONFIGURED');
+        this._checkPath(path);
         const auth = options.auth !== false;
-        if (auth && (!this._accessToken || this.sessionOffline)) await this._refresh();
-        const generation = this._generation, token = this._accessToken;
+        const generation = this._generation;
+        if (auth && (!this._accessToken || this.sessionOffline)) {
+            await this._ensureConnection(options.signal);
+            if (generation !== this._generation) throw changedSession();
+            if (options.signal?.aborted) throw abortedRequest();
+            // Rotation remains single-flight even if one waiting consumer cancels.
+            await this._waitWithSignal(this._refresh(), options.signal);
+        }
+        if (auth && generation !== this._generation) throw changedSession();
+        const token = this._accessToken;
+        const send = () => this._send(path, { ...options, sessionGuard: auth ? () => generation === this._generation : undefined });
         const current = value => {
             if (auth && generation !== this._generation) throw new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
             return value;
         };
-        try { return current(await this._send(path, options)); }
+        try { return current(await send()); }
         catch (error) {
+            if (options.signal?.aborted) throw abortedRequest();
             if (!auth || error.status !== 401 || !this._refreshToken || generation !== this._generation) throw error;
             // Another request may already have rotated the token before this 401 arrived.
-            if (token === this._accessToken) await this._refresh();
-            return current(await this._send(path, options));
+            if (token === this._accessToken) await this._waitWithSignal(this._refresh(), options.signal);
+            return current(await send());
         }
     }
 
-    async _authenticate(path, credentials) {
+    async _authenticate(path, credentials, { signal } = {}) {
         const intent = ++this._authIntent;
-        const data = await this._send(path, { method: 'POST', body: credentials, auth: false });
+        const data = await this._send(path, { method: 'POST', body: credentials, auth: false, signal, sessionGuard: () => intent === this._authIntent });
         if (intent !== this._authIntent) throw new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
         if (!data?.user?.id) throw new AccountError('Máy chủ trả về tài khoản không hợp lệ.', 0, 'INVALID_RESPONSE');
         this._generation++;
@@ -212,9 +356,9 @@ export class AccountService {
         this._notify();
         return data.user;
     }
-    signIn(credentials) { return this._authenticate('/v1/auth/login', credentials); }
-    login(credentials) { return this.signIn(credentials); }
-    register(credentials) { return this._authenticate('/v1/auth/register', credentials); }
+    signIn(credentials, options) { return this._authenticate('/v1/auth/login', credentials, options); }
+    login(credentials, options) { return this.signIn(credentials, options); }
+    register(credentials, options) { return this._authenticate('/v1/auth/register', credentials, options); }
 
     async reloadProfile() {
         const generation = this._generation;

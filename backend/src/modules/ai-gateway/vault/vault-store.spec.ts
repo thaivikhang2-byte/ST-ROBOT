@@ -37,6 +37,13 @@ describe('AES-256-GCM credential envelope', () => {
     expect(a.ciphertext).not.toBe(b.ciphertext);
     expect(decryptCredential(a, k, 'v1', 'aad')).toEqual(secret);
   });
+  it('accepts exactly 32-byte hexadecimal keys as well as canonical base64', () => {
+    const bytes = randomBytes(32);
+    expect(masterKey(bytes.toString('hex'))).toEqual(bytes);
+    expect(masterKey(bytes.toString('hex').toUpperCase())).toEqual(bytes);
+    for (const invalid of ['a'.repeat(63), 'a'.repeat(65), 'z'.repeat(64), ' ' + bytes.toString('hex')])
+      expect(() => masterKey(invalid)).toThrow();
+  });
   it.each(['', 'weak-password', 'A'.repeat(32), '#'.repeat(44)])(
     'rejects invalid encoded key %s',
     (encoded) => {

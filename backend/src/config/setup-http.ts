@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import type { Express, Request, Response, NextFunction } from 'express';
 import { json } from 'express';
+import { proxyTrust } from './proxy-trust';
 import type { ConfigType } from '@nestjs/config';
 import { storageConfig, videoConfig } from './configurations';
 import { MetricsService } from '../metrics/metrics.service';
@@ -112,10 +113,7 @@ export function setupHttp(app: INestApplication): void {
   const trusted = config.get<string>('app.trustProxy', '');
   if (trusted) {
     const server = app.getHttpAdapter().getInstance() as Express;
-    server.set(
-      'trust proxy',
-      trusted.split(',').map((s) => s.trim()),
-    );
+    server.set('trust proxy', proxyTrust(trusted));
   }
   app.setGlobalPrefix('api');
   app.useGlobalPipes(

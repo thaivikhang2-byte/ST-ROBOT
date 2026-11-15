@@ -43,6 +43,12 @@ export async function readManifest(directory: string, key: Buffer) {
       throw new Error('Unsafe manifest entry');
     names.add(p.file);
   }
+  if (manifest.vaultStorage !== undefined && !['file', 'database'].includes(manifest.vaultStorage))
+    throw new Error('Invalid vault storage in manifest');
+  if (manifest.vaultStorage === 'database' && names.has('vault.enc'))
+    throw new Error('Database vault cannot also use a file restore artifact');
+  if (manifest.vaultStorage !== 'database' && manifest.vault !== names.has('vault.enc'))
+    throw new Error('Vault archive metadata does not match its parts');
   return manifest;
 }
 export async function verifyBackup(directory: string, key: Buffer) {
@@ -169,9 +175,13 @@ export async function restoreDisposable(options: {
       objects,
       migrations: manifest.migrations.length,
       vaultIncluded: manifest.vault,
+      vaultStorage: manifest.vaultStorage ?? 'file',
       vaultRestoredPath,
-      vaultRestore:
-        'Encrypted vault restored to an exclusive private disposable directory. Original independent vault master key still required.',
+      vaultRestore: manifest.vaultStorage === 'database'
+        ? 'Encrypted vault rows are included in the restored database. Original independent vault master key still required.'
+        : vaultRestoredPath
+          ? 'Encrypted vault restored to an exclusive private disposable directory. Original independent vault master key still required.'
+          : 'No separate encrypted vault archive was included.',
     };
   } finally {
     await db.$disconnect();
