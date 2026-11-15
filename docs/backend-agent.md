@@ -1,8 +1,10 @@
 # Trợ lý tài khoản và AI hiện có
 
-Phần AI trong bài học (`ai-server/`, gồm chụp/cắt ảnh trên điện thoại và máy tính)
-vẫn dùng API và giao diện hiện tại. Trợ lý tài khoản là phần bổ sung trên trang
-tài khoản, gọi backend NestJS. Nó không thay thế trợ lý trong khóa học.
+Khi đăng nhập và đã kết nối backend, chat chữ ở trang chủ và trong bài học dùng
+agent tài khoản của NestJS. Agent đọc dữ liệu đã lưu của đúng chủ phiên đăng nhập.
+Ảnh chụp/cắt tiếp tục dùng dịch vụ vision trong `ai-server/`; nó nhận báo cáo học
+tập có giới hạn từ trình duyệt và được gắn rõ nguồn, không giả vờ đã truy vấn database.
+Người học khách vẫn dùng API AI hiện tại. Giao diện chụp/cắt ảnh được giữ nguyên.
 
 Agent chạy theo từng yêu cầu đã xác thực: đọc dữ liệu được phân quyền, gọi tối đa
 4 công cụ trong tối đa 3 vòng, lưu hội thoại vào PostgreSQL. Đây không phải worker
@@ -19,7 +21,7 @@ của backend. Không có câu trả lời AI giả khi thiếu nhà cung cấp.
 - Trang tài khoản hiển thị lý do chưa sẵn sàng và khóa nút gửi cho đến khi cấu
   hình đủ. Các khóa học, lab, quiz và trợ lý cũ vẫn hoạt động độc lập.
 - `supportsImages=false` cho agent mới. Ảnh chụp bài học tiếp tục đi qua API tutor
-  cũ; không gửi ảnh vào `AgentChatDto` hoặc âm thầm giảm chất lượng ảnh.
+  vision; không gửi ảnh vào `AgentChatDto` hoặc âm thầm giảm chất lượng ảnh.
 
 ## Cấu hình trên máy chủ
 
@@ -41,8 +43,15 @@ quản lí có quyền AI. GitHub Pages chỉ chạy frontend; việc push code 
    `AI_GATEWAY_ENABLED=true` và cờ database `FeatureFlag.key='ai_chat'` trong
    quy trình triển khai được quản trị. Không dùng các controller CRUD mẫu chưa
    được đưa vào API hoạt động để thay đổi cờ.
-5. Đọc `/api/v1/ai/agent/status` bằng tài khoản học viên đã xác minh email. Khi
+5. Đọc `/api/v1/ai/agent/status` bằng tài khoản học viên đã được xác nhận. Khi
    `available=true`, thực hiện một câu hỏi thử do người quản lí chủ động gửi.
+
+Người quản lí có thể dùng mục **Quản trị → Cấu hình AI** trên trang Tài khoản
+để cấu hình provider, khóa, model và bật/tắt chat. Key chỉ gửi tới API credential
+qua HTTPS, được mã hóa trên server, xóa khỏi ô nhập và không lưu trong browser
+storage. Thao tác khám phá model chỉ chạy khi người vận hành bấm nút; lưu cấu hình
+không tự gửi một câu hỏi AI tính phí. Kho khóa cần ổ đĩa bền vững và master key
+riêng trong cấu hình máy chủ.
 
 Các khóa `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` trong `.env` riêng lẻ không tự động
 thiết lập vault của backend này. AI cũ có cấu hình nhà cung cấp riêng.
@@ -114,12 +123,39 @@ quyền giảng dạy/phạm vi lớp được cấp.
 {"mode":"EDUCATIONAL","message":"Giải thích vòng lặp và gợi ý cách luyện tập"}
 ```
 
-Có thể gửi `conversationId` để tiếp tục; `courseId` và `lessonId` phải cùng có
-mặt, là UUID thực của catalog trên server, và học viên phải có quyền truy cập.
-Không dùng slug frontend như `arduino`/`led` thay cho UUID. `mode` là
+Chat tự học có thể gửi `courseSlug:"arduino"`, `lessonSlug:"led"` và
+`selectedPlatformKey:"wokwi"`; server đối chiếu với danh mục 5 khóa/30 bài và
+các lab thực sự có trong giao diện. Đường này giữ cách học tự do, không bắt nhập
+catalog UUID hoặc đăng ký lớp trước khi hỏi về bài học công khai. `learningLevel`
+được giới hạn theo các mức đang có trên website.
+
+Đường truy cập catalog riêng vẫn hỗ trợ cặp `courseId`/`lessonId` UUID và kiểm tra
+quyền/enrollment như cũ. Có thể gửi `conversationId` để tiếp tục; chủ sở hữu và
+phạm vi được kiểm tra lại ở server. `mode` là
 `EDUCATIONAL`, `PERSONAL` hoặc `MANAGEMENT`; phân vùng quản lí chỉ dành cho người
 có quyền quản lí hệ thống. Câu trả lời bọc trong API envelope thông thường;
 `data.message` là văn bản, `data.conversationId` là hội thoại đã lưu.
+
+## Dữ liệu agent đọc được
+
+Mỗi lượt học tập chuẩn bị tiến độ các khóa và ngữ cảnh bài hiện tại từ snapshot
+database của chính người học, cùng danh mục lab được duyệt. Các công cụ
+`learning_get_own_learning_data` và `learning_get_lab_platforms` cho phép đọc sâu
+đúng khóa/bài khi cần: nhật ký và các bước dự đoán/quan sát/giải thích, trạng thái
+hoàn thành, lịch sử quiz/ôn tập, metadata và đoạn mã dự án Micro:bit đã lưu. Câu
+trả lời có nhãn nguồn `learner-self-report`; không biến nhật ký thành điểm chấm
+đã kiểm chứng. Dữ liệu hỏng hoặc trường lạ không được đưa vào ngữ cảnh.
+
+Người học không được truyền userId để đọc người khác. Agent không đọc mật khẩu,
+refresh token, khóa provider, toàn bộ localStorage hoặc hồ sơ đánh giá dùng chung
+trên máy. Với lab bên ngoài, agent biết tên/ngôn ngữ/công dụng và lab đang chọn;
+nội dung iframe, code chưa được lưu hoặc trạng thái mô phỏng của website ngoài
+không tự đọc được. Micro:bit có cầu nối lưu dự án được phép riêng.
+
+Trước khi hỏi bằng phiên tài khoản, frontend thử đồng bộ tiến độ rồi mới gọi
+agent. Lỗi auth/backend/provider hiển thị đúng lỗi và giữ câu hỏi; không âm thầm
+đổi sang chat khách rồi tuyên bố đã đọc database. Đổi tài khoản hủy request cũ,
+xóa lịch sử hiển thị của chủ cũ và tách hội thoại trang chủ/bài học.
 
 Lịch sử: `GET /conversations`, `GET /conversations/:id`,
 `DELETE /conversations/:id`. Bộ nhớ: `/memory/preferences`, `/memory/proposals`,

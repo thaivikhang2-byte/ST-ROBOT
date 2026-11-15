@@ -161,6 +161,7 @@ export const featureConfig = registerAs('feature', () => ({
   chatEnabled: process.env.FEATURE_CHAT_ENABLED === 'true',
   cdnEnabled: process.env.FEATURE_CDN_ENABLED === 'true',
   registrationEnabled: process.env.FEATURE_REGISTRATION_ENABLED !== 'false',
+  managedAccountsEnabled: process.env.MANAGED_ACCOUNTS_ENABLED === 'true',
   notificationEnabled: process.env.FEATURE_NOTIFICATION_ENABLED !== 'false',
 }));
 

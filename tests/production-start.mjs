@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { initialize } = require('../backend/scripts/start-production.cjs');
+const { operatorEnvironment } = require('../backend/scripts/setup-admin.cjs');
+const commands = [];
+const environment = { NODE_ENV: 'production' };
+initialize({ environment, run: (command, args, options) => {
+    commands.push({ command, args, options }); return { status: 0 };
+} });
+assert.equal(commands.length, 2);
+assert.deepEqual(commands[0].args.slice(1), ['migrate', 'deploy']);
+assert.match(commands[1].args[1], /prisma[/\\]seed\.ts$/);
+assert.equal(commands[0].options.env, environment);
+let count = 0;
+assert.throws(() => initialize({ environment, run: () => { count++; return { status: 1 }; } }), /API was not started/);
+assert.equal(count, 1, 'seed must not run after failed migration');
+initialize({ environment: { RUN_MIGRATIONS_ON_START: 'false' }, run: () => { throw new Error('should not run'); } });
+const original = { NODE_ENV: 'production', JWT_SECRET: 'fixture-only' };
+const result = operatorEnvironment(original, { email: 'fixture@school.local', password: 'Fixture-only-password' });
+assert.equal(result.BOOTSTRAP_ADMIN_VERIFIED, 'true');
+assert.equal(result.BOOTSTRAP_IMPORT_CATALOG, 'true');
+assert.ok(!('BOOTSTRAP_ADMIN_PASSWORD' in original));
+assert.equal(result.JWT_SECRET, original.JWT_SECRET);
+console.log('PASS production startup ordering/failure isolation and one-process operator credentials');

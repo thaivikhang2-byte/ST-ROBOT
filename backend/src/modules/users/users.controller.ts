@@ -17,6 +17,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles, Permissions, CurrentUser } from '../../shared/sdk';
 import type { RequestUser } from '../../shared/sdk';
 import { UsersQueryDto, UserRoleDto, UserStatusDto } from './dto/users-query.dto';
+import { ManagedStudentDto, ManagedStudentPasswordDto } from './dto/managed-student.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth('access-token')
@@ -44,6 +45,24 @@ export class UsersController {
   @ApiOperation({ summary: 'Create a new user' })
   create(@Body() dto: CreateUserDto, @CurrentUser() actor: RequestUser) {
     return this.usersService.create(dto, actor);
+  }
+
+  @Post('students')
+  @Permissions('users:create')
+  @ApiOperation({ summary: 'Explicit manager-attested student identity; server forces student role' })
+  createStudent(@Body() dto: ManagedStudentDto, @CurrentUser() actor: RequestUser) {
+    return this.usersService.createStudent(dto, actor);
+  }
+
+  @Post(':id/student-password')
+  @Permissions('users:update')
+  @ApiOperation({ summary: 'Reset a managed student password and revoke all existing sessions' })
+  resetStudentPassword(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ManagedStudentPasswordDto,
+    @CurrentUser() actor: RequestUser,
+  ) {
+    return this.usersService.resetStudentPassword(id, dto, actor);
   }
 
   @Put(':id')
@@ -79,13 +98,13 @@ export class UsersController {
 
   @Patch(':id/status')
   @Permissions('users:update')
-  @ApiOperation({ summary: 'Change activation; cannot modify own or SuperAdmin activation' })
+  @ApiOperation({ summary: 'Lock/unlock a student-only account; fresh SYSTEM manager authority required' })
   status(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UserStatusDto,
     @CurrentUser() actor: RequestUser,
   ) {
-    return this.usersService.update(id, dto, actor);
+    return this.usersService.updateStudentStatus(id, dto.isActive, actor);
   }
 
   @Patch(':id/role')

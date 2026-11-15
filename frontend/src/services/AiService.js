@@ -1,3 +1,5 @@
+import { accountService } from './AccountService.js';
+
 export const AI_SERVICE_ORIGIN = 'https://st-robot-1.onrender.com';
 const paths = new Set(['/api/home-chat', '/api/tutor']);
 const codes = new Set(['AI_AUTH', 'AI_MODEL', 'AI_QUOTA', 'AI_BUSY', 'AI_UNAVAILABLE', 'AI_NETWORK',
@@ -28,6 +30,13 @@ export class AiRequestError extends Error {
         if (typeof details.fallbackAttempted === 'boolean') this.fallbackAttempted = details.fallbackAttempted;
         if (Number.isInteger(details.catalogModelCount) && details.catalogModelCount >= 0 && details.catalogModelCount <= 5000) this.catalogModelCount = details.catalogModelCount;
         if (typeof details.configuredModelListed === 'boolean') this.configuredModelListed = details.configuredModelListed;
+        if (typeof details.api === 'string') {
+            try {
+                const api = new URL(details.api);
+                if (!api.username && !api.password && !api.search && !api.hash
+                    && ['https:', 'http:'].includes(api.protocol)) this.api = api.href;
+            } catch { /* Invalid endpoints are not diagnostic output. */ }
+        }
     }
 }
 
@@ -73,8 +82,68 @@ function failure(response, data, stage) {
 }
 
 export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...args),
-    startupTimeoutMs = 90000, replyTimeoutMs = 65000, retryDelayMs = 1000, readinessTtlMs = 300000 } = {}) {
+    account = accountService, startupTimeoutMs = 90000, replyTimeoutMs = 65000,
+    agentTimeoutMs = 115000, retryDelayMs = 1000, readinessTtlMs = 300000 } = {}) {
     let readyUntil = 0;
+    const conversations = new Map();
+
+    function resetConversation(path = '/api/tutor') {
+        for (const key of conversations.keys()) if (key.startsWith(path + '|')) conversations.delete(key);
+    }
+
+    async function accountReply(path, payload, { signal, onStatus, onContext, beforeAccountRequest } = {}) {
+        const ownerId = account.user?.id;
+        const scope = [path, ownerId, path === '/api/tutor' ? payload.course : '', path === '/api/tutor' ? payload.lesson : ''].join('|');
+        const endpoint = account.baseUrl + '/v1/ai/agent/chat';
+        onStatus?.('replying');
+        try {
+            return await withinDeadline(async phaseSignal => {
+                const sync = await beforeAccountRequest?.();
+                if (phaseSignal.aborted) throw phaseSignal.reason || cancelled();
+                if (account.user?.id !== ownerId) throw cancelled();
+                const pendingSync = sync !== undefined && sync?.status !== 'synced';
+                const data = await account.request('/v1/ai/agent/chat', {
+                    method: 'POST', signal: phaseSignal, timeoutMs: agentTimeoutMs,
+                    body: {
+                        mode: 'EDUCATIONAL', message: payload.question,
+                        ...(path === '/api/tutor' ? { courseSlug: payload.course, lessonSlug: payload.lesson } : {}),
+                        ...(path === '/api/tutor' && payload.platformKey ? { selectedPlatformKey: payload.platformKey } : {}),
+                        ...(path === '/api/tutor' && payload.learningLevel ? { learningLevel: payload.learningLevel } : {}),
+                        ...(pendingSync ? { learningSnapshotPending: true } : {}),
+                        ...(conversations.has(scope) ? { conversationId: conversations.get(scope) } : {}),
+                    },
+                });
+                if (phaseSignal.aborted) throw phaseSignal.reason || cancelled();
+                if (account.user?.id !== ownerId) throw cancelled();
+                if (typeof data?.message !== 'string' || !data.message.trim()) throw new AiRequestError(
+                    'Trợ lý tài khoản chưa gửi được câu trả lời. Bạn có thể thử lại.',
+                    { code: 'AI_RESPONSE', stage: 'reply', api: endpoint });
+                if (typeof data.conversationId === 'string' && uuid.test(data.conversationId)) conversations.set(scope, data.conversationId);
+                onContext?.({ source: 'postgresql-account', pendingSync,
+                    savedLearning: data.contextSources?.savedLearning === true,
+                    hasSnapshot: data.contextSources?.hasSnapshot === true,
+                    ...(Number.isSafeInteger(data.contextSources?.snapshotRevision)
+                        ? { snapshotRevision: data.contextSources.snapshotRevision } : {}),
+                    api: endpoint });
+                return data.message;
+            }, agentTimeoutMs, signal, () => new AiRequestError(
+                'Trợ lý tài khoản phản hồi quá lâu. Bạn có thể thử lại câu hỏi này.',
+                { code: 'AI_REPLY_TIMEOUT', stage: 'reply', api: endpoint }));
+        } catch (error) {
+            if (error?.name === 'AbortError' || error instanceof AiRequestError) throw error;
+            if (error?.code === 'SESSION_CHANGED' || account.user?.id !== ownerId) throw cancelled();
+            const status = error?.status;
+            const message = status === 401 ? 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để trợ lý đọc đúng dữ liệu của bạn.'
+                : status === 403 ? 'Tài khoản cần được xác nhận và cấp quyền sử dụng trợ lý. Hãy kiểm tra trong trang Tài khoản hoặc liên hệ quản trị viên.'
+                : status === 429 ? 'Trợ lý tài khoản đang đạt giới hạn sử dụng. Vui lòng thử lại sau.'
+                : status === 503 ? 'Trợ lý tài khoản chưa sẵn sàng. Người quản lí cần kiểm tra cấu hình AI trên máy chủ.'
+                : 'Chưa kết nối được trợ lý tài khoản. Tiến độ trên thiết bị vẫn được giữ; bạn có thể thử lại.';
+            throw new AiRequestError(message, {
+                code: [401, 403].includes(status) ? 'AI_AUTH' : status === 429 ? 'AI_BUSY' : !status ? 'AI_NETWORK' : 'AI_UNAVAILABLE',
+                stage: 'reply', httpStatus: status, retryable: ![400, 401, 403].includes(status), api: endpoint,
+            });
+        }
+    }
 
     async function start(signal, onStatus) {
         if (Date.now() < readyUntil) return;
@@ -122,9 +191,18 @@ export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...ar
         }));
     }
 
-    async function requestReply(path, payload, { signal, onStatus } = {}) {
+    async function requestReply(path, payload, options = {}) {
+        const { signal, onStatus, onContext } = options;
         if (!paths.has(path)) throw new TypeError('Unknown AI reply endpoint');
         if (signal?.aborted) throw cancelled();
+        if (account?.configured) {
+            await account.ready();
+            if (signal?.aborted) throw cancelled();
+            if (account.user?.id && !(Array.isArray(payload.images) && payload.images.length))
+                // An account request must not silently fall back to a public chat
+                // that cannot read its database or honor the same data scope.
+                return accountReply(path, payload, options);
+        }
         await start(signal, onStatus);
         onStatus?.('replying');
         try {
@@ -156,6 +234,9 @@ export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...ar
                     code: 'AI_RESPONSE', stage: 'reply', httpStatus: response.status
                 });
                 readyUntil = Date.now() + readinessTtlMs;
+                if (path === '/api/tutor') onContext?.({ source: 'browser-self-report',
+                    hasLearningReport: payload.educationalContext !== undefined,
+                    vision: Boolean(payload.images?.length), api: AI_SERVICE_ORIGIN + path });
                 return data.reply;
             }, replyTimeoutMs, signal, () => new AiRequestError('Dịch vụ AI phản hồi quá lâu. Bạn có thể thử lại câu hỏi này.', {
                 code: 'AI_REPLY_TIMEOUT', stage: 'reply'
@@ -165,7 +246,7 @@ export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...ar
             throw error;
         }
     }
-    return { requestReply };
+    return { requestReply, resetConversation };
 }
 
 export const aiClient = createAiClient();

@@ -28,7 +28,7 @@ import type { AiMessageDto } from '../ai.dto';
 import { ActionDecisionDto, AgentChatDto } from './agent.dto';
 import { AgentToolDefinition, AgentToolRegistry } from './agent-tool-registry';
 import { agentCachePartition, agentHistoryMessages, storedAgentToolCalls } from './agent-context';
-import { ownLearningReport } from './learning-reports';
+import { assertSiteScope, ownLearningData, siteLabResources, siteLessonContext } from './site-learning-context';
 import { EducationalToolsService } from './educational-tools.service';
 import { ManagementToolsService } from './management-tools.service';
 import { MetricsService } from '../../../metrics/metrics.service';
@@ -100,11 +100,30 @@ export class AiAgentService {
   }
 
   private async prepareLessonContext(user: RequestUser, dto: AgentChatDto) {
+    const site = !!dto.courseSlug || !!dto.lessonSlug;
+    const uiContext = site || dto.selectedPlatformKey !== undefined || dto.learningLevel !== undefined || dto.learningSnapshotPending !== undefined;
+    if (uiContext && dto.mode !== AiAgentMode.EDUCATIONAL)
+      throw new ForbiddenException('Learning interface context requires educational mode');
+    if (site && (dto.courseId || dto.lessonId)) throw new ForbiddenException('Do not mix public site IDs and database IDs');
+    if (!!dto.courseSlug !== !!dto.lessonSlug) throw new ForbiddenException('Public course and lesson context must be provided together');
+    if (dto.selectedPlatformKey && !site) throw new ForbiddenException('Select a public course before selecting its platform');
     if (!!dto.courseId !== !!dto.lessonId)
       throw new ForbiddenException('Course and lesson context must be provided together');
-    if (!dto.lessonId || !dto.courseId) return undefined;
+    if (!dto.lessonId || !dto.courseId) {
+      if (dto.mode !== AiAgentMode.EDUCATIONAL) return undefined;
+      await this.actor(user, 'learning:read');
+      assertSiteScope(dto.courseSlug, dto.lessonSlug);
+      return {
+        ...(dto.courseSlug && dto.lessonSlug ? siteLessonContext(dto.courseSlug, dto.lessonSlug, dto.selectedPlatformKey) : { labs: siteLabResources() }),
+        ownLearning: await ownLearningData(this.db, user.id, dto.courseSlug, dto.lessonSlug),
+        learningLevel: dto.learningLevel,
+        deviceDraftPending: dto.learningSnapshotPending === true,
+        draftNotice: dto.learningSnapshotPending ? 'The browser reports a pending/conflicting device draft. Only the last synchronized database snapshot below is visible, not that draft.' : undefined,
+      };
+    }
     if (dto.mode !== AiAgentMode.EDUCATIONAL)
       throw new ForbiddenException('Lesson context is only available in the educational partition');
+    await this.actor(user, 'learning:read', dto.courseId);
     const prepared = await this.learningAi.prepare(user, {
       courseId: dto.courseId,
       lessonId: dto.lessonId,
@@ -113,7 +132,7 @@ export class AiAgentService {
     });
     const context = JSON.parse(prepared.messages[1].content) as Record<string, unknown>;
     delete context.question;
-    return context;
+    return { ...context, ownLearning: await ownLearningData(this.db, user.id) };
   }
 
   private async beginTurn(user: RequestUser, dto: AgentChatDto, scope: string | undefined) {
@@ -299,6 +318,14 @@ export class AiAgentService {
     const actor = await this.actor(user);
     await this.authorizeMode(user.id, dto.mode);
     const lessonContext = await this.prepareLessonContext(actor, dto);
+    const savedLearning = lessonContext && 'ownLearning' in lessonContext ? lessonContext.ownLearning : undefined;
+    const contextSources = dto.mode === AiAgentMode.EDUCATIONAL ? {
+      savedLearning: !!savedLearning?.hasSnapshot,
+      source: 'postgresql-account', hasSnapshot: !!savedLearning?.hasSnapshot,
+      snapshotRevision: savedLearning?.revision ?? 0,
+      labCatalog: 'approved-site', currentPlatform: dto.selectedPlatformKey ?? null,
+      deviceDraftPending: dto.learningSnapshotPending === true,
+    } : undefined;
     let scope = dto.courseId;
     if (dto.conversationId) {
       const previous = await this.db.aiConversation.findFirst({
@@ -309,6 +336,7 @@ export class AiAgentService {
       if (previous.mode !== dto.mode)
         throw new ForbiddenException('Conversation partition cannot be changed');
       if (previous.resource_scope) {
+        if (dto.courseSlug) throw new ForbiddenException('Start a new conversation for public site context');
         if (scope && scope !== previous.resource_scope)
           throw new ForbiddenException('Conversation is bound to a different course');
         scope = previous.resource_scope;
@@ -443,6 +471,7 @@ export class AiAgentService {
               similarity: cached.similarity,
             },
             usage: 'Served from authorized response cache.',
+            contextSources,
           };
         }
       }
@@ -631,6 +660,7 @@ export class AiAgentService {
         },
         cache: { hit: false },
         usage: 'Provider usage is recorded by the existing AI Gateway.',
+        contextSources,
       };
     } finally {
       this.metrics.agentRuns.inc({ mode: dto.mode, status: outcome });
@@ -727,13 +757,20 @@ export class AiAgentService {
             lesson: { select: { title: true, course: { select: { title: true } } } },
           },
           orderBy: { last_accessed_at: 'desc' },
-          take: 30,
+          take: 5,
         });
         output = {
-          selfReportedLearning: await ownLearningReport(this.db, actor.id, scope),
-          serverProgress,
+          selfReportedLearning: await ownLearningData(this.db, actor.id),
+          serverProgress: serverProgress.map(row => ({
+            status: row.status, completedAt: row.completed_at, lastAccessedAt: row.last_accessed_at,
+            lesson: row.lesson.title.slice(0, 55), course: row.lesson.course.title.slice(0, 55),
+          })),
           notice: 'Self-reported browser activity and server lesson records are separate sources; neither alone certifies skills.',
         };
+      } else if (name === 'learning_get_own_learning_data') {
+        output = await ownLearningData(this.db, actor.id, args.courseSlug || undefined, args.lessonSlug || undefined);
+      } else if (name === 'learning_get_lab_platforms') {
+        output = siteLabResources(args.courseSlug || undefined);
       } else if (name === 'admin_get_system_overview') {
         output = await this.system.snapshot(actor.id);
       } else if (name === 'memory_propose') {
@@ -823,6 +860,14 @@ export class AiAgentService {
       Object.keys(args).every((key) => keys.includes(key)) && keys.every((key) => key in args);
     const uuidPattern =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (name === 'learning_get_own_learning_data' && exactKeys(['courseSlug', 'lessonSlug']) && typeof args.courseSlug === 'string' && typeof args.lessonSlug === 'string' && args.courseSlug.length <= 40 && args.lessonSlug.length <= 40) {
+      assertSiteScope(args.courseSlug || undefined, args.lessonSlug || undefined);
+      return { courseSlug: args.courseSlug, lessonSlug: args.lessonSlug };
+    }
+    if (name === 'learning_get_lab_platforms' && exactKeys(['courseSlug']) && typeof args.courseSlug === 'string' && args.courseSlug.length <= 40) {
+      assertSiteScope(args.courseSlug || undefined);
+      return { courseSlug: args.courseSlug };
+    }
     if (
       name === 'learning_search_courses' &&
       exactKeys(['query']) &&

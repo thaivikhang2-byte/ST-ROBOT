@@ -1,0 +1,30 @@
+# Use with docker-compose.yml and a private .env.production.local.
+services:
+  migrate:
+    environment:
+      NODE_ENV: production
+  backend:
+    environment:
+      NODE_ENV: production
+      TRUST_PROXY: '1'
+    restart: unless-stopped
+  frontend:
+    profiles: [local-preview]
+  gateway:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set the public backend domain in .env.production.local}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      backend: { condition: service_healthy }
+volumes:
+  caddy-data:
+  caddy-config:

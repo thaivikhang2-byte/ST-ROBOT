@@ -1,6 +1,8 @@
 import { accountService } from '../../services/AccountService.js';
 import { learnerSync } from '../../services/LearnerSyncService.js';
 import { attachAgentPanel } from './AgentPanel.js';
+import { workspaceAccess, canUpdateStudentStatus, readLearningDashboard } from './LearningDashboard.js';
+import { attachAiAdminSetup } from './AiAdminSetup.js';
 
 const node = (tag, text, className) => {
     const element = document.createElement(tag);
@@ -29,6 +31,10 @@ export class AccountPage {
         this.managementVersion = 0;
         this.enrollmentVersion = 0;
         this.managementMode = 'overview';
+        this.workspaceView = 'learning';
+        this.workspaceOwner = null;
+        this.authOptions = { registrationEnabled: true, emailDeliveryEnabled: true, managedAccountsEnabled: false };
+        this.passwordTarget = null;
     }
     $(selector) { return this.root.querySelector(selector); }
     message(text, kind = 'success') {
@@ -39,6 +45,8 @@ export class AccountPage {
         output.focus({ preventScroll: true });
     }
     mode(mode) {
+        if (mode === 'register' && !this.authOptions.registrationEnabled) mode = 'login';
+        if (['verify', 'reset'].includes(mode) && !this.authOptions.emailDeliveryEnabled) mode = 'login';
         this.$('#account-auth').hidden = false;
         for (const panel of this.root.querySelectorAll('[data-auth-panel]')) panel.hidden = panel.dataset.authPanel !== mode;
         for (const button of this.root.querySelectorAll('[data-auth-mode]')) button.setAttribute('aria-pressed', String(button.dataset.authMode === mode));
@@ -51,7 +59,7 @@ export class AccountPage {
             const data = Object.fromEntries(new FormData(form));
             const version = accountService.sessionVersion;
             const isCurrent = () => version === accountService.sessionVersion;
-            for (const key of form.id === 'account-register' ? ['password'] : ['newPassword']) {
+            for (const key of ['account-register', 'account-create-student'].includes(form.id) ? ['password'] : ['newPassword']) {
                 if (data[key] && (new TextEncoder().encode(data[key]).length > 72 || data[key].includes('\0'))) {
                     this.message('Mật khẩu mới cần tối đa 72 byte và không chứa ký tự rỗng. Có thể dùng mật khẩu dài bằng chữ và số.', 'error');
                     return;
@@ -76,6 +84,7 @@ export class AccountPage {
         });
     }
     async init() {
+        void this.loadAuthOptions();
         for (const button of this.root.querySelectorAll('[data-auth-mode]')) button.addEventListener('click', () => this.mode(button.dataset.authMode));
         this.bindForm('#account-login', async data => {
             const user = await accountService.signIn(data);
@@ -137,6 +146,21 @@ export class AccountPage {
             this.mode('login');
             this.message('Đã đổi mật khẩu và thu hồi các phiên đăng nhập. Vui lòng đăng nhập lại.');
         });
+        this.bindForm('#account-student-password', async (data, { isCurrent }) => {
+            const target = this.passwordTarget, actor = accountService.user;
+            if (!target || target.ownerId !== actor?.id || !target.isActive || !canUpdateStudentStatus(actor, target, { offline: accountService.sessionOffline }))
+                throw new Error('Không còn quyền đổi mật khẩu cho tài khoản này. Hãy tải lại danh sách học viên.');
+            await accountService.request(`/v1/users/${encodeURIComponent(target.id)}/student-password`, { method: 'POST', body: { newPassword: data.newPassword } });
+            if (!isCurrent()) return;
+            this.$('#account-student-password-dialog').close();
+            this.message('Đã đặt mật khẩu mới và thu hồi các phiên của học sinh. Cung cấp mật khẩu cho đúng học sinh qua kênh riêng.');
+        });
+        this.$('#account-student-password-cancel').addEventListener('click', () => this.$('#account-student-password-dialog').close());
+        this.$('#account-student-password-dialog').addEventListener('close', () => {
+            this.passwordTarget = null;
+            this.$('#student-new-password').value = '';
+            this.$('#student-password-confirm').checked = false;
+        });
         for (const [id, all] of [['#account-logout', false], ['#account-logout-all', true]]) this.$(id).addEventListener('click', async () => {
             if (all && !confirm('Đăng xuất tài khoản trên tất cả thiết bị?')) return;
             const logout = accountService.signOut({ all }), version = accountService.sessionVersion;
@@ -152,12 +176,43 @@ export class AccountPage {
             if (type === 'strobot:sync-keep-local' && !confirm('Dùng bản trên thiết bị để thay thế dữ liệu mới hơn trên máy chủ? Chỉ tiếp tục nếu bạn đã kiểm tra và muốn giữ bản này.')) return;
             document.dispatchEvent(new CustomEvent(type));
         });
-        document.addEventListener('strobot:sync-status', event => this.renderSync(event.detail || {}));
+        document.addEventListener('strobot:sync-status', event => { this.renderSync(event.detail || {}); this.renderLearningDashboard(); });
+        for (const type of ['strobot:learner-scope-changed', 'strobot:learner-data-updated']) document.addEventListener(type, () => this.renderLearningDashboard());
+        for (const button of this.root.querySelectorAll('[data-workspace-view]')) button.addEventListener('click', () => this.selectWorkspace(button.dataset.workspaceView));
         accountService.subscribe(user => this.renderUser(user));
         attachAgentPanel(this.$('#account-agent'));
         await learnerSync.ready();
+        attachAiAdminSetup(this.$('#account-ai-setup'));
         this.renderUser(accountService.user);
         if (accountService.sessionError && accountService.configured) this.message(accountErrorMessage(accountService.sessionError), 'error');
+    }
+    async loadAuthOptions() {
+        if (!accountService.configured) return;
+        try {
+            const options = await accountService.request('/v1/auth/options', { auth: false, timeoutMs: 5000 });
+            if (['registrationEnabled', 'emailDeliveryEnabled', 'managedAccountsEnabled'].every(key => typeof options[key] === 'boolean')) this.authOptions = options;
+        } catch (error) {
+            // Older compatible APIs have no options route and retain email registration.
+            if (error.status !== 404) this.authOptions = { registrationEnabled: false, emailDeliveryEnabled: false, managedAccountsEnabled: false };
+        }
+        this.applyAuthOptions();
+    }
+    applyAuthOptions() {
+        for (const button of this.root.querySelectorAll('[data-auth-mode]')) {
+            button.hidden = button.dataset.authMode === 'register' ? !this.authOptions.registrationEnabled
+                : ['verify', 'reset'].includes(button.dataset.authMode) ? !this.authOptions.emailDeliveryEnabled : false;
+        }
+        const note = this.$('#account-registration-options');
+        note.hidden = this.authOptions.registrationEnabled && this.authOptions.emailDeliveryEnabled;
+        note.textContent = !this.authOptions.registrationEnabled
+            ? 'Tài khoản học sinh do quản trị viên cấp. Liên hệ người phụ trách để nhận tài khoản hoặc được hỗ trợ mật khẩu.'
+            : 'Bạn có thể tạo tài khoản; liên hệ người phụ trách để xác nhận và hỗ trợ mật khẩu khi dịch vụ email chưa mở.';
+        this.$('#account-show-verify').hidden = !accountService.user || accountService.user.isEmailVerified || !this.authOptions.emailDeliveryEnabled;
+        if (!this.$('#account-auth').hidden) {
+            const active = [...this.root.querySelectorAll('[data-auth-mode]')].find(button => button.getAttribute('aria-pressed') === 'true');
+            if (active?.hidden) this.mode('login');
+        }
+        if (accountService.user && this.managementMode === 'users' && !this.$('#account-management').hidden) this.loadManagement('users');
     }
     renderSync(detail) {
         this.$('#account-sync-status').textContent = detail.message || 'Chưa có trạng thái đồng bộ.';
@@ -172,15 +227,22 @@ export class AccountPage {
         this.$('#account-signed-in').hidden = !user;
         this.$('#account-auth').hidden = !!user;
         this.$('#account-activity-content').replaceChildren();
+        if (this.passwordTarget && (this.passwordTarget.ownerId !== user?.id || !canUpdateStudentStatus(user, this.passwordTarget, { offline: accountService.sessionOffline }))) this.$('#account-student-password-dialog').close();
         this.$('#account-server-status').textContent = !accountService.configured
             ? 'Tính năng tài khoản và đồng bộ chưa được mở trên máy chủ này. Các khóa học vẫn hoạt động và lưu trên thiết bị.'
             : user && accountService.sessionOffline ? 'Đang dùng bản lưu tài khoản trên thiết bị. Chưa xác nhận lại được phiên với máy chủ; học tập vẫn được lưu đúng tài khoản và sẽ thử đồng bộ khi có mạng.'
                 : user ? 'Đã kết nối tài khoản.' : 'Chưa đăng nhập. Đăng nhập để mở dữ liệu học tập theo tài khoản.';
         for (const button of this.root.querySelectorAll('#account-auth button, #account-auth input')) button.disabled = !accountService.configured;
-        if (!user) { this.mode('login'); return; }
+        if (!user) {
+            this.workspaceOwner = null;
+            this.$('#account-role-label').textContent = '';
+            this.$('#account-student-content').replaceChildren();
+            this.$('#account-management-content').replaceChildren();
+            this.mode('login'); return;
+        }
         this.$('#account-identity').textContent = `${nameOf(user)} · ${user.email}`;
-        this.$('#account-verification').textContent = user.isEmailVerified ? 'Email đã xác minh.' : 'Email chưa xác minh. Hoàn tất xác minh để bật lưu tiến độ lên máy chủ.';
-        this.$('#account-show-verify').hidden = !!user.isEmailVerified;
+        this.$('#account-verification').textContent = user.isEmailVerified ? 'Tài khoản đã được xác nhận; có thể đồng bộ học tập.' : 'Tài khoản chưa được xác nhận. Xác minh email hoặc liên hệ quản trị viên để bật lưu tiến độ lên máy chủ.';
+        this.$('#account-show-verify').hidden = !!user.isEmailVerified || !this.authOptions.emailDeliveryEnabled;
         this.$('#verify-email').value = user.email;
         this.$('#profile-first').value = user.firstName || '';
         this.$('#profile-last').value = user.lastName || '';
@@ -188,6 +250,54 @@ export class AccountPage {
         this.renderSync(learnerSync.status);
         this.renderEnrollments(user);
         this.renderManagement(user);
+        const access = workspaceAccess(user, { offline: accountService.sessionOffline });
+        this.$('#account-role-label').textContent = access.label;
+        this.$('#account-workspace-switch').hidden = !access.management;
+        if (this.workspaceOwner !== user.id) this.workspaceView = access.management ? 'management' : 'learning';
+        this.workspaceOwner = user.id;
+        this.selectWorkspace(this.workspaceView);
+        this.renderLearningDashboard();
+    }
+    selectWorkspace(view) {
+        const user = accountService.user;
+        const access = workspaceAccess(user, { offline: accountService.sessionOffline });
+        this.workspaceView = view === 'management' && access.management ? 'management' : 'learning';
+        this.$('#account-workspace-title').textContent = this.workspaceView === 'management'
+            ? access.manager ? 'Không gian quản trị hệ thống' : 'Không gian giảng viên'
+            : 'Không gian học tập cá nhân';
+        this.$('#account-workspace-description').textContent = this.workspaceView === 'management'
+            ? 'Theo dõi tài khoản, hoạt động và tiến độ trong phạm vi được cấp quyền.'
+            : 'Tiếp tục bài học, xem kết quả và quản lí dữ liệu thuộc tài khoản của bạn.';
+        for (const button of this.root.querySelectorAll('[data-workspace-view]')) button.setAttribute('aria-pressed', String(button.dataset.workspaceView === this.workspaceView));
+        for (const section of this.root.querySelectorAll('[data-workspace-section="learning"]')) section.hidden = this.workspaceView !== 'learning';
+        const management = this.$('#account-management');
+        management.hidden = !user || !access.management || this.workspaceView !== 'management';
+    }
+    renderLearningDashboard() {
+        const output = this.$('#account-student-content'), user = accountService.user;
+        if (!output || !user) return;
+        if (learnerSync.ownerId !== user.id) { output.replaceChildren(node('p', 'Đang mở dữ liệu riêng của tài khoản…')); return; }
+        try {
+            const dashboard = readLearningDashboard(learnerSync.scopedStorage(user.id));
+            output.replaceChildren();
+            const metrics = node('dl', undefined, 'account-metrics');
+            for (const [label, value] of [['Bài tự hoàn thành', `${dashboard.completed}/${dashboard.total}`], ['Bài có nhật ký', dashboard.journals], ['Lượt tự kiểm tra đã lưu', dashboard.quizAttempts], ['Lượt ôn luyện đã lưu', dashboard.practiceAttempts]]) {
+                const item = node('div'); item.append(node('dt', label), node('dd', value)); metrics.append(item);
+            }
+            output.append(metrics);
+            if (dashboard.recentQuiz) output.append(node('p', `Tự kiểm tra gần nhất: ${dashboard.recentQuiz.courseName} · ${dashboard.recentQuiz.correct}/${dashboard.recentQuiz.total} câu (${dashboard.recentQuiz.percentage}%) · ${date(dashboard.recentQuiz.createdAt)}`));
+            const grid = node('div', undefined, 'account-learning-courses');
+            for (const course of dashboard.courses) {
+                const item = node('article', undefined, 'account-learning-course'); item.dataset.courseId = course.id;
+                item.append(node('h3', course.name), node('p', `${course.completed}/${course.total} bài tự hoàn thành · ${course.journals} nhật ký`));
+                const meter = node('progress'); meter.max = course.total; meter.value = course.completed;
+                meter.setAttribute('aria-label', `${course.name}: ${course.completed} trên ${course.total} bài tự hoàn thành`);
+                const link = node('a', course.saved ? `Tiếp tục: ${course.nextLessonTitle} →` : 'Mở bài đầu tiên →', 'account-resume-link');
+                link.href = `course.learning.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(course.nextLessonId)}`;
+                item.append(meter, link); grid.append(item);
+            }
+            output.append(grid);
+        } catch (error) { output.replaceChildren(node('p', error.message || 'Chưa đọc được dữ liệu học tập của tài khoản.')); }
     }
     async renderEnrollments(user) {
         const version = ++this.enrollmentVersion, output = this.$('#account-enrollments-content');
@@ -257,6 +367,7 @@ export class AccountPage {
         if (manager && permissions.includes('users:read')) available.push(['users', 'Tài khoản học viên']);
         if (manager && permissions.includes('audit:read')) available.push(['audit', 'Lịch sử thao tác']);
         if (manager && permissions.includes('analytics:read')) available.push(['learning', 'Tiến độ tự học']);
+        if (manager && permissions.includes('ai:manage')) available.push(['ai', 'Cấu hình AI']);
         const section = this.$('#account-management'), tabs = this.$('#account-management-tabs');
         section.hidden = accountService.sessionOffline || !user.isEmailVerified || !available.length;
         tabs.replaceChildren();
@@ -274,7 +385,9 @@ export class AccountPage {
         this.managementMode = mode;
         const version = ++this.managementVersion, output = this.$('#account-management-content');
         output.replaceChildren(node('p', 'Đang tải dữ liệu…'));
+        this.$('#account-ai-setup').hidden = mode !== 'ai';
         for (const button of this.root.querySelectorAll('[data-management-mode]')) button.setAttribute('aria-pressed', String(button.dataset.managementMode === mode));
+        if (mode === 'ai') { output.replaceChildren(node('p', 'Thiết lập nhà cung cấp và model cho agent. Chỉ người có quyền cấu hình AI được thay đổi.')); return; }
         try {
             const query = `?limit=10&page=${page}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
             const path = { overview: '/v1/admin/dashboard', users: '/v1/users' + query, courses: '/v1/teacher/courses' + query, audit: '/v1/admin/audit' + query, learning: '/v1/learner-state/management' + query }[mode];
@@ -283,9 +396,10 @@ export class AccountPage {
             output.replaceChildren();
             if (mode === 'overview') { this.overview(output, data); return; }
             if (mode === 'users' || mode === 'courses') this.search(output, mode, search);
+            if (mode === 'users') this.createStudentForm(output, version);
             const rows = rowsOf(data);
             if (!rows.length) output.append(node('p', 'Chưa có dữ liệu phù hợp.'));
-            else if (mode === 'users') this.table(output, ['Họ tên', 'Email', 'Vai trò', 'Trạng thái'], rows.map(user => [nameOf(user), user.email, user.roles?.map(role => role.roleName).join(', ') || user.role?.name, user.isActive ? 'Đang hoạt động' : 'Đã khóa']));
+            else if (mode === 'users') this.users(output, rows, version, { page, search });
             else if (mode === 'audit') this.table(output, ['Thời gian', 'Thao tác', 'Tài nguyên', 'Người thực hiện'], rows.map(row => [date(row.created_at), row.action, row.resource || '—', row.user_id || 'Hệ thống']));
             else if (mode === 'learning') this.learningSummaries(output, rows);
             else this.courses(output, rows, version);
@@ -317,8 +431,88 @@ export class AccountPage {
         const table = node('table', undefined, 'account-table'), head = node('thead'), headRow = node('tr');
         for (const label of headers) { const cell = node('th', label); cell.scope = 'col'; headRow.append(cell); } head.append(headRow);
         const body = node('tbody');
-        for (const row of rows) { const tr = node('tr'); for (const value of row) tr.append(node('td', value ?? '—')); body.append(tr); }
+        for (const row of rows) {
+            const tr = node('tr');
+            for (const value of row) {
+                const td = node('td');
+                if (value instanceof Node) td.append(value);
+                else td.textContent = value ?? '—';
+                tr.append(td);
+            }
+            body.append(tr);
+        }
         table.append(head, body); wrap.append(table); output.append(wrap);
+    }
+    users(output, rows, version, query) {
+        const actor = accountService.user;
+        const tableRows = rows.map(user => {
+            const action = node('span', user.id === actor.id ? 'Tài khoản đang dùng' : 'Chỉ xem');
+            if (canUpdateStudentStatus(actor, user, { offline: accountService.sessionOffline })) {
+                const button = node('button', user.isActive ? 'Khóa học viên' : 'Mở khóa học viên', 'btn btn--ghost btn--sm');
+                button.type = 'button'; button.dataset.studentStatus = user.id;
+                button.addEventListener('click', async () => {
+                    if (version !== this.managementVersion || accountService.user?.id !== actor.id) return;
+                    const verb = user.isActive ? 'Khóa' : 'Mở khóa';
+                    if (!confirm(`${verb} tài khoản ${user.email}? ${user.isActive ? 'Các phiên đăng nhập của học viên sẽ bị thu hồi. ' : ''}Dữ liệu học tập vẫn được giữ.`)) return;
+                    button.disabled = true;
+                    try {
+                        await accountService.request(`/v1/users/${encodeURIComponent(user.id)}/status`, { method: 'PATCH', body: { isActive: !user.isActive } });
+                        if (version !== this.managementVersion || accountService.user?.id !== actor.id) return;
+                        this.message(user.isActive ? 'Đã khóa tài khoản học viên và thu hồi các phiên đăng nhập.' : 'Đã mở khóa tài khoản học viên.');
+                        this.loadManagement('users', query);
+                    } catch (error) {
+                        if (version !== this.managementVersion) return;
+                        this.message(accountErrorMessage(error), 'error'); button.disabled = false;
+                    }
+                });
+                action.replaceChildren(button);
+                if (user.isActive && this.authOptions.managedAccountsEnabled) {
+                    const reset = node('button', 'Đặt mật khẩu', 'btn btn--ghost btn--sm');
+                    reset.type = 'button'; reset.dataset.studentPassword = user.id;
+                    reset.addEventListener('click', () => {
+                        if (version !== this.managementVersion || accountService.user?.id !== actor.id) return;
+                        this.passwordTarget = { ...user, ownerId: actor.id };
+                        this.$('#account-student-password-identity').textContent = `${nameOf(user)} · ${user.email}`;
+                        this.$('#student-new-password').value = '';
+                        this.$('#student-password-confirm').checked = false;
+                        this.$('#account-student-password-dialog').showModal();
+                        this.$('#student-new-password').focus();
+                    });
+                    action.append(reset);
+                }
+            }
+            const groupLabels = { STUDENT: 'Học sinh', TEACHER: 'Giảng viên', MANAGER: 'Quản lí' };
+            const roles = user.roles?.map(role => role.roleName).join(', ') ||
+                user.management?.roleGroups?.map(group => groupLabels[group] || group).join(', ') || user.role?.name;
+            return [nameOf(user), user.email, roles, user.isActive ? 'Đang hoạt động' : 'Đã khóa', action];
+        });
+        this.table(output, ['Họ tên', 'Email', 'Vai trò', 'Trạng thái', 'Thao tác'], tableRows);
+        output.append(node('p', 'Khóa tài khoản không xóa dữ liệu học tập. Tài khoản quản trị, nhân sự và tài khoản đang đăng nhập được bảo vệ; mọi thay đổi vẫn được máy chủ kiểm tra quyền.', 'account-role-note'));
+    }
+    createStudentForm(output, version) {
+        const actor = accountService.user, access = workspaceAccess(actor, { offline: accountService.sessionOffline });
+        if (!this.authOptions.managedAccountsEnabled || !access.manager || !actor?.isEmailVerified || !actor.permissions?.includes('users:create')) return;
+        const details = node('details', undefined, 'account-create-student'), summary = node('summary', 'Tạo tài khoản học sinh');
+        details.append(summary, node('p', 'Tài khoản này chỉ có quyền học sinh. Bạn xác nhận danh tính học sinh thay cho email và cung cấp thông tin đăng nhập qua kênh riêng.'));
+        const form = node('form', undefined, 'account-form'); form.id = 'account-create-student'; form.method = 'post';
+        for (const [name, text, type, autocomplete] of [['firstName', 'Tên học sinh', 'text', 'off'], ['lastName', 'Họ và tên đệm', 'text', 'off'], ['email', 'Email / tên đăng nhập', 'email', 'off'], ['password', 'Mật khẩu ban đầu', 'password', 'new-password']]) {
+            const label = node('label', text, 'field'), input = node('input');
+            input.name = name; input.type = type; input.autocomplete = autocomplete; input.required = true;
+            input.maxLength = name === 'password' ? 72 : name === 'email' ? 255 : 100;
+            if (name === 'password') input.minLength = 12;
+            label.append(input); form.append(label);
+        }
+        const confirmation = node('label', undefined, 'account-check'), checkbox = node('input'); checkbox.type = 'checkbox'; checkbox.required = true;
+        confirmation.append(checkbox, node('span', 'Tôi đã xác nhận đúng học sinh và sẽ cung cấp thông tin đăng nhập an toàn.'));
+        const submit = node('button', 'Tạo tài khoản học sinh', 'btn btn--primary'); submit.type = 'submit';
+        form.append(confirmation, submit); details.append(form); output.append(details);
+        this.bindForm('#account-create-student', async (data, { isCurrent }) => {
+            if (version !== this.managementVersion) return;
+            await accountService.request('/v1/users/students', { method: 'POST', body: { email: data.email, password: data.password, firstName: data.firstName, lastName: data.lastName } });
+            if (!isCurrent() || version !== this.managementVersion) return;
+            this.message('Đã tạo tài khoản học sinh được xác nhận. Cung cấp thông tin đăng nhập qua kênh riêng; không gửi mật khẩu vào nhóm công khai.');
+            this.loadManagement('users');
+        });
     }
     courses(output, rows, version) {
         const list = node('ul', undefined, 'account-course-list');

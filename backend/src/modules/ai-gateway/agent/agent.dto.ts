@@ -22,6 +22,15 @@ export class AgentChatDto {
   @ApiPropertyOptional({ format: 'uuid' }) @IsOptional() @IsUUID() modelId?: string;
   @ApiPropertyOptional({ format: 'uuid' }) @IsOptional() @IsUUID() courseId?: string;
   @ApiPropertyOptional({ format: 'uuid' }) @IsOptional() @IsUUID() lessonId?: string;
+  @ApiPropertyOptional({ description: 'Canonical course ID from the approved public learning interface' })
+  @IsOptional() @IsString() @MaxLength(40) courseSlug?: string;
+  @ApiPropertyOptional({ description: 'Canonical lesson ID within courseSlug' })
+  @IsOptional() @IsString() @MaxLength(40) lessonSlug?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(40) selectedPlatformKey?: string;
+  @ApiPropertyOptional({ enum: ['beginner', 'intermediate', 'advanced'] })
+  @IsOptional() @IsIn(['beginner', 'intermediate', 'advanced']) learningLevel?: string;
+  @ApiPropertyOptional({ description: 'UI reports a pending device draft; it is not synchronized database evidence' })
+  @IsOptional() @IsBoolean() learningSnapshotPending?: boolean;
 }
 
 export class AgentConversationQueryDto {

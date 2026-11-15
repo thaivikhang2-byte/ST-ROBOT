@@ -17,7 +17,7 @@ Không đặt mật khẩu, JWT secret hoặc khóa AI trong frontend. Backend p
 - `DATABASE_URL`: PostgreSQL bền vững; `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`: Redis.
 - `JWT_SECRET` và `JWT_REFRESH_SECRET`: hai chuỗi ngẫu nhiên khác nhau, mỗi chuỗi ít nhất 32 ký tự.
 - `NODE_ENV=production` và `CORS_ORIGIN=https://thaivikhang2-byte.github.io`.
-- `MAIL_PROVIDER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM`; tài khoản SMTP nếu máy chủ yêu cầu. Email production bắt buộc gửi qua SMTP để xác minh và đặt lại mật khẩu.
+- Với đăng ký email công khai: `MAIL_PROVIDER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM`; tài khoản SMTP nếu máy chủ yêu cầu. Với tài khoản nội bộ do quản trị tạo: dùng đồng thời `MANAGED_ACCOUNTS_ENABLED=true`, `FEATURE_REGISTRATION_ENABLED=false`, `MAIL_PROVIDER=disabled`; xem [managed-accounts.md](managed-accounts.md).
 - `APP_PORT`: cổng riêng nếu cần. Nếu bỏ trống, backend nhận `PORT` do nền tảng cấp rồi mới dùng mặc định 3000.
 
 Các biến khác có giá trị mặc định an toàn trong backend. Agent mới mặc định tắt, cần cấu hình riêng theo [backend-agent.md](backend-agent.md). AI Tutor và tính năng gửi/cắt ảnh đang có được giữ nguyên.
@@ -55,13 +55,30 @@ Trong shell đó, đặt `ALLOW_INITIAL_ADMIN_BOOTSTRAP=true`, `BOOTSTRAP_ADMIN_
 npm run admin:bootstrap
 ```
 
-Xác minh email bằng giao diện tài khoản. Bootstrap không tự nâng quyền một người dùng đã tồn tại và không tự đánh dấu email đã xác minh. Đọc UUID của quản trị viên tại hồ sơ tài khoản; tạo danh mục server từ đúng giáo trình GitHub bằng:
+Mặc định, xác minh email bằng giao diện tài khoản. Với tài khoản nội bộ như địa chỉ `.local`, người vận hành có thể chủ động đặt `BOOTSTRAP_ADMIN_VERIFIED=true` trong tiến trình bootstrap dùng một lần để xác nhận danh tính; có audit và không bỏ qua xác minh của đăng ký công khai. Đặt `BOOTSTRAP_IMPORT_CATALOG=true` để nhập luôn danh mục sau khi tạo admin. Bootstrap không tự nâng quyền một người dùng đã tồn tại. Nếu nhập riêng danh mục, đọc UUID quản trị viên tại hồ sơ và chạy:
 
 ```sh
 npm run db:content -- UUID-CUA-QUAN-TRI-VIEN
 ```
 
 Trong Compose, chạy lệnh trên bằng `docker compose exec backend ...`. Import giữ các ID xác định, chỉ thêm nội dung còn thiếu, không ghi đè sửa đổi trong database; quiz tự học không bị biến thành điều kiện bắt buộc mới. Học khách và lab hiện có vẫn dùng danh mục frontend ngay cả khi chưa import server.
+
+Trên một server có Shell, `npm run setup:admin` là trình nhập tương tác: nhập email,
+mật khẩu được ẩn; credential chỉ truyền cho tiến trình bootstrap rồi bỏ khỏi bộ nhớ
+wrapper. Không cần chép mật khẩu vào Environment chạy lâu dài. Lệnh tạo admin đã
+được người vận hành xác nhận và nhập danh mục; không dùng để nâng quyền tài khoản
+cũ. Backend cần được migrate/seed trước đó.
+
+Khi triển khai Node trực tiếp, build bằng `npm ci --include=dev && npm run prisma:generate && npm run build`,
+start bằng `npm run start:production`. Startup áp dụng migration và seed an toàn rồi
+mới chạy API; lỗi khởi tạo làm dừng startup. Chỉ đặt `RUN_MIGRATIONS_ON_START=false`
+khi đã có job migration riêng. GitHub Actions vẫn kiểm tra migration chuẩn trên database test.
+
+Với VPS có Docker và domain riêng, có thêm `scripts/setup-production.cjs` và
+`scripts/deploy-production.cjs` cùng `docker-compose.production.yml`/Caddy. Chúng
+tạo file bí mật riêng, giữ credential admin trong hồ sơ dùng một lần ngoài môi
+trường backend, và không xóa volume khi cập nhật. Chọn `--existing-proxy` nếu VPS
+đã có reverse proxy/SSL quản lí riêng. Cấu hình này không tự tạo hoặc mua máy chủ.
 
 ## Cách lưu và quản lí dữ liệu
 

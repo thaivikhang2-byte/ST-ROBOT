@@ -2,7 +2,7 @@
 x-backend: &backend
   image: strobot-backend:local
   build: ./backend
-  env_file: .env
+  env_file: ${STROBOT_ENV_FILE:-.env}
   environment: &backend-env
     DATABASE_URL: postgresql://${POSTGRES_USER:-strobot}:${POSTGRES_PASSWORD:?Generate private .env first}@postgres:5432/${POSTGRES_DB:-strobot}
     REDIS_HOST: redis

@@ -2,9 +2,9 @@ export const MAX_TUTOR_IMAGES = 2;
 export const MAX_TUTOR_IMAGE_BYTES = 1536 * 1024;
 export const MAX_TUTOR_TOTAL_IMAGE_BYTES = MAX_TUTOR_IMAGES * MAX_TUTOR_IMAGE_BYTES;
 export const TEXT_REQUEST_BYTES = 24000;
-// Base64 expands by 4/3. The existing text envelope remains available beside
-// the images, while the other API routes retain their original body limit.
-export const TUTOR_REQUEST_BYTES = 4 * Math.ceil(MAX_TUTOR_TOTAL_IMAGE_BYTES / 3) + TEXT_REQUEST_BYTES;
+// Base64 expands by 4/3. Keep the existing text envelope plus the separately
+// bounded 24 KB learning report beside images. Other API limits stay unchanged.
+export const TUTOR_REQUEST_BYTES = 4 * Math.ceil(MAX_TUTOR_TOTAL_IMAGE_BYTES / 3) + TEXT_REQUEST_BYTES + 24000;
 
 export class TutorImageError extends Error {
   constructor(status = 400) {

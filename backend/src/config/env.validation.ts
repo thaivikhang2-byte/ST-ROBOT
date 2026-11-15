@@ -36,13 +36,14 @@ export const envValidationSchema = Joi.object({
   TRUST_PROXY: Joi.string().allow('').default(''),
 
   // Mail
-  MAIL_PROVIDER: Joi.string().valid('smtp', 'file').default('smtp'),
+  MAIL_PROVIDER: Joi.string().valid('smtp', 'file', 'disabled').default('smtp'),
   MAIL_HOST: Joi.string().allow('').default(''),
   MAIL_PORT: Joi.number().default(587),
   MAIL_USER: Joi.string().allow('').default(''),
   MAIL_PASSWORD: Joi.string().allow('').default(''),
   MAIL_FROM: Joi.string().default('noreply@st-robot.com'),
   MAIL_SECURE: Joi.boolean().default(false),
+  MANAGED_ACCOUNTS_ENABLED: Joi.boolean().default(false),
 
   // CDN
   CDN_PROVIDER: Joi.string().valid('minio', 'r2', 's3', 'local').default('minio'),
@@ -209,12 +210,27 @@ export const envValidationSchema = Joi.object({
       return helpers.error('any.custom', { message: 'Invalid video public API URL' });
     }
   }
+  const managedWithoutMail = value.MANAGED_ACCOUNTS_ENABLED === true &&
+    value.FEATURE_REGISTRATION_ENABLED === false && value.MAIL_PROVIDER === 'disabled';
+  if (value.MAIL_PROVIDER === 'disabled' && !managedWithoutMail)
+    return helpers.error('any.custom', {
+      message: 'Disabled mail requires managed accounts and disabled public registration',
+    });
+  const origins = typeof value.CORS_ORIGIN === 'string' ? value.CORS_ORIGIN.split(',').map(origin => origin.trim()) : [];
+  const productionOrigins = origins.length > 0 && origins.every(origin => {
+    try {
+      const url = new URL(origin);
+      return url.protocol === 'https:' && !url.username && !url.password &&
+        !url.search && !url.hash && url.pathname === '/' && url.origin === origin;
+    } catch { return false; }
+  });
   if (
     value.NODE_ENV === 'production' &&
-    (value.CORS_ORIGIN === '*' || value.MAIL_PROVIDER !== 'smtp' || !value.MAIL_HOST)
+    (!productionOrigins || (!managedWithoutMail &&
+      (value.MAIL_PROVIDER !== 'smtp' || !value.MAIL_HOST)))
   ) {
     return helpers.error('any.custom', {
-      message: 'Production requires explicit CORS origin and SMTP delivery',
+      message: 'Production requires explicit CORS origin and SMTP or explicit managed-only accounts',
     });
   }
   return value;

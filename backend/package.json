@@ -15,7 +15,9 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "ts-node prisma/seed.ts",
     "admin:bootstrap": "ts-node scripts/bootstrap-admin.ts",
-    "db:content": "ts-node prisma/import-learning.ts"
+    "db:content": "ts-node prisma/import-learning.ts",
+    "start:production": "node scripts/start-production.cjs",
+    "setup:admin": "node scripts/setup-admin.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",

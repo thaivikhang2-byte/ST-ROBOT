@@ -28,7 +28,7 @@ Các trang HTML ở thư mục gốc chuyển về `frontend/public/` và giữ 
 - Nội dung 30 bài có mục tiêu, kiến thức theo bước, ví dụ có đơn vị, lỗi thường gặp, tự kiểm tra và nguồn chính thức.
 - micro:bit nạp sẵn mã MicroPython vào editor trong khung; có thêm biến thể MakeCode JavaScript và chương trình gửi/nhận radio riêng.
 - Tìm/lọc bộ kit, thông số chi tiết, quiz ôn tập và chọn khóa từ trang đăng ký.
-- AI trang chủ, AI Tutor và bộ gợi ý dạng câu cùng gọi dịch vụ `st-robot-1.onrender.com`; khóa bí mật được giữ trên máy chủ.
+- AI khách và chụp/cắt ảnh gọi dịch vụ `st-robot-1.onrender.com`; chat chữ đã đăng nhập dùng agent của backend khi đã kết nối. Agent đọc tiến độ, nhật ký, lịch sử học và đúng danh sách lab được cấp quyền; khóa bí mật giữ trên máy chủ.
 - Chế độ sáng/tối và menu điện thoại.
 
 Người học khách vẫn lưu tiến độ và nhật ký trong trình duyệt. Trang **Tài khoản** hỗ trợ đăng ký, đăng nhập, xác minh email, khôi phục mật khẩu, đồng bộ dữ liệu giữa các thiết bị, tham gia khóa và các bảng quản lí theo quyền. Dữ liệu khách được giữ riêng; người học chủ động chọn nhập vào tài khoản.

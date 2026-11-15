@@ -105,6 +105,8 @@ export class SystemPromptRegistryService {
       allowedTools: [
         'learning_search_courses',
         'learning_get_own_progress',
+        'learning_get_own_learning_data',
+        'learning_get_lab_platforms',
         'learning_get_lesson',
         'rag_search_authorized_documents',
         'learning_recommend_next_lesson',

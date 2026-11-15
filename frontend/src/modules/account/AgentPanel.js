@@ -251,7 +251,10 @@ export function attachAgentPanel(container, session = accountService) {
     }
 
     const unsubscribe = session.subscribe((user) => render(user));
+    const settingsChanged = () => { if (!disposed) render(); };
+    document.addEventListener('strobot:agent-settings-changed', settingsChanged);
     session.ready().then(() => { if (!disposed) render(); });
     render();
-    return () => { disposed = true; generation++; controller?.abort(); unsubscribe(); container.replaceChildren(); };
+    return () => { disposed = true; generation++; controller?.abort(); unsubscribe();
+        document.removeEventListener('strobot:agent-settings-changed', settingsChanged); container.replaceChildren(); };
 }

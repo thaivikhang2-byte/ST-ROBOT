@@ -14,8 +14,10 @@ export class MailService {
   constructor(private readonly config: ConfigService) {}
 
   assertConfigured(): void {
-    const file = this.config.get<string>('mail.provider') === 'file';
+    const provider = this.config.get<string>('mail.provider');
+    const file = provider === 'file';
     if (
+      provider === 'disabled' ||
       (file && !['development', 'test'].includes(this.config.get<string>('app.nodeEnv', ''))) ||
       (!file && !this.config.get<string>('mail.host'))
     ) {

@@ -1,0 +1,9 @@
+.ai-admin-setup { margin-top: 1.25rem; }
+.ai-admin-setup h3 { margin-bottom: .6rem; }
+.ai-admin-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1rem 0; }
+.ai-admin-setup .field, .ai-admin-setup input, .ai-admin-setup select { min-width: 0; width: 100%; }
+.ai-admin-setup .check { display: flex; align-items: flex-start; gap: .5rem; margin: .75rem 0; }
+.ai-admin-setup .check input { flex: none; width: auto; margin-top: .25rem; }
+.ai-admin-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; }
+.ai-admin-status { padding: .75rem; border: 1px solid var(--border-color, #cdd7e4); border-radius: .65rem; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .ai-admin-fields { grid-template-columns: minmax(0, 1fr); } .ai-admin-actions > .btn { width: 100%; } }

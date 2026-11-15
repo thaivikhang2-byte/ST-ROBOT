@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { AiModel } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
@@ -15,6 +15,8 @@ import { AiVaultService } from './vault/ai-vault.service';
 import { PROVIDER_CAPABILITIES, ProviderType } from './vault/vault-schema';
 import { AiCircuitBreakerService } from './ai-circuit-breaker.service';
 import { Optional } from '@nestjs/common';
+import { identityInclude } from '../auth/identity.repository';
+import { grantPermissions, resolveGrants } from '../roles/authorization';
 
 @Injectable()
 export class AiRegistryService {
@@ -25,6 +27,38 @@ export class AiRegistryService {
     private readonly vault: AiVaultService,
     @Optional() private readonly circuitBreaker?: AiCircuitBreakerService,
   ) {}
+  private async settingsActor(tx: Prisma.TransactionClient, actorId: string) {
+    const actor = await tx.user.findUnique({ where: { id: actorId }, include: identityInclude });
+    const grants = actor ? resolveGrants(actor) : [];
+    if (!actor?.is_email_verified ||
+        !grants.some((grant) => grant.group === 'MANAGER' && grant.scopeType === 'SYSTEM') ||
+        !grantPermissions(grants, undefined, actorId).includes('ai:manage'))
+      throw new ForbiddenException('Current verified SYSTEM manager AI authorization required');
+  }
+  private async settingsView(tx: Prisma.TransactionClient) {
+    const flag = await tx.featureFlag.findUnique({ where: { key: 'ai_chat' } });
+    return { enabled: flag?.is_enabled === true, gatewayEnabled: this.config.get<boolean>('ai.enabled', false) === true };
+  }
+  settings(actorId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.settingsActor(tx, actorId);
+      return this.settingsView(tx);
+    });
+  }
+  saveSettings(enabled: boolean, actorId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      // Serialize against role changes before rechecking current authority.
+      await tx.authorizationState.update({ where: { id: 'default' }, data: { version: { increment: 1 } } });
+      await this.settingsActor(tx, actorId);
+      await tx.featureFlag.upsert({
+        where: { key: 'ai_chat' },
+        create: { key: 'ai_chat', name: 'AI Chat', description: 'Enable authenticated AI agent chat', is_enabled: enabled },
+        update: { is_enabled: enabled },
+      });
+      await auditContent(tx, enabled ? 'ai.chat_enabled' : 'ai.chat_disabled', actorId, 'feature_flag', 'ai_chat');
+      return this.settingsView(tx);
+    });
+  }
   async providers() {
     const providers = await this.prisma.aiProvider.findMany({ orderBy: { id: 'asc' } });
     return Promise.all(

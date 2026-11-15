@@ -277,6 +277,12 @@ export class UpdateAiModelDto extends PartialType(CreateAiModelDto, {
 export class ProviderStatusDto {
   @ApiProperty() @IsBoolean() enabled!: boolean;
 }
+
+export class AiSettingsDto {
+  @ApiProperty({ description: 'Enable AI chat only after the operator has configured provider, model and quota. The server environment gate still applies.' })
+  @IsBoolean()
+  enabled!: boolean;
+}
 export class AiQuotaDto {
   @ApiProperty() @IsInt() @Min(0) @Max(100000) dailyRequests!: number;
   @ApiProperty() @IsInt() @Min(0) @Max(100000000) dailyTokens!: number;

@@ -26,6 +26,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagg
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
+import { ConfigService } from '@nestjs/config';
 import { CredentialService } from './services/credential.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -61,7 +62,23 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly credentials: CredentialService,
+    private readonly config: ConfigService,
   ) {}
+
+  @Public()
+  @Get('options')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({ summary: 'Public account features only; no credentials or provider details' })
+  options() {
+    const provider = this.config.get<string>('mail.provider', 'smtp');
+    const environment = this.config.get<string>('app.nodeEnv', 'development');
+    return {
+      registrationEnabled: this.config.get<boolean>('feature.registrationEnabled', true),
+      managedAccountsEnabled: this.config.get<boolean>('feature.managedAccountsEnabled', false),
+      emailDeliveryEnabled: (provider === 'smtp' && !!this.config.get<string>('mail.host')) ||
+        (provider === 'file' && ['development', 'test'].includes(environment)),
+    };
+  }
 
   @Public()
   @ApiOperation({ security: [] })

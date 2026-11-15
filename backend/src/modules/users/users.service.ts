@@ -21,13 +21,72 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { UsersQueryDto } from './dto/users-query.dto';
 import { AuthorizationService } from '../roles/authorization.service';
+import { ConfigService } from '@nestjs/config';
+import { ManagedStudentDto, ManagedStudentPasswordDto } from './dto/managed-student.dto';
+import { resolveGrants } from '../roles/authorization';
+import { managementProfile, studentManagementMetadata } from './management-profile';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorization: AuthorizationService,
+    private readonly config: ConfigService,
   ) {}
+
+  private async managedActor(tx: Prisma.TransactionClient, actor: RequestUser, permission: string) {
+    if (!this.config.get<boolean>('feature.managedAccountsEnabled', false))
+      throw new ForbiddenException('Administrator-managed accounts are not enabled');
+    const current = await this.authorization.actor(tx, actor.id, permission);
+    if (!current.grants.some((grant) => grant.group === 'MANAGER' &&
+      grant.scopeType === 'SYSTEM' && grant.permissions.includes(permission)))
+      throw new ForbiddenException('Verified system management authority required');
+    return { ...actor, grants: current.grants, permissions: current.permissions,
+      roleId: current.role.id, roleName: current.role.name, isEmailVerified: current.is_email_verified };
+  }
+
+  async createStudent(dto: ManagedStudentDto, actor: RequestUser) {
+    const password_hash = await hashPassword(dto.password);
+    return this.mutate(async (tx) => {
+      const manager = await this.managedActor(tx, actor, 'users:create');
+      const role = await tx.role.findUnique({ where: { name: 'student' } });
+      if (!role || !role.is_active || role.status !== 'ACTIVE' || role.group !== 'STUDENT')
+        throw new ForbiddenException('The student role is unavailable');
+      await this.assignable(tx, role.id, manager);
+      const user = await tx.user.create({
+        data: {
+          email: dto.email.trim().toLowerCase(), password_hash,
+          first_name: dto.firstName, last_name: dto.lastName, role_id: role.id,
+          is_email_verified: true, rbac_migrated: true,
+          role_assignments: { create: { role_id: role.id, assigned_by: actor.id } },
+        },
+        include: identityInclude,
+      });
+      // "Verified" here is an explicit administrator attestation of a school
+      // identity, not a claim that SMTP delivered to this address.
+      await AuditService.record(tx, 'user.managed_student_created', actor.id, user.id);
+      await AuditService.record(tx, 'user.identity_attested_by_manager', actor.id, user.id);
+      return profile(user);
+    });
+  }
+
+  async resetStudentPassword(id: string, dto: ManagedStudentPasswordDto, actor: RequestUser) {
+    const password_hash = await hashPassword(dto.newPassword);
+    return this.mutate(async (tx) => {
+      await this.managedActor(tx, actor, 'users:update');
+      const user = await lockIdentity(tx, id);
+      const grants = resolveGrants(user);
+      if (id === actor.id || !studentManagementMetadata(user).studentOnly || !user.is_active || !grants.length)
+        throw new ForbiddenException('Only a separate active student account can be reset');
+      await revokeIdentity(tx, id);
+      await tx.credentialToken.updateMany({
+        where: { user_id: id, consumed_at: null }, data: { consumed_at: new Date() },
+      });
+      await tx.user.update({ where: { id }, data: { password_hash } });
+      await AuditService.record(tx, 'user.student_password_reset_by_manager', actor.id, id);
+      return { message: 'Student password updated; all previous sessions revoked' };
+    });
+  }
   async findAll(query: UsersQueryDto) {
     const where: Prisma.UserWhereInput = { deleted_at: null };
     if (query.status) where.is_active = query.status === 'active';
@@ -67,12 +126,12 @@ export class UsersService {
       }),
       this.prisma.user.count({ where }),
     ]);
-    return new PaginatedResult(users.map(profile), total, query.page, query.limit);
+    return new PaginatedResult(users.map(managementProfile), total, query.page, query.limit);
   }
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id }, include: identityInclude });
     if (!user || user.deleted_at) throw new NotFoundException('User', id);
-    return profile(user);
+    return managementProfile(user);
   }
   private async assignable(tx: Prisma.TransactionClient, roleId: string, actor: RequestUser) {
     const role = await tx.role.findUnique({
@@ -129,10 +188,20 @@ export class UsersService {
     });
   }
   async update(id: string, dto: UpdateUserDto, actor: RequestUser) {
+    return this.updateIdentity(id, dto, actor, false);
+  }
+  async updateStudentStatus(id: string, isActive: boolean, actor: RequestUser) {
+    return this.updateIdentity(id, { isActive }, actor, true);
+  }
+  private async updateIdentity(id: string, dto: UpdateUserDto, actor: RequestUser, studentStatusOnly: boolean) {
     return this.mutate(async (tx) => {
-      await this.authorization.actor(tx, actor.id, 'users:update');
+      const current = await this.authorization.actor(tx, actor.id, 'users:update');
       const user = await lockIdentity(tx, id);
       if (user.deleted_at) throw new NotFoundException('User', id);
+      if (studentStatusOnly && (!current.grants.some(grant => grant.group === 'MANAGER' &&
+        grant.scopeType === 'SYSTEM' && grant.permissions.includes('users:update')) ||
+        !studentManagementMetadata(user).studentOnly))
+        throw new ForbiddenException('Only verified system managers can change a student-only account status');
       this.protect(user, actor);
       if (id === actor.id && (dto.roleId !== undefined || dto.isActive !== undefined))
         throw new ForbiddenException('Cannot change your own role or activation');

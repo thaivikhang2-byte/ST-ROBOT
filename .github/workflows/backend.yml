@@ -3,9 +3,9 @@ name: Backend and account checks
 on:
   push:
     branches: [main]
-    paths: ['backend/**', 'frontend/**', 'tests/**', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'frontend/**', 'tests/**', 'scripts/**', 'docker/**', 'docker-compose*.yml', '.github/workflows/backend.yml']
   pull_request:
-    paths: ['backend/**', 'frontend/**', 'tests/**', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'frontend/**', 'tests/**', 'scripts/**', 'docker/**', 'docker-compose*.yml', '.github/workflows/backend.yml']
 
 permissions:
   contents: read
@@ -46,6 +46,11 @@ jobs:
       - name: Account and learning storage regression checks
         run: >-
           node tests/account-service.mjs &&
+          node tests/account-dashboard.mjs &&
+          node tests/ai-admin-setup.mjs &&
+          node tests/tutor-learning-context.mjs &&
+          node tests/production-start.mjs &&
+          node tests/production-setup.mjs &&
           node tests/learner-sync.mjs &&
           node tests/quiz-service.mjs &&
           node tests/adaptive-review.mjs &&

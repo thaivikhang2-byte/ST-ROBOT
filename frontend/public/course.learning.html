@@ -121,7 +121,7 @@
       <aside id="tutorPanel" class="ws-ai glass-panel floating-tutor" aria-label="Trợ lý học tập" hidden>
         <div class="ai-head"><button type="button" id="tutorDragHandle" class="floating-tutor-handle"><span class="ai-avatar"><svg class="icon" aria-hidden="true"><use href="../src/assets/icons.svg#message"></use></svg></span><span><strong id="tutorTitle">Trợ lý AI STEM Robotics</strong><small>Kéo để di chuyển · hỏi về bài và Lab đang chọn</small></span></button><button type="button" id="tutorClose" class="floating-tutor-close" aria-label="Thu gọn trợ lý AI">×</button></div>
         <div class="tutor-prompts" aria-label="Gợi ý hỏi trợ lý"><button type="button" onclick="prepareTutorQuestion('simple')">Giải thích dễ hiểu</button><button type="button" onclick="prepareTutorQuestion('hint')">Gợi ý bước tiếp theo</button><button type="button" onclick="prepareTutorQuestion('result')">Trao đổi về kết quả</button></div><div id="tutorMessages" aria-live="polite"></div>
-        <form id="tutorForm"><label for="tutorQuestion">Câu hỏi của bạn</label><textarea id="tutorQuestion" rows="3" maxlength="3000" placeholder="Bạn cần giải thích phần nào? Có thể gửi ảnh lỗi kèm câu hỏi."></textarea><div id="tutorAttachments" class="tutor-attachments" aria-label="Ảnh đính kèm"></div><div class="tutor-image-actions"><label for="tutorImageInput" class="tutor-image-picker">Thêm ảnh<input id="tutorImageInput" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><button id="tutorPaste" type="button">Dán ảnh</button><button id="tutorCapture" type="button">Chụp màn hình</button><input id="tutorCaptureInput" type="file" accept="image/png,image/jpeg,image/webp" hidden></div><p id="tutorAttachmentStatus" class="small" role="status" aria-live="polite"></p><div class="tutor-actions"><button id="tutorSend" type="submit" class="btn--primary">Gửi câu hỏi</button><button id="tutorReset" type="button">Trao đổi mới</button></div><p id="tutorStatus" class="small" role="status"></p><p class="small">Xem lại ảnh trước khi gửi. Khi bấm Gửi, câu hỏi, ảnh đính kèm và ngữ cảnh bài/Lab được gửi đến dịch vụ AI. Hãy đối chiếu lời giải với kết quả thực hành.</p></form>
+        <form id="tutorForm"><label for="tutorQuestion">Câu hỏi của bạn</label><textarea id="tutorQuestion" rows="3" maxlength="3000" placeholder="Bạn cần giải thích phần nào? Có thể gửi ảnh lỗi kèm câu hỏi."></textarea><div id="tutorAttachments" class="tutor-attachments" aria-label="Ảnh đính kèm"></div><div class="tutor-image-actions"><label for="tutorImageInput" class="tutor-image-picker">Thêm ảnh<input id="tutorImageInput" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><button id="tutorPaste" type="button">Dán ảnh</button><button id="tutorCapture" type="button">Chụp màn hình</button><input id="tutorCaptureInput" type="file" accept="image/png,image/jpeg,image/webp" hidden></div><p id="tutorAttachmentStatus" class="small" role="status" aria-live="polite"></p><div class="tutor-actions"><button id="tutorSend" type="submit" class="btn--primary">Gửi câu hỏi</button><button id="tutorReset" type="button">Trao đổi mới</button></div><p id="tutorStatus" class="small" role="status"></p><p class="small">Khi bấm Gửi, trợ lý dùng câu hỏi, bài/Lab đang chọn và dữ liệu học tập của bạn. Câu hỏi có ảnh dùng ảnh cùng tiến độ, ghi chép trên thiết bị; hãy xem lại trước khi gửi. Trợ lý không tự nhìn được nội dung bên trong editor nhúng.</p></form>
       </aside>
   </div>
 
@@ -130,7 +130,7 @@
   </div>
   <dialog id="portfolioImportDialog" class="dialog" aria-labelledby="portfolioImportTitle"><div class="dialog-body"><h2 id="portfolioImportTitle">Khôi phục hồ sơ thực hành</h2><p id="portfolioImportPreview"></p><p>Các bài có trong tệp sẽ thay thế bản trên trình duyệt. Các bài khác và các khóa khác được giữ lại. Bạn có thể tải hồ sơ hiện tại trước khi khôi phục.</p></div><div class="dialog-foot"><button type="button" class="btn" onclick="document.getElementById('portfolioImportDialog').close()">Giữ bản hiện tại</button><button id="confirmImportNotes" type="button" class="btn btn--primary">Khôi phục các bài trong tệp</button></div></dialog>
   <dialog id="microbitResetDialog" class="dialog" aria-labelledby="microbitResetTitle"><div class="dialog-body"><h2 id="microbitResetTitle">Nạp lại mã mẫu của bài này?</h2><p>Mã đã chỉnh sửa của bài đang mở sẽ được thay bằng mã mẫu. Hãy tải bản cần giữ trước khi tiếp tục. Dự án của các bài khác được giữ nguyên.</p></div><div class="dialog-foot"><button id="microbitCancelReset" type="button" class="btn" onclick="document.getElementById('microbitResetDialog').close()">Giữ mã hiện tại</button><button id="microbitConfirmReset" type="button" class="btn btn--primary" onclick="resetMicrobitSource()">Nạp mã mẫu</button></div></dialog>
-  <script type="module" src="../src/app.js?v=account-sync-v1"></script>
+  <script type="module" src="../src/app.js?v=account-agent-v2"></script>
   <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=account-sync-v1'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
 <script type="module">import { mountLessonBench } from '../src/modules/learning/LessonBench.js?v=guided-learning-v15'; import * as portfolio from '../src/modules/learning/PracticePortfolio.js?v=guided-learning-v15'; window.STROBOT_MOUNT_LESSON_BENCH=mountLessonBench; window.STROBOT_PRACTICE_PORTFOLIO=portfolio;</script>
 <script type="module">import { getPlatformGuide } from '../src/modules/learning/PlatformGuides.js?v=workspace-v16'; window.STROBOT_PLATFORM_GUIDE=getPlatformGuide;</script>
@@ -483,7 +483,8 @@ window.addEventListener('DOMContentLoaded',initPage);
 </script>
 
 <script type="module">
-import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../src/services/AiService.js?v=workspace-v16';
+import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../src/services/AiService.js?v=account-tutor-v1';
+import { buildTutorLearningContext } from '../src/services/TutorLearningContext.js?v=account-tutor-v1';
 import { createFloatingTutor } from '../src/modules/learning/FloatingTutor.js?v=workspace-v16';
 import { createTutorAttachments } from '../src/modules/learning/TutorAttachments.js?v=screen-region-v2';
 import { renderAiMessage } from '../src/services/AiMessageRenderer.js?v=ai-render-v14';
@@ -532,7 +533,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (typeof error.requestId === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(error.requestId)) report.requestId = error.requestId;
     if (['startup', 'health', 'reply', 'provider', 'transport', 'server'].includes(error.stage)) report.stage = error.stage;
     if (Object.keys(report).length === 1) return;
-    report.api = AI_SERVICE_ORIGIN + '/api/tutor';
+    report.api = error.api || AI_SERVICE_ORIGIN + '/api/tutor';
     const detail = document.createElement('details');
     const heading = document.createElement('summary'); heading.textContent = 'Chi tiết lỗi';
     const text = document.createElement('pre'); text.textContent = JSON.stringify(report, null, 2);
@@ -546,11 +547,18 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   function clear() {
     generation++; active?.abort(); active = null; history = [];
+    aiClient.resetConversation('/api/tutor');
     messages.replaceChildren(); status.textContent = ''; input.value = ''; clearDiagnostics();attachments.clear();attachments.setDisabled(false);
     send.disabled = false;
   }
   const originalLoadLesson = loadLesson;
-  loadLesson = function(i) { clear(); originalLoadLesson(i); };
+  let tutorLessonScope = course.id + ':' + lesson().id;
+  loadLesson = function(i) {
+    const nextLesson = course.lessons[Number.isInteger(i) && course.lessons[i] ? i : 0];
+    const nextScope = course.id + ':' + nextLesson.id;
+    if (nextScope !== tutorLessonScope) { clear(); tutorLessonScope = nextScope; }
+    originalLoadLesson(i);
+  };
   reset.onclick = clear;
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -562,14 +570,20 @@ window.addEventListener('DOMContentLoaded', () => {
     send.disabled = true;attachments.setDisabled(true); add(question, true,images); input.value = ''; clearDiagnostics();
     status.textContent = 'Đang kết nối trợ lý…';
     try {
-      const reply = await aiClient.requestReply('/api/tutor', { course:course.id, lesson:lesson().id, question, history, platformKey:frameKey||defaultLabKey(), learningLevel,...(images.length?{images}:{}) }, {
+      let sourceNotice = '';
+      const educationalContext = buildTutorLearningContext({ courses:COURSES, courseId:course.id, lessonId:lesson().id, storage:learningStorage, currentRecord:record() });
+      const reply = await aiClient.requestReply('/api/tutor', { course:course.id, lesson:lesson().id, question, history, platformKey:frameKey||defaultLabKey(), learningLevel, educationalContext,...(images.length?{images}:{}) }, {
         signal: controller.signal,
+        beforeAccountRequest: () => learnerSyncService?.sync(),
+        onContext: context => { sourceNotice = context.source === 'postgresql-account'
+          ? (context.pendingSync ? 'Trợ lý dùng bản đã đồng bộ gần nhất; bản nháp trên thiết bị chưa được đồng bộ.' : context.hasSnapshot ? 'Trợ lý đã dùng dữ liệu học tập của tài khoản và danh mục Lab.' : 'Trợ lý đã đọc danh mục Lab; tài khoản chưa có tiến độ đã đồng bộ.')
+          : 'Trợ lý dùng dữ liệu bài/Lab và ghi chép tự học gửi từ thiết bị này.'; },
         onStatus: phase => { if (ticket === generation) status.textContent = phase === 'starting' ? 'Đang khởi động trợ lý…' : 'AI đang trả lời…'; }
       });
       if (ticket !== generation) return;
       add(reply, false);attachments.clear();
       history.push({role:'user',content:question},{role:'assistant',content:reply.slice(0,4000)});
-      history = history.slice(-6); status.textContent = '';
+      history = history.slice(-6); status.textContent = sourceNotice;
     } catch (error) {
       if (ticket === generation) {
         status.textContent = error.name === 'AbortError' ? 'Đã dừng câu hỏi này.' : error.message;

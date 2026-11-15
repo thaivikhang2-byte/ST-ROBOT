@@ -1,7 +1,9 @@
 import { getChatboxTemplate } from './template.js';
 import { $, $$ } from '../../utils/dom.js';
-import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../../services/AiService.js?v=catalog-selection-v13';
+import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../../services/AiService.js?v=account-tutor-v1';
 import { renderAiMessage } from '../../services/AiMessageRenderer.js?v=ai-render-v14';
+import { accountService } from '../../services/AccountService.js';
+import { learnerSync } from '../../services/LearnerSyncService.js';
 
 const DIAGNOSTIC_CODES = new Set(['AI_AUTH', 'AI_MODEL', 'AI_QUOTA', 'AI_BUSY', 'AI_UNAVAILABLE', 'AI_NETWORK',
     'AI_TIMEOUT', 'AI_RESPONSE', 'AI_REQUEST', 'AI_STARTUP_TIMEOUT', 'AI_STARTUP_RESPONSE', 'AI_REPLY_TIMEOUT', 'AI_STARTUP_FAILED', 'AI_CANCELLED']);
@@ -9,6 +11,9 @@ const PROVIDER_CODES = new Set(AI_PROVIDER_CODES);
 
 function appendDiagnostics(bubble, error) {
     const report = { service: AI_SERVICE_ORIGIN };
+    if (typeof error.api === 'string') {
+        try { report.service = new URL(error.api).origin; report.api = error.api; } catch { /* Ignore malformed diagnostics. */ }
+    }
     if (DIAGNOSTIC_CODES.has(error.code)) report.code = error.code;
     if (['startup', 'starting', 'reply', 'replying', 'provider', 'transport', 'server', 'network'].includes(error.stage)) report.stage = error.stage;
     for (const field of ['httpStatus', 'upstreamStatus']) {
@@ -43,6 +48,8 @@ export class Chatbox {
         this.history = [];
         this.busy = false;
         this.failedExchange = null;
+        this.generation = 0;
+        this.activeRequest = null;
     }
 
     render() {
@@ -72,6 +79,22 @@ export class Chatbox {
         });
         if (!input || !button) return;
         input.maxLength = 3000;
+        this.unsubscribeAccount?.();
+        let currentOwner = accountService.user?.id ?? null;
+        this.unsubscribeAccount = accountService.subscribe(user => {
+            const owner = user?.id ?? null;
+            if (owner === currentOwner) return;
+            currentOwner = owner;
+            this.generation++;
+            this.activeRequest?.abort(); this.activeRequest = null;
+            this.history = []; this.failedExchange = null; this.busy = false;
+            aiClient.resetConversation('/api/home-chat');
+            $('#chatMessageContainer')?.replaceChildren();
+            this.appendMessage(owner ? 'Bạn có thể hỏi về tiến độ, bài học và các nền tảng Lab của tài khoản.' : 'Bạn có thể hỏi về khóa học và STEM Robotics. Đăng nhập để trợ lý dùng dữ liệu học tập của bạn.', 'assistant');
+            input.value = ''; button.disabled = false;
+            chips.forEach(chip => { chip.disabled = false; });
+            $('#chatForm')?.removeAttribute('aria-busy');
+        });
         const submit = async (retry = null) => {
             const question = retry?.question || input.value.trim();
             if (!question || this.busy) return;
@@ -88,16 +111,31 @@ export class Chatbox {
             pending.textContent = 'Đang khởi động trợ lý…';
             pending.dataset.state = 'pending';
             const controller = new AbortController();
+            const generation = this.generation;
+            this.activeRequest = controller;
+            let context;
             try {
                 const reply = await aiClient.requestReply('/api/home-chat', { question, history: this.history.slice(-6) }, {
                     signal: controller.signal,
+                    beforeAccountRequest: async () => { await learnerSync.ready(); return learnerSync.sync(); },
+                    onContext: value => { context = value; },
                     onStatus: state => { pending.textContent = state === 'starting' ? 'Đang khởi động trợ lý…' : 'AI đang trả lời…'; }
                 });
+                if (generation !== this.generation) return;
                 renderAiMessage(pending, reply);
+                if (context?.source === 'postgresql-account') {
+                    const notice = document.createElement('p'); notice.className = 'small chat-context-source';
+                    notice.textContent = context.pendingSync
+                        ? 'Đang dùng bản đã đồng bộ gần nhất; bản nháp trên thiết bị chưa được đồng bộ.'
+                        : context.hasSnapshot ? 'Đã dùng dữ liệu học tập của tài khoản và danh mục Lab.'
+                            : 'Đã đọc danh mục Lab; tài khoản chưa có tiến độ đã đồng bộ.';
+                    pending.append(notice);
+                }
                 pending.dataset.state = 'complete';
                 this.history.push({ role: 'user', content: question }, { role: 'assistant', content: reply.slice(0, 4000) });
                 this.history = this.history.slice(-6);
             } catch (error) {
+                if (generation !== this.generation) return;
                 pending.textContent = error.name === 'AbortError'
                     ? 'Chờ phản hồi quá lâu. Bạn hãy gửi lại câu hỏi.'
                     : error instanceof TypeError ? 'Kết nối với trợ lý bị gián đoạn. Kiểm tra mạng rồi thử lại.' : error.message;
@@ -116,6 +154,8 @@ export class Chatbox {
                 appendDiagnostics(pending, error);
                 if (!input.value) input.value = question;
             } finally {
+                if (generation !== this.generation) return;
+                this.activeRequest = null;
                 this.busy = false;
                 button.disabled = false;
                 chips.forEach(b => b.disabled = false);

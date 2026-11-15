@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { VaultAdminService } from './vault/vault-admin.service';
@@ -14,6 +14,7 @@ import {
   CreateAiModelDto,
   ProviderStatusDto,
   UpdateAiModelDto,
+  AiSettingsDto,
 } from './ai.dto';
 
 @ApiTags('AI Administration')
@@ -27,6 +28,19 @@ export class AiAdminController {
     private readonly gateway: AiGatewayService,
     private readonly vault: VaultAdminService,
   ) {}
+  @Get('settings')
+  @Header('Cache-Control', 'private, no-store')
+  @ApiOperation({ summary: 'Read current AI chat flag and independent server environment gate; no provider calls' })
+  settings(@CurrentUser() user: RequestUser) { return this.registry.settings(user.id); }
+
+  @Patch('settings')
+  @Header('Cache-Control', 'private, no-store')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({ summary: 'Audited verified SYSTEM manager opt-in for AI chat; never bypasses the server environment gate' })
+  changeSettings(@Body() dto: AiSettingsDto, @CurrentUser() user: RequestUser, @Req() request: Request) {
+    this.vault.assertTls(request);
+    return this.registry.saveSettings(dto.enabled, user.id);
+  }
   @Get('providers')
   @ApiOperation({ summary: 'List safe provider configuration status' })
   providers() {
