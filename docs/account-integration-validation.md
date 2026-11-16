@@ -34,7 +34,9 @@ Không có lỗi JavaScript không được xử lí trong các luồng trình d
 
 ## Phạm vi triển khai và kiểm tra còn lại
 
-GitHub Pages chỉ phục vụ frontend. Backend HTTPS, PostgreSQL bền vững, Redis, SMTP và provider/model của agent phải được người vận hành cấu hình trước khi bật tính năng công khai. API tài khoản production đang để trống có chủ đích; giao diện thông báo chưa kết nối, không giả vờ đã lưu database. AI Tutor cũ giữ endpoint hiện tại.
+GitHub Pages chỉ phục vụ frontend. Ngày 16/11, dashboard Render do người vận hành gửi đã hiển thị `e06a726` Live tại `https://strobot-backend.onrender.com`. Frontend đã cấu hình `/api` của dịch vụ này; các kiểm tra AccountService, chờ cold start, learner sync, tutor, dashboard và thiết lập AI qua sau thay đổi. Localhost vẫn chọn API local, không tự gửi dữ liệu phát triển vào database công khai.
+
+Môi trường kiểm tra bị proxy chặn kết nối tới URL Render (CONNECT 403); chưa kiểm tra trực tiếp được readiness, CORS, đăng nhập hay đồng bộ trên dịch vụ thật. Người vận hành cần đăng nhập trên GitHub Pages, xác nhận lưu/đọc tiến độ, xóa ba biến khởi tạo admin sau lần tạo thành công, rồi cấu hình provider/model AI riêng. Chế độ tài khoản nội bộ đang dùng không cần SMTP; AI Tutor cũ giữ endpoint hiện tại.
 
 Migration engine native của Prisma bị chặn tải trong môi trường cloud này. Kiểm tra local áp dụng nguyên SQL lên PostgreSQL qua helper chỉ chấp nhận database test ở loopback; workflow GitHub bổ sung chạy `npm run db:migrate` chuẩn để kiểm tra migration khi có quyền tải engine. Không gọi helper fixture để nâng cấp database production.
 

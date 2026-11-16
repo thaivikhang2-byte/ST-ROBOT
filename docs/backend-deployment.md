@@ -8,11 +8,13 @@ Nếu dùng Render Free, làm theo [hướng dẫn từng bước](render-free-d
 
 GitHub Pages chỉ phục vụ frontend. Đẩy repository không khởi động PostgreSQL, Redis hoặc NestJS. Dịch vụ AI Tutor hiện có ở Render vẫn hoạt động độc lập; không thay nó bằng backend mới khi chưa cấu hình đủ dịch vụ.
 
-Frontend production mặc định để trống API tài khoản. Trang **Tài khoản** hiển thị tình trạng chưa kết nối, còn các chức năng học khách vẫn dùng được. Sau khi backend HTTPS hoạt động, sửa duy nhất địa chỉ công khai trong `frontend/src/config/backend.config.js`:
+Frontend production đã cấu hình API tài khoản của dịch vụ Render do người vận hành triển khai. Khi chuyển máy chủ, sửa địa chỉ công khai trong `frontend/src/config/backend.config.js`:
 
 ```js
-apiBaseUrl: 'https://TEN-MAY-CHU-CUA-BAN/api',
+apiBaseUrl: 'https://strobot-backend.onrender.com/api',
 ```
+
+Chạy frontend trên localhost vẫn tự chọn API local `http://localhost:3000/api`; giá trị URL được truyền rõ vào resolver vẫn có hiệu lực. Các chức năng học khách được giữ riêng. Sau khi GitHub Pages cập nhật, cần đăng nhập trên website thật để xác nhận kết nối và đồng bộ; cấu hình URL không thay thế kiểm tra này.
 
 Không đặt mật khẩu, JWT secret hoặc khóa AI trong frontend. Backend production phải đặt:
 

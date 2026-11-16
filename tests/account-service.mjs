@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { AccountService, ACCOUNT_SESSION_KEY } from '../frontend/src/services/AccountService.js';
-import { resolveBackendUrl } from '../frontend/src/config/backend.config.js';
+import { BACKEND_CONFIG, resolveBackendUrl } from '../frontend/src/config/backend.config.js';
 
 const store = () => {
     const values = new Map();
@@ -16,6 +16,10 @@ const secondAuth = () => ({ user: secondUser, tokens: { accessToken: 'access-two
 
 assert.equal(resolveBackendUrl('', 'thaivikhang2-byte.github.io'), '');
 assert.equal(resolveBackendUrl('', 'localhost'), 'http://localhost:3000/api');
+assert.equal(resolveBackendUrl(undefined, 'thaivikhang2-byte.github.io'), BACKEND_CONFIG.apiBaseUrl);
+for (const host of ['localhost', '127.0.0.1', '[::1]', '::1'])
+    assert.equal(resolveBackendUrl(undefined, host), 'http://localhost:3000/api');
+assert.equal(resolveBackendUrl(baseUrl, 'localhost'), baseUrl);
 assert.equal(resolveBackendUrl('http://untrusted.test/api'), '');
 assert.equal(resolveBackendUrl('https://person:secret@example.test/api'), '');
 assert.equal(resolveBackendUrl('https://example.test/api?key=secret'), '');
