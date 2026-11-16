@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist/setup",
+    "sourceMap": false,
+    "types": ["node"]
+  },
+  "include": ["prisma/seed.ts", "scripts/initialize-admin.ts"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"]
+}

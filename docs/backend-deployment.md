@@ -75,6 +75,8 @@ Khi triển khai Node trực tiếp, build bằng `npm ci --include=dev && npm r
 start bằng `npm run start:production`. Startup áp dụng migration và seed an toàn rồi
 mới chạy API; lỗi khởi tạo làm dừng startup. Chỉ đặt `RUN_MIGRATIONS_ON_START=false`
 khi đã có job migration riêng. GitHub Actions vẫn kiểm tra migration chuẩn trên database test.
+Build cũng biên dịch seed và helper admin vào `dist/setup`; startup gọi Node trực tiếp
+để tránh TypeScript compiler chiếm bộ nhớ của dịch vụ Render Free.
 
 Với VPS có Docker và domain riêng, có thêm `scripts/setup-production.cjs` và
 `scripts/deploy-production.cjs` cùng `docker-compose.production.yml`/Caddy. Chúng

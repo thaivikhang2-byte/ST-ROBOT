@@ -23,12 +23,20 @@ function recorder(result = { status: 0 }) {
     return {
         commands,
         run(command, args, options) {
+            assert.equal(command, process.execPath, 'startup steps must launch plain Node');
+            assert.ok(args.every(arg => !/(?:^|[/\\])(?:ts-node|typescript|tsx)(?:[/\\]|$)|\.(?:ts|tsx)$|^(?:-r|--require|--loader|--import)$/.test(arg)),
+                'production startup must not load a runtime TypeScript compiler');
             // Keep both a snapshot and the passed object: credentials must be removed
             // from the latter as soon as the one-off child completes.
             commands.push({ command, args, options, environment: { ...options.env } });
             return typeof result === 'function' ? result(commands.length) : result;
         },
     };
+}
+function assertCompiledSetup(command, relativePath) {
+    assert.equal(command.args.length, 1, 'compiled setup steps execute one JavaScript entrypoint');
+    const normalized = command.args[0].replaceAll('\\', '/');
+    assert.ok(normalized.endsWith('/dist/setup/' + relativePath), 'setup must run the precompiled build artifact');
 }
 function assertNoArgumentSecrets(commands) {
     const argumentsText = JSON.stringify(commands.map(({ command, args }) => ({ command, args })));
@@ -42,7 +50,7 @@ function assertNoArgumentSecrets(commands) {
     initialize({ environment, run: calls.run });
     assert.equal(calls.commands.length, 2);
     assert.deepEqual(calls.commands[0].args.slice(1), ['migrate', 'deploy']);
-    assert.match(calls.commands[1].args[1], /prisma[/\\]seed\.ts$/);
+    assertCompiledSetup(calls.commands[1], 'prisma/seed.js');
     assert.equal(calls.commands[0].environment.NODE_ENV, 'production');
 }
 for (const enabled of [undefined, 'false']) {
@@ -62,8 +70,8 @@ for (const enabled of [undefined, 'false']) {
     initialize({ environment, run: calls.run });
     assert.equal(calls.commands.length, 3);
     assert.deepEqual(calls.commands[0].args.slice(1), ['migrate', 'deploy']);
-    assert.match(calls.commands[1].args[1], /prisma[/\\]seed\.ts$/);
-    assert.match(calls.commands[2].args[1], /scripts[/\\]initialize-admin\.ts$/);
+    assertCompiledSetup(calls.commands[1], 'prisma/seed.js');
+    assertCompiledSetup(calls.commands[2], 'scripts/initialize-admin.js');
     calls.commands.slice(0, 2).forEach(({ environment: env }) => assertScrubbed(env));
     const helperEnvironment = calls.commands[2].environment;
     assert.equal(helperEnvironment.INITIAL_ADMIN_ENABLED, 'true');
@@ -92,7 +100,7 @@ for (const overrides of [
         assert.ok(!error.message.includes(email));
         return true;
     }, 'invalid startup opt-in/credentials must fail closed');
-    assert.ok(!calls.commands.some(({ args }) => /initialize-admin\.ts$/.test(args[1] || '')));
+    assert.ok(!calls.commands.some(({ args }) => args.some(arg => /initialize-admin\.(?:ts|js)$/.test(arg))));
     assertScrubbed(environment);
 }
 const retryId = '7e6321c9-32a3-4da3-9d37-ad038ba2fbea';
@@ -104,8 +112,8 @@ for (const enabled of [undefined, 'false']) {
     initialize({ environment, run: calls.run });
     assert.equal(calls.commands.length, 3, 'content-only retry runs after migrations and seed');
     assert.deepEqual(calls.commands[0].args.slice(1), ['migrate', 'deploy']);
-    assert.match(calls.commands[1].args[1], /prisma[/\\]seed\.ts$/);
-    assert.match(calls.commands[2].args[1], /scripts[/\\]initialize-admin\.ts$/);
+    assertCompiledSetup(calls.commands[1], 'prisma/seed.js');
+    assertCompiledSetup(calls.commands[2], 'scripts/initialize-admin.js');
     calls.commands.slice(0, 2).forEach(({ environment: env }) => assertScrubbed(env));
     const helperEnvironment = calls.commands[2].environment;
     assert.equal(helperEnvironment.INITIAL_ADMIN_ENABLED, 'false');
@@ -169,6 +177,8 @@ for (const failureAt of [1, 2, 3]) {
             return child;
         } }), child);
         assert.equal(launches.length, 1);
+        assert.equal(launches[0].command, process.execPath);
+        assert.equal(launches[0].args.length, 1, 'API also starts as plain compiled JavaScript');
         assert.match(launches[0].args[0], /dist[/\\]main\.js$/);
         assertScrubbed(launches[0].environment);
         assertScrubbed(environment);
@@ -186,4 +196,4 @@ assert.equal(result.BOOTSTRAP_ADMIN_VERIFIED, 'true');
 assert.equal(result.BOOTSTRAP_IMPORT_CATALOG, 'true');
 assert.ok(!('BOOTSTRAP_ADMIN_PASSWORD' in original));
 assert.equal(result.JWT_SECRET, original.JWT_SECRET);
-console.log('PASS production startup ordering, initial administrator opt-in, secret isolation and failure handling');
+console.log('PASS compiled production startup without runtime TypeScript, ordering, initial administrator opt-in, secret isolation and failure handling');

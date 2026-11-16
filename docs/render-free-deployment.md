@@ -16,7 +16,7 @@ Kết nối repository `thaivikhang2-byte/ST-ROBOT`, nhánh `main`:
 | Instance Type | Free |
 | Health Check Path, nếu có | `/api/system/health/ready` |
 
-Không đặt `APP_PORT`: ứng dụng nhận `PORT` do Render cấp. Giữ development dependencies trong build vì migration, seed và tạo admin cần Prisma CLI/ts-node.
+Không đặt `APP_PORT`: ứng dụng nhận `PORT` do Render cấp. Giữ development dependencies trong build vì compiler và Prisma CLI cần chúng. Build tạo sẵn JavaScript cho API, seed và khởi tạo admin; startup chạy JavaScript, không nạp TypeScript compiler vào RAM của dịch vụ Free.
 
 ## 2. Environment Variables
 
@@ -104,5 +104,6 @@ Vault database lưu cấu hình provider và khóa **đã mã hóa**, nên redep
 - AI provider tính quota/phí riêng; Render Free không cấp quyền gọi model miễn phí vô hạn.
 - Nếu deploy lỗi, gửi phần log quanh lỗi và tên biến còn thiếu; che URL kết nối, token, mật khẩu và khóa. Không xóa database để thử sửa lỗi.
 - `503` ở readiness: kiểm tra PostgreSQL/Key Value cùng vùng, trạng thái Available và Internal URL. Lỗi CORS: kiểm tra đúng origin HTTPS, không thêm đường dẫn `/ST-ROBOT` vào `CORS_ORIGIN`.
+- Nếu bản cũ lỗi V8/heap khi startup: dùng bản mới đã biên dịch seed/admin trong build. Giữ Build/Start Command như bảng đầu; chọn **Manual Deploy → Deploy latest commit** để build lại từ `main`. Không xóa database hoặc đổi toàn bộ Environment để sửa lỗi bộ nhớ.
 
 Khả năng chạy local được kiểm thử riêng; chỉ kết luận dịch vụ công khai hoạt động sau khi deploy, đăng nhập và kiểm tra lưu/đọc dữ liệu trên chính URL Render.

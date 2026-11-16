@@ -2,6 +2,13 @@
 
 Giữ nguyên giao diện và nội dung GitHub, bổ sung backend từ `src.rar`, `prisma.rar`, `scripts.rar`. Không nhập `.env`, tài khoản thật hoặc database cá nhân vào repository.
 
+## Sửa bộ nhớ startup Render Free — 16/11/2026
+
+- Tái hiện nạp helper admin qua `ts-node` với heap 256 MiB bị V8 hết bộ nhớ trước khi kết nối database. Nạp seed theo cách cũ dùng khoảng 394 MiB RSS.
+- `npm run build` biên dịch thêm seed/helper vào `dist/setup`; startup dùng JavaScript và giữ API ở `dist/main.js`, cùng thứ tự migration → seed → admin/catalog → API. Không thay đổi Environment hoặc nội dung database để sửa lỗi bộ nhớ.
+- Build, typecheck, 33 bộ/236 kiểm thử backend và `tests/production-start.mjs` qua. Kiểm tra Node **22.23.5** trong container giới hạn **512 MiB**, heap **128 MiB**: nạp cả hai entrypoint setup thành công, không nạp TypeScript compiler, RSS tối đa khoảng **85 MiB**. Đây là kiểm tra phần khởi tạo, không phải số đo RAM của toàn bộ dịch vụ khi có tải.
+- `tests/compiled-setup-smoke.py` qua trên PostgreSQL thật với database mới dùng một lần: áp dụng đủ 20 migration, tạo admin và 5 khóa/30 bài, lặp seed/admin giữ nguyên mật khẩu và quyền đã thu hồi, thử lại riêng danh mục. Năm lượt CLI đều giới hạn heap 128 MiB, dùng 69–111 MiB RSS trên Node 24.19.0 và không nạp compiler. Test chỉ xóa database ngẫu nhiên do nó tạo, không gọi AI; đã thêm vào workflow để chạy bằng Node 22.
+
 ## Cập nhật Render Free — 15/11/2026
 
 - Build và typecheck qua; **33 bộ / 236 kiểm thử Jest** qua. Có kiểm tra vault file/database, mã hóa, CAS đồng thời, rollback audit, URL Redis/TLS, proxy HTTPS và admin khởi tạo dùng một lần.

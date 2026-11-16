@@ -44,7 +44,7 @@ function initialize({ run = spawnSync, environment = process.env } = {}) {
     }
     const commands = [
       [require.resolve('prisma/build/index.js'), 'migrate', 'deploy'],
-      [require.resolve('ts-node/dist/bin.js'), path.join(__dirname, '..', 'prisma', 'seed.ts')],
+      [path.join(__dirname, '..', 'dist', 'setup', 'prisma', 'seed.js')],
     ];
     for (const args of commands) {
       runStep(run, args, environment,
@@ -58,7 +58,7 @@ function initialize({ run = spawnSync, environment = process.env } = {}) {
         adminEnvironment.INITIAL_ADMIN_PASSWORD = initial.INITIAL_ADMIN_PASSWORD;
       }
       runStep(run,
-        [require.resolve('ts-node/dist/bin.js'), path.join(__dirname, 'initialize-admin.ts')],
+        [path.join(__dirname, '..', 'dist', 'setup', 'scripts', 'initialize-admin.js')],
         adminEnvironment, 'Initial administrator setup failed; API was not started. Check the safe setup message above.');
     }
   } finally {

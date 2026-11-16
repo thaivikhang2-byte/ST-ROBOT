@@ -43,6 +43,18 @@ jobs:
       - name: Compile and test backend
         working-directory: backend
         run: npm run build && npm run typecheck && npm test
+      - name: Check compiled initialization under a constrained heap
+        shell: bash
+        run: |
+          strobot_fixture="$(mktemp)"
+          trap 'rm -f "$strobot_fixture"' EXIT
+          node - "$strobot_fixture" <<'NODE'
+          const fs = require('node:fs');
+          fs.writeFileSync(process.argv[2], JSON.stringify({
+            NODE_ENV: 'test', DATABASE_URL: process.env.DATABASE_URL,
+          }), { mode: 0o600 });
+          NODE
+          python3 tests/compiled-setup-smoke.py --env-file "$strobot_fixture"
       - name: Account and learning storage regression checks
         run: >-
           node tests/account-service.mjs &&
