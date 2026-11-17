@@ -74,7 +74,7 @@ with sync_playwright() as p:
                 note = json.loads(saved['values']['strobot.original.course.v3'])['arduino']['led']['note']
                 agent_calls.append({'body': body, 'savedNote': note})
                 if mode['error']:
-                    route.fulfill(status=503, content_type='application/json', headers=cors,
+                    route.fulfill(status=mode.get('httpStatus', 503), content_type='application/json', headers=cors,
                         body=json.dumps({'success': False, 'message': 'Fixture provider not configured',
                             **({'error': {'code': mode['backendCode']}} if mode.get('backendCode') else {})}))
                     return
@@ -126,11 +126,15 @@ with sync_playwright() as p:
     expect(page.locator('#tutorStatus')).to_contain_text('Trợ lý tài khoản chưa sẵn sàng')
     require(not vision_calls, 'An account agent error silently fell back to guest chat')
     expect(page.locator('#tutorQuestion')).to_have_value('Còn bước tiếp theo?')
-    for backend_code, guidance, client_code in [
-        ('FEATURE_DISABLED', 'Agent tài khoản đang tắt', 'AI_UNAVAILABLE'),
-        ('AI_MODEL_UNAVAILABLE', 'chưa có mô hình khả dụng', 'AI_MODEL'),
+    for backend_code, guidance, client_code, http_status in [
+        ('FEATURE_DISABLED', 'Agent tài khoản đang tắt', 'AI_UNAVAILABLE', 503),
+        ('AI_MODEL_UNAVAILABLE', 'chưa có mô hình khả dụng', 'AI_MODEL', 503),
+        ('AI_REQUEST_LIMIT_EXCEEDED', 'vượt giới hạn đã đăng ký', 'AI_REQUEST', 400),
+        ('AI_CAPABILITY_UNSUPPORTED', 'kiểm tra đúng ID model', 'AI_MODEL', 400),
+        ('VALIDATION_ERROR', 'Máy chủ từ chối yêu cầu AI', 'AI_REQUEST', 400),
     ]:
         mode['backendCode'] = backend_code
+        mode['httpStatus'] = http_status
         page.locator('#tutorSend').click()
         expect(page.locator('#tutorStatus')).to_contain_text(guidance)
         report = json.loads(page.locator('#tutorErrorDetails pre').text_content())
@@ -141,6 +145,7 @@ with sync_playwright() as p:
     require(not vision_calls, 'A configuration failure fell back to guest chat')
     mode['error'] = False
     mode.pop('backendCode', None)
+    mode.pop('httpStatus', None)
 
     image = page.evaluate('''() => {const c=document.createElement('canvas');c.width=80;c.height=60;
       const x=c.getContext('2d');x.fillStyle='#008080';x.fillRect(0,0,80,60);return c.toDataURL('image/png');}''')

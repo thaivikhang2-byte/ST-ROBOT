@@ -60,6 +60,32 @@ chế độ database; khôi phục database bằng bản sao lưu PostgreSQL và
 Các khóa `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` trong `.env` riêng lẻ không tự động
 thiết lập vault của backend này. AI cũ có cấu hình nhà cung cấp riêng.
 
+## ID mô hình và giới hạn của tutor
+
+Ô API key nhận khóa do nhà cung cấp AI cấp; ô ID mô hình nhận đúng tên model từ
+nhà cung cấp hoặc từ nút Tra ID mô hình. Không dùng email/mật khẩu quản trị hoặc
+các khóa JWT/master key của server vào hai ô này. Form chặn ID model trùng email
+quản trị hiện tại và hạn chế tự điền mật khẩu đăng nhập vào ô key.
+
+Giới hạn cũ 6.000 đầu vào / 2.048 đầu ra / 8.192 ngữ cảnh quá thấp cho yêu cầu
+tutor: gateway dự trù bảo thủ bằng byte UTF-8 cộng framing, nên có thể từ chối
+trước khi gọi nhà cung cấp. Đã tái hiện bằng ngữ cảnh thật và câu hỏi ngắn.
+
+Form hiện cho sửa ba giới hạn. Bộ gợi ý **32.768 / 2.048 / 65.536** dành cho model
+thực sự hỗ trợ cửa sổ ít nhất 65.536 token; người quản trị phải kiểm tra khả năng
+model và chỉnh giá trị phù hợp trước khi lưu. Đây là trần cấu hình, không thay đổi
+khả năng thật của model hoặc hạn mức nhà cung cấp. Input + output phải nằm trong
+context; model dùng tools cần đầu ra ít nhất 1.200. Không tự tăng dữ liệu model đã
+lưu trong database. Sau khi cập nhật website, nhập đúng provider/model và bấm
+**Lưu kết nối / mô hình** để cập nhật bản ghi hiện có, giữ API key trống nếu khóa
+đã lưu là đúng. Chỉ bật agent sau khi cấu hình hợp lệ.
+
+`AI_REQUEST_LIMIT_EXCEEDED` phân biệt lỗi trần request với lỗi provider; giới hạn
+gateway và quota vẫn được áp dụng. Kiểm thử dùng lớp backend thật xác nhận cả
+30 bài với snapshot rỗng và có ghi chép đều qua admission ở bộ gợi ý, trong khi
+cấu hình 6.000 và các giới hạn nhỏ vẫn bị từ chối trước khi lấy credential/quota.
+Không gọi AI trả phí trong kiểm thử này.
+
 ## Phân biệt lỗi tutor trong trang tự học
 
 Chat chữ khi đã đăng nhập dùng `/api/v1/ai/agent/chat`; chat khách và câu hỏi có

@@ -8,6 +8,12 @@ export const AI_SETUP_PROVIDERS = Object.freeze({
     openrouter: { label: 'OpenRouter', type: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1' },
     anthropic: { label: 'Anthropic', type: 'anthropic', baseUrl: 'https://api.anthropic.com' },
 });
+export const AI_SETUP_DEFAULT_LIMITS = Object.freeze({ maxInputTokens: 32768, maxOutputTokens: 2048, contextTokens: 65536 });
+const MODEL_LIMIT_FIELDS = Object.freeze([
+    ['maxInputTokens', 'Giới hạn đầu vào', 1, 2000000],
+    ['maxOutputTokens', 'Giới hạn đầu ra', 1, 16384],
+    ['contextTokens', 'Cửa sổ ngữ cảnh', 2, 2000000],
+]);
 // The initial registry grants read-only learning/management tools and opt-in
 // memory proposals. Sensitive management actions stay outside this setup.
 export const AI_SETUP_TOOLS = Object.freeze([
@@ -29,7 +35,7 @@ function setupError(code, status = 400) {
     return Object.assign(new Error(code), { code, status });
 }
 
-export function validateAiConnection(value) {
+export function validateAiConnection(value, actorEmail = '') {
     const preset = AI_SETUP_PROVIDERS[value.providerId];
     if (!preset) throw setupError('AI_SETUP_PROVIDER');
     let url;
@@ -38,8 +44,28 @@ export function validateAiConnection(value) {
         || (url.port && url.port !== '443')) throw setupError('AI_SETUP_URL');
     const modelId = String(value.modelId || '').trim();
     if (modelId && !/^[a-zA-Z0-9@_.:/-]{1,200}$/.test(modelId)) throw setupError('AI_SETUP_MODEL');
+    if (modelId && actorEmail && modelId.toLowerCase() === String(actorEmail).trim().toLowerCase())
+        throw setupError('AI_SETUP_MODEL_EMAIL');
     if (value.apiKey && (!/^\S{8,4096}$/.test(value.apiKey))) throw setupError('AI_SETUP_KEY');
-    return { providerId: value.providerId, type: preset.type, baseUrl: url.href.replace(/\/$/, ''), modelId };
+    const limits = {};
+    for (const [name, , minimum, maximum] of MODEL_LIMIT_FIELDS) {
+        const raw = value[name] === undefined ? AI_SETUP_DEFAULT_LIMITS[name] : value[name];
+        const limit = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+$/.test(raw.trim()) ? Number(raw) : NaN;
+        if (!Number.isSafeInteger(limit) || limit < minimum || limit > maximum)
+            throw setupError('AI_SETUP_LIMITS');
+        limits[name] = limit;
+    }
+    if (limits.maxInputTokens + limits.maxOutputTokens > limits.contextTokens)
+        throw setupError('AI_SETUP_LIMITS');
+    if (modelId && limits.maxOutputTokens < 1200) throw setupError('AI_SETUP_AGENT_OUTPUT');
+    return { providerId: value.providerId, type: preset.type, baseUrl: url.href.replace(/\/$/, ''), modelId, ...limits };
+}
+
+export function aiModelLimitNotice(model) {
+    const input = Number(model?.max_input_tokens), output = Number(model?.max_output_tokens), context = Number(model?.context_tokens);
+    if (![input, output, context].every(Number.isFinite)) return '';
+    if (input >= AI_SETUP_DEFAULT_LIMITS.maxInputTokens && output >= 1200 && context >= AI_SETUP_DEFAULT_LIMITS.contextTokens) return '';
+    return `Mô hình ${String(model.model_id || '')} đang lưu giới hạn đầu vào ${input}, đầu ra ${output}, ngữ cảnh ${context}. Giới hạn này có thể thiếu chỗ cho bài học và công cụ của tutor. Kiểm tra giới hạn thật của model, nhập các mức phù hợp vào form rồi bấm Lưu kết nối / mô hình; hệ thống không tự tăng giới hạn đã lưu.`;
 }
 
 export function aiSetupErrorMessage(error) {
@@ -48,6 +74,9 @@ export function aiSetupErrorMessage(error) {
     if (error?.code === 'AI_SETUP_URL') return 'Địa chỉ nhà cung cấp cần HTTPS, không chứa mật khẩu, tham số hoặc cổng riêng.';
     if (error?.code === 'AI_SETUP_PROVIDER') return 'Chọn một nhà cung cấp được hỗ trợ.';
     if (error?.code === 'AI_SETUP_MODEL') return 'Mã mô hình không hợp lệ. Dùng đúng ID từ nhà cung cấp.';
+    if (error?.code === 'AI_SETUP_MODEL_EMAIL') return 'Ô ID mô hình đang là email đăng nhập của bạn. Hãy dùng đúng ID model do nhà cung cấp cấp hoặc chọn từ Tra ID mô hình; không dùng tài khoản email.';
+    if (error?.code === 'AI_SETUP_LIMITS') return 'Giới hạn cần là số nguyên: đầu vào 1–2.000.000, đầu ra 1–16.384, ngữ cảnh 2–2.000.000. Tổng đầu vào và đầu ra không được vượt cửa sổ ngữ cảnh; dùng mức phù hợp model thật.';
+    if (error?.code === 'AI_SETUP_AGENT_OUTPUT') return 'Model dùng công cụ của agent cần giới hạn đầu ra ít nhất 1.200 token. Kiểm tra model có hỗ trợ mức này rồi sửa giới hạn trước khi lưu.';
     if (error?.code === 'AI_SETUP_KEY') return 'API key cần 8–4096 ký tự và không có khoảng trắng.';
     if (error?.code === 'AI_SETUP_CATALOG') return 'Backend chưa có đủ công cụ đọc dữ liệu học tập và lab. Cập nhật backend trước khi đăng ký mô hình cho agent.';
     if (error?.status === 409) return 'Cấu hình đã được sửa ở nơi khác. Tải lại trạng thái rồi thực hiện lại thao tác; các bước đã lưu vẫn được giữ.';
@@ -90,7 +119,7 @@ export class AiSetupClient {
         let apiKey = input.apiKey || '';
         input.apiKey = '';
         try {
-            const value = validateAiConnection({ ...input, apiKey });
+            const value = validateAiConnection({ ...input, apiKey }, this.session.user?.email);
             const { request, requestAt } = this.scope();
             let vault = await request('/vault', { signal });
             const previous = vault.providers.find(provider => provider.id === value.providerId);
@@ -137,7 +166,7 @@ export class AiSetupClient {
                 const body = { providerId: value.providerId, modelId: value.modelId,
                     enabled: true, isDefault: input.isDefault !== false, premium: false,
                     capabilities: caps.filter(capability => capability !== 'model-list'), allowedTools,
-                    maxInputTokens: 6000, maxOutputTokens: 2048, contextTokens: 8192 };
+                    maxInputTokens: value.maxInputTokens, maxOutputTokens: value.maxOutputTokens, contextTokens: value.contextTokens };
                 await request(existing ? `/models/${encodeURIComponent(existing.id)}` : '/models', {
                     method: existing ? 'PATCH' : 'POST', signal, body,
                 });
@@ -181,7 +210,7 @@ export function attachAiAdminSetup(container, session = accountService) {
             'Lưu kết nối nhà cung cấp, chọn mô hình hỗ trợ gọi công cụ, rồi chủ động bật agent. Khóa chỉ gửi tới backend HTTPS để mã hóa; không lưu trong trình duyệt.'));
         const status = node('p', 'Đang đọc cấu hình trên server…', 'ai-admin-status');
         status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
-        const summary = node('div'), form = node('form'), fields = node('div', undefined, 'ai-admin-fields');
+        const summary = node('div'), limitWarnings = node('div'), form = node('form'), fields = node('div', undefined, 'ai-admin-fields');
         form.dataset.aiSetupForm = ''; form.method = 'post'; form.autocomplete = 'off';
         const field = (labelText, input) => {
             const wrap = node('div', undefined, 'field'), label = node('label', labelText, 'label');
@@ -192,25 +221,44 @@ export function attachAiAdminSetup(container, session = accountService) {
         field('Nhà cung cấp', provider);
         const baseUrl = node('input', undefined, 'input'); baseUrl.name = 'baseUrl'; baseUrl.type = 'url'; baseUrl.required = true;
         field('Địa chỉ API được server cho phép', baseUrl);
-        const key = node('input', undefined, 'input'); key.name = 'apiKey'; key.type = 'password'; key.autocomplete = 'off'; key.maxLength = 4096;
+        const key = node('input', undefined, 'input'); key.name = 'apiKey'; key.type = 'password'; key.autocomplete = 'new-password'; key.maxLength = 4096;
+        key.placeholder = 'API key từ nhà cung cấp AI; để trống để giữ khóa đã lưu';
         key.setAttribute('data-lpignore', 'true'); field('Thêm API key — để trống để giữ khóa đã lưu', key);
         const model = node('input', undefined, 'input'); model.name = 'modelId'; model.maxLength = 200;
+        model.autocomplete = 'off'; model.spellcheck = false;
+        model.placeholder = 'ID model từ nhà cung cấp, không phải email đăng nhập';
         model.setAttribute('list', `${prefix}-models`); field('ID mô hình — có thể bổ sung sau khi lưu kết nối', model);
+        const limitInputs = {};
+        for (const [name, label, minimum, maximum] of MODEL_LIMIT_FIELDS) {
+            const input = node('input', undefined, 'input'); input.name = name; input.type = 'number';
+            input.min = String(minimum); input.max = String(maximum); input.step = '1'; input.required = true;
+            input.value = String(AI_SETUP_DEFAULT_LIMITS[name]); limitInputs[name] = input;
+            field(label + ' (token)', input);
+        }
+        const limitsHint = node('p',
+            'Bộ gợi ý 32.768 / 2.048 / 65.536 chỉ dùng cho model có cửa sổ ngữ cảnh ít nhất 65.536 token; agent cần đầu ra ít nhất 1.200 token. Kiểm tra tài liệu model và sửa các ô theo giới hạn thật trước khi lưu. Các ô này chưa thay giới hạn trên server cho đến khi bạn bấm Lưu.', 'field-hint');
         const suggestions = node('datalist'); suggestions.id = `${prefix}-models`;
         const defaultLabel = node('label', undefined, 'check'), defaultModel = node('input'); defaultModel.type = 'checkbox'; defaultModel.checked = true;
         defaultLabel.append(defaultModel, node('span', 'Dùng mô hình này làm mặc định cho agent.'));
         const consentLabel = node('label', undefined, 'check'), consent = node('input'); consent.type = 'checkbox'; consent.required = true;
-        consentLabel.append(consent, node('span', 'Tôi đã kiểm tra mô hình hỗ trợ gọi công cụ và đồng ý lưu cấu hình này.'));
+        consentLabel.append(consent, node('span', 'Tôi đã kiểm tra mô hình hỗ trợ gọi công cụ, các giới hạn token phù hợp model thật và đồng ý lưu các giá trị đang nhập.'));
         const save = node('button', 'Lưu kết nối / mô hình', 'btn btn--primary'); save.type = 'submit';
         const discover = node('button', 'Tra ID mô hình từ nhà cung cấp', 'btn'); discover.type = 'button';
         const refresh = node('button', 'Tải lại trạng thái', 'btn'); refresh.type = 'button';
         const toggle = node('button', 'Bật agent', 'btn'); toggle.type = 'button';
         const actions = node('div', undefined, 'ai-admin-actions'); actions.append(save, discover, refresh, toggle);
-        form.append(fields, suggestions, defaultLabel, consentLabel, actions);
-        container.append(summary, form, status, node('p',
+        form.append(fields, limitsHint, suggestions, defaultLabel, consentLabel, actions);
+        container.append(summary, limitWarnings, form, status, node('p',
             'Tra model chỉ gọi API metadata khi bạn bấm. Công cụ này không tự gửi câu hỏi thử hoặc kiểm tra khoản phí; nhà cung cấp có hạn mức riêng.', 'field-hint'));
         let snapshot = null, busy = false, endpointPristine = true;
         const selected = () => snapshot?.vault?.providers?.find(item => item.id === provider.value);
+        const renderLimitWarnings = () => {
+            limitWarnings.replaceChildren();
+            for (const item of (snapshot?.models || []).filter(item => item.provider_id === provider.value)) {
+                const notice = aiModelLimitNotice(item);
+                if (notice) limitWarnings.append(node('p', notice, 'field-hint'));
+            }
+        };
         const controls = () => {
             for (const input of form.querySelectorAll('input,select,button')) input.disabled = busy || !current();
             save.disabled ||= !snapshot?.vault;
@@ -222,8 +270,10 @@ export function attachAiAdminSetup(container, session = accountService) {
         };
         const changeProvider = () => {
             key.value = ''; model.value = ''; consent.checked = false; suggestions.replaceChildren();
+            for (const [name, input] of Object.entries(limitInputs)) input.value = String(AI_SETUP_DEFAULT_LIMITS[name]);
             endpointPristine = true;
             baseUrl.value = selected()?.endpoints?.[0]?.baseUrl || AI_SETUP_PROVIDERS[provider.value].baseUrl;
+            renderLimitWarnings();
             controls();
         };
         const load = async (keepStatus = false) => {
@@ -235,6 +285,7 @@ export function attachAiAdminSetup(container, session = accountService) {
             const stored = selected();
             if (endpointPristine) baseUrl.value = stored?.endpoints?.[0]?.baseUrl || AI_SETUP_PROVIDERS[provider.value].baseUrl;
             if (stored) summary.append(node('p', `Kết nối đang chọn: ${stored.id}; ${stored.credentials.filter(item => item.enabled).length} khóa đang bật (chỉ metadata).`));
+            renderLimitWarnings();
             if (result.quota) summary.append(node('p', `Hạn mức mặc định: ${result.quota.daily_requests ?? result.quota.dailyRequests ?? '—'} lượt/ngày; ${result.quota.daily_tokens ?? result.quota.dailyTokens ?? '—'} token/ngày.`));
             if (!keepStatus) status.textContent = result.errors.length ? aiSetupErrorMessage(result.errors[0]) : 'Đã đọc cấu hình. Chưa gọi mô hình AI.';
             controls();
@@ -263,7 +314,8 @@ export function attachAiAdminSetup(container, session = accountService) {
             event.preventDefault();
             if (!consent.checked) return;
             const input = { providerId: provider.value, baseUrl: baseUrl.value, modelId: model.value,
-                apiKey: key.value, isDefault: defaultModel.checked };
+                apiKey: key.value, isDefault: defaultModel.checked,
+                ...Object.fromEntries(Object.entries(limitInputs).map(([name, input]) => [name, input.value])) };
             key.value = '';
             void act(async () => {
                 const result = await client.saveConnection(input, { signal, onStep: text => { if (current()) status.textContent = text; } });

@@ -155,6 +155,29 @@ for (const path of ['/api/tutor', '/api/home-chat']) {
     return true;
   });
 }
+for (const path of ['/api/tutor', '/api/home-chat']) {
+  for (const [backendCode, code, guidance] of [
+    ['AI_REQUEST_LIMIT_EXCEEDED', 'AI_REQUEST', /giới hạn.*mô hình|giới hạn.*đăng ký|giới hạn.*model/i],
+    ['AI_CAPABILITY_UNSUPPORTED', 'AI_MODEL', /ID model|mô hình|model/i],
+    ['VALIDATION_ERROR', 'AI_REQUEST', /từ chối yêu cầu/i],
+  ]) {
+    let calls = 0;
+    const failing = createAiClient({ account: { ...account, async request() {
+      calls++;
+      throw Object.assign(new Error(forbidden), { status: 400, code: backendCode });
+    } }, fetchImpl: async () => { throw new Error('Rejected account requests cannot use a fallback'); } });
+    await assert.rejects(failing.requestReply(path, path === '/api/tutor' ? payload : { question: 'Xin chào' }), error => {
+      assert.equal(error.backendCode, backendCode);
+      assert.equal(error.code, code);
+      assert.equal(error.httpStatus, 400);
+      assert.equal(error.retryable, false);
+      assert.match(error.message, guidance);
+      assert.ok(!error.message.includes(forbidden));
+      return true;
+    });
+    assert.equal(calls, 1, 'A rejected request must not be sent again');
+  }
+}
 for (const backendCode of [forbidden, 'AI_PROVIDER_UNAVAILABLE ' + forbidden, '__proto__', 503, { code: 'AI_PROVIDER_UNAVAILABLE' }]) {
   const error = new AiRequestError('Safe message', { backendCode });
   assert.equal(error.backendCode, undefined, 'Only declared account error codes can appear in diagnostics');

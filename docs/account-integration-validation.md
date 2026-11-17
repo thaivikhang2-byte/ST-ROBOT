@@ -2,6 +2,12 @@
 
 Giữ nguyên giao diện và nội dung GitHub, bổ sung backend từ `src.rar`, `prisma.rar`, `scripts.rar`. Không nhập `.env`, tài khoản thật hoặc database cá nhân vào repository.
 
+## Cấu hình model và HTTP 400 của tutor — 17/11/2026
+
+- Tái hiện giới hạn model do form cũ tạo (6.000/2.048/8.192) khiến yêu cầu tutor bình thường bị từ chối trước provider. Form cho nhập giới hạn riêng, có bộ gợi ý cần đối chiếu khả năng model thật và yêu cầu người quản trị lưu rõ ràng; không tự sửa bản ghi cũ.
+- Chặn ID model trùng email quản trị, hướng dẫn key/model đúng vai trò, thêm mã `AI_REQUEST_LIMIT_EXCEEDED` và thông báo 400 riêng. Không gửi lại câu hỏi, không bỏ qua trần model/quota và không đổi sang chat khách khi lỗi.
+- Build/typecheck và **34 bộ/244 kiểm thử backend** qua. Tám kiểm thử admission dùng prompt, tools, ngữ cảnh bài thật cho đủ 30 bài với snapshot rỗng/có ghi chép; model được đăng ký đủ giới hạn mới qua. Nhà cung cấp được stub, không gọi model thật hay dùng key người vận hành.
+
 ## Sửa bộ nhớ startup Render Free — 16/11/2026
 
 - Tái hiện nạp helper admin qua `ts-node` với heap 256 MiB bị V8 hết bộ nhớ trước khi kết nối database. Nạp seed theo cách cũ dùng khoảng 394 MiB RSS.

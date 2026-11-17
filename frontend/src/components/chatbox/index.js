@@ -1,6 +1,6 @@
 import { getChatboxTemplate } from './template.js';
 import { $, $$ } from '../../utils/dom.js';
-import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES, AI_ACCOUNT_CODES } from '../../services/AiService.js?v=agent-diagnostics-v2';
+import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES, AI_ACCOUNT_CODES } from '../../services/AiService.js?v=agent-limits-v3';
 import { renderAiMessage } from '../../services/AiMessageRenderer.js?v=ai-render-v14';
 import { accountService } from '../../services/AccountService.js';
 import { learnerSync } from '../../services/LearnerSyncService.js';

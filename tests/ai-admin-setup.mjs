@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { AiSetupClient, canConfigureAi, validateAiConnection, aiSetupErrorMessage,
-    AI_SETUP_TOOLS } from '../frontend/src/modules/account/AiAdminSetup.js';
+    aiModelLimitNotice, AI_SETUP_DEFAULT_LIMITS, AI_SETUP_TOOLS } from '../frontend/src/modules/account/AiAdminSetup.js';
 
-const admin = () => ({ id: 'operator', isActive: true, isEmailVerified: true,
+const admin = () => ({ id: 'operator', email: 'operator@school.local', isActive: true, isEmailVerified: true,
     permissions: ['ai:manage'], roles: [{ group: 'MANAGER', scopeType: 'SYSTEM' }] });
 const key = 'fixture-provider-secret-never-real';
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -11,7 +11,8 @@ function fixture({ configured = false, model = false, onRequest } = {}) {
         models: [], endpoints: [{ id: 'official', baseUrl: 'https://generativelanguage.googleapis.com', enabled: true, capabilities: ['chat', 'tools'] }],
         limits: { requestsPerMinute: 10, tokensPerDay: 100000, maxConcurrent: 2 },
         credentials: [{ id: 'saved', enabled: true }] }] : [] };
-    const models = model ? [{ id: 'model-record', provider_id: 'gemini', model_id: 'fixture-model' }] : [];
+    const models = model ? [{ id: 'model-record', provider_id: 'gemini', model_id: 'fixture-model',
+        max_input_tokens: 6000, max_output_tokens: 2048, context_tokens: 8192 }] : [];
     const session = { user: admin(), sessionVersion: 1, sessionOffline: false,
         async request(path, options = {}) {
             calls.push({ path, method: options.method || 'GET', ...(options.body ? { body: clone(options.body) } : {}) });
@@ -51,6 +52,14 @@ assert(AI_SETUP_TOOLS.includes('learning_get_lab_platforms'));
 assert(!AI_SETUP_TOOLS.some(name => /publish|update|create_admin/.test(name)));
 for (const bad of ['http://provider.test', 'https://key:secret@provider.test', 'https://provider.test?key=x', 'https://provider.test:8443'])
     assert.throws(() => validateAiConnection({ ...config(), baseUrl: bad }));
+{
+    const value = validateAiConnection(config());
+    assert.deepEqual(Object.fromEntries(Object.keys(AI_SETUP_DEFAULT_LIMITS).map(name => [name, value[name]])),
+        { maxInputTokens: 32768, maxOutputTokens: 2048, contextTokens: 65536 });
+    assert(value.maxInputTokens + value.maxOutputTokens <= value.contextTokens);
+    assert.equal(validateAiConnection({ ...config(), modelId: 'org/model@2026-11' }, admin().email).modelId, 'org/model@2026-11',
+        'Legitimate provider IDs can contain @ without being the operator email');
+}
 
 {
     const { client, session, calls } = fixture({ configured: true });
@@ -73,6 +82,9 @@ for (const bad of ['http://provider.test', 'https://key:secret@provider.test', '
     assert(!calls.some(item => item.path.includes('/settings') || item.path.includes('/chat')));
     assert.equal(calls[4].body.capabilities.includes('reasoning_context'), true);
     assert.deepEqual(calls[4].body.allowedTools, AI_SETUP_TOOLS);
+    assert.equal(calls[4].body.maxInputTokens, 32768);
+    assert.equal(calls[4].body.maxOutputTokens, 2048);
+    assert.equal(calls[4].body.contextTokens, 65536);
 }
 {
     const { client, calls } = fixture({ configured: true, model: true });
@@ -80,6 +92,64 @@ for (const bad of ['http://provider.test', 'https://key:secret@provider.test', '
     assert(!calls.some(item => item.path.endsWith('/credentials')), 'Empty key retains saved credentials');
     assert.equal(calls.at(-1).method, 'PATCH');
     assert.equal(calls.at(-1).path, '/v1/admin/ai/models/model-record');
+    assert.equal(calls.at(-1).body.maxInputTokens, 32768,
+        'Only an explicit Save replaces the older stored model limit');
+}
+{
+    const { client, calls } = fixture({ configured: true, model: true });
+    const metadata = await client.load();
+    assert(calls.every(item => item.method === 'GET'), 'Reading a low limit must never increase it');
+    const notice = aiModelLimitNotice(metadata.models[0]);
+    assert.match(notice, /6000/);
+    assert.match(notice, /8192/);
+    assert.match(notice, /Lưu kết nối/);
+    assert.match(notice, /không tự tăng/);
+    assert.equal(aiModelLimitNotice({ model_id: 'fixture-large', max_input_tokens: 32768,
+        max_output_tokens: 2048, context_tokens: 65536 }), '');
+}
+{
+    const { client, calls } = fixture({ configured: true, model: true });
+    await client.saveConnection({ ...config(''), maxInputTokens: '6000', maxOutputTokens: '1200', contextTokens: '8192' });
+    const request = calls.at(-1);
+    assert.equal(request.method, 'PATCH');
+    assert.deepEqual([request.body.maxInputTokens, request.body.maxOutputTokens, request.body.contextTokens],
+        [6000, 1200, 8192], 'Operator-selected smaller valid limits must not be silently increased');
+}
+for (const invalid of [
+    { maxInputTokens: 0 }, { maxInputTokens: 2000001 }, { maxInputTokens: 1.5 },
+    { maxInputTokens: '' }, { maxInputTokens: null }, { maxInputTokens: true },
+    { maxOutputTokens: 0 }, { maxOutputTokens: 16385 }, { maxOutputTokens: 'not-a-number' },
+    { contextTokens: 1 }, { contextTokens: 2000001 },
+    { maxInputTokens: 7000, maxOutputTokens: 2048, contextTokens: 8192 },
+]) {
+    const { client, calls } = fixture();
+    const input = { ...config(), ...invalid };
+    await assert.rejects(client.saveConnection(input), error => error.code === 'AI_SETUP_LIMITS');
+    assert.equal(calls.length, 0, 'Invalid limits must fail before provider or credential operations');
+    assert.equal(input.apiKey, '');
+}
+{
+    const { client, calls } = fixture();
+    const input = { ...config(), maxOutputTokens: 1199 };
+    await assert.rejects(client.saveConnection(input), error => error.code === 'AI_SETUP_AGENT_OUTPUT');
+    assert.equal(calls.length, 0, 'A tool model below the agent output minimum cannot alter provider metadata');
+    assert.equal(input.apiKey, '');
+    assert.match(aiSetupErrorMessage({ code: 'AI_SETUP_AGENT_OUTPUT' }), /1.200/);
+}
+{
+    const { client, calls } = fixture();
+    await client.saveConnection({ ...config(), modelId: '', maxInputTokens: 1, maxOutputTokens: 1, contextTokens: 2 });
+    assert(!calls.some(item => item.path === '/v1/admin/ai/models'),
+        'Saving a connection without registering a model does not apply agent output policy');
+}
+{
+    const { client, calls } = fixture();
+    const input = { ...config(), modelId: ' OPERATOR@SCHOOL.LOCAL ' };
+    await assert.rejects(client.saveConnection(input), error => error.code === 'AI_SETUP_MODEL_EMAIL');
+    assert.equal(calls.length, 0, 'An autofilled operator email cannot be registered as the provider model');
+    assert.equal(input.apiKey, '');
+    assert.match(aiSetupErrorMessage({ code: 'AI_SETUP_MODEL_EMAIL' }), /email đăng nhập/);
+    assert(!aiSetupErrorMessage({ code: 'AI_SETUP_MODEL_EMAIL', message: key }).includes(key));
 }
 {
     const { client, calls } = fixture();
@@ -115,4 +185,4 @@ for (const bad of ['http://provider.test', 'https://key:secret@provider.test', '
     assert.deepEqual(calls.at(-1).body, { enabled: true });
     assert(!aiSetupErrorMessage({ status: 503, message: key }).includes(key));
 }
-console.log('PASS AI setup permissions, encrypted-key routing, CAS, model upsert, stale session guards and explicit activation');
+console.log('PASS AI setup permissions, model limit validation and explicit updates, email autofill rejection, encrypted-key routing, CAS, stale session guards and activation');

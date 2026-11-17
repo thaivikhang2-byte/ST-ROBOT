@@ -257,7 +257,11 @@ export class AiGatewayService {
       inputBound > model.max_input_tokens ||
       inputBound + output > model.context_tokens
     )
-      throw new BadRequestException('Request exceeds configured model token limits');
+      throw new AiError(
+        ErrorCode.AI_REQUEST_LIMIT_EXCEEDED,
+        400,
+        'Request exceeds configured model token limits',
+      );
     return inputBound + output;
   }
   private context(signal?: AbortSignal) {
