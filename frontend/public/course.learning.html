@@ -483,7 +483,7 @@ window.addEventListener('DOMContentLoaded',initPage);
 </script>
 
 <script type="module">
-import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../src/services/AiService.js?v=account-tutor-v1';
+import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES, AI_ACCOUNT_CODES } from '../src/services/AiService.js?v=agent-diagnostics-v2';
 import { buildTutorLearningContext } from '../src/services/TutorLearningContext.js?v=account-tutor-v1';
 import { createFloatingTutor } from '../src/modules/learning/FloatingTutor.js?v=workspace-v16';
 import { createTutorAttachments } from '../src/modules/learning/TutorAttachments.js?v=screen-region-v2';
@@ -524,6 +524,7 @@ window.addEventListener('DOMContentLoaded', () => {
       if (Number.isInteger(error[field]) && error[field] >= 100 && error[field] <= 599) report[field] = error[field];
     }
     if (AI_PROVIDER_CODES.includes(error.providerCode)) report.providerCode = error.providerCode;
+    if (AI_ACCOUNT_CODES.includes(error.backendCode)) report.backendCode = error.backendCode;
     if (Number.isInteger(error.catalogStatus) && error.catalogStatus >= 100 && error.catalogStatus <= 599) report.catalogStatus = error.catalogStatus;
     if (['ok', 'http_error', 'invalid_response', 'timeout', 'network_error'].includes(error.catalogResult)) report.catalogResult = error.catalogResult;
     if (Number.isInteger(error.candidateCount) && error.candidateCount >= 0 && error.candidateCount <= 3) report.candidateCount = error.candidateCount;

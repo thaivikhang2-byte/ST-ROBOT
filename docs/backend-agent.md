@@ -60,6 +60,22 @@ chế độ database; khôi phục database bằng bản sao lưu PostgreSQL và
 Các khóa `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` trong `.env` riêng lẻ không tự động
 thiết lập vault của backend này. AI cũ có cấu hình nhà cung cấp riêng.
 
+## Phân biệt lỗi tutor trong trang tự học
+
+Chat chữ khi đã đăng nhập dùng `/api/v1/ai/agent/chat`; chat khách và câu hỏi có
+ảnh vẫn dùng dịch vụ AI Tutor cũ. Một đường hoạt động chưa xác nhận đường còn lại
+đã có provider/model hợp lệ. Giao diện giữ `backendCode` đã được allowlist trong
+phần Chi tiết lỗi, cùng hướng dẫn riêng cho `FEATURE_DISABLED` (agent đang tắt),
+`AI_MODEL_UNAVAILABLE` (chưa có model khả dụng) và `AI_PROVIDER_UNAVAILABLE`
+(kết nối/credential chưa sẵn sàng). Không đưa thông điệp thô, khóa hoặc token vào
+bản sao chẩn đoán. Không tự chuyển câu hỏi tài khoản sang chat khách khi agent lỗi.
+
+Ngày 17/11, đã kiểm tra nạp ngữ cảnh đủ 5 khóa/30 bài từ bản backend biên dịch
+với working directory production và kiểm thử Chromium tutor/trang chủ: giữ mã
+lỗi gốc, chỉ rõ bước cấu hình, giữ câu hỏi khi lỗi và giữ đường gửi ảnh. Nguyên
+nhân 503 của dịch vụ công khai vẫn cần mã lỗi mới hoặc trạng thái quản trị thực tế;
+đây không phải xác nhận provider trên Render đã trả lời thành công.
+
 ## API thiết lập nhà cung cấp
 
 Các đường dẫn dưới đây tính từ `/api/v1/admin/ai`, yêu cầu quyền `ai:manage` và

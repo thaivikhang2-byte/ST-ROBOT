@@ -1,6 +1,6 @@
 import { getChatboxTemplate } from './template.js';
 import { $, $$ } from '../../utils/dom.js';
-import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES } from '../../services/AiService.js?v=account-tutor-v1';
+import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES, AI_ACCOUNT_CODES } from '../../services/AiService.js?v=agent-diagnostics-v2';
 import { renderAiMessage } from '../../services/AiMessageRenderer.js?v=ai-render-v14';
 import { accountService } from '../../services/AccountService.js';
 import { learnerSync } from '../../services/LearnerSyncService.js';
@@ -15,6 +15,7 @@ function appendDiagnostics(bubble, error) {
         try { report.service = new URL(error.api).origin; report.api = error.api; } catch { /* Ignore malformed diagnostics. */ }
     }
     if (DIAGNOSTIC_CODES.has(error.code)) report.code = error.code;
+    if (AI_ACCOUNT_CODES.includes(error.backendCode)) report.backendCode = error.backendCode;
     if (['startup', 'starting', 'reply', 'replying', 'provider', 'transport', 'server', 'network'].includes(error.stage)) report.stage = error.stage;
     for (const field of ['httpStatus', 'upstreamStatus']) {
         const minimum = field === 'httpStatus' ? 100 : 400;

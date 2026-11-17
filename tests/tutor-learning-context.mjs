@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildTutorLearningContext } from '../frontend/src/services/TutorLearningContext.js';
 import { tutorContextPrompt, validateTutorLearningContext } from '../ai-server/tutor-context.mjs';
-import { createAiClient, AI_SERVICE_ORIGIN } from '../frontend/src/services/AiService.js';
+import { createAiClient, AiRequestError, AI_ACCOUNT_CODES, AI_SERVICE_ORIGIN } from '../frontend/src/services/AiService.js';
 
 const courses = JSON.parse(readFileSync(new URL('../ai-server/curriculum.json', import.meta.url)));
 const readKeys = [];
@@ -99,6 +99,68 @@ for (const status of [0, 401, 403, 429, 503]) {
   assert.equal(legacyCalls, 0, 'An account failure must never silently fall back to guest chat');
 }
 
+// The same HTTP 503 can mean an operator switch, missing model, or an upstream
+// outage. Keep safe backend codes so both clients can explain the next action
+// without copying arbitrary server messages or trying another AI service.
+for (const path of ['/api/tutor', '/api/home-chat']) {
+  for (const scenario of [
+    { backendCode: 'FEATURE_DISABLED', code: 'AI_UNAVAILABLE', retryable: false, message: /bật agent/i },
+    { backendCode: 'AI_MODEL_UNAVAILABLE', code: 'AI_MODEL', retryable: false, message: /mô hình|model/i },
+    { backendCode: 'AI_PROVIDER_UNAVAILABLE', code: 'AI_UNAVAILABLE', retryable: true },
+  ]) {
+    let legacyCalls = 0;
+    const calls = [];
+    const failing = createAiClient({
+      account: { ...account, async request(api, options) {
+        calls.push({ api, options });
+        throw Object.assign(new Error('Untrusted provider detail: ' + forbidden), {
+          status: 503, code: scenario.backendCode,
+        });
+      } },
+      fetchImpl: async () => { legacyCalls++; throw new Error('Account failures cannot invoke legacy AI'); },
+    });
+    await assert.rejects(failing.requestReply(path, path === '/api/tutor' ? payload : { question: 'Tiến độ của tôi?' }), error => {
+      assert.ok(error instanceof AiRequestError);
+      assert.equal(error.code, scenario.code);
+      assert.equal(error.backendCode, scenario.backendCode);
+      assert.ok(AI_ACCOUNT_CODES.includes(error.backendCode));
+      assert.equal(error.httpStatus, 503);
+      assert.equal(error.stage, 'reply');
+      assert.equal(error.api, account.baseUrl + '/v1/ai/agent/chat');
+      assert.equal(error.retryable, scenario.retryable);
+      if (scenario.message) assert.match(error.message, scenario.message);
+      assert.ok(!error.message.includes(forbidden));
+      assert.ok(!JSON.stringify(error).includes(forbidden));
+      return true;
+    });
+    assert.equal(calls.length, 1, 'Diagnostics must not issue status checks or replay a paid chat');
+    assert.equal(calls[0].api, '/v1/ai/agent/chat');
+    assert.equal(calls[0].options.method, 'POST');
+    assert.equal(legacyCalls, 0);
+  }
+
+  const failing = createAiClient({
+    account: { ...account, async request() {
+      throw Object.assign(new Error('Untrusted backend message: ' + forbidden), {
+        status: 503, code: forbidden,
+      });
+    } },
+    fetchImpl: async () => { throw new Error('Unknown backend codes cannot trigger fallback'); },
+  });
+  await assert.rejects(failing.requestReply(path, path === '/api/tutor' ? payload : { question: 'Xin chào' }), error => {
+    assert.equal(error.code, 'AI_UNAVAILABLE');
+    assert.equal(error.backendCode, undefined);
+    assert.ok(!error.message.includes(forbidden));
+    assert.ok(!JSON.stringify(error).includes(forbidden));
+    return true;
+  });
+}
+for (const backendCode of [forbidden, 'AI_PROVIDER_UNAVAILABLE ' + forbidden, '__proto__', 503, { code: 'AI_PROVIDER_UNAVAILABLE' }]) {
+  const error = new AiRequestError('Safe message', { backendCode });
+  assert.equal(error.backendCode, undefined, 'Only declared account error codes can appear in diagnostics');
+  assert.ok(!JSON.stringify(error).includes(forbidden));
+}
+
 const visionCalls = [], visionMetadata = [];
 const vision = createAiClient({ account: {...account, async request() { throw new Error('Images must keep the vision route'); }},
   fetchImpl: async (url, options) => { visionCalls.push({url, options}); return url.endsWith('/health') ? json({ok: true}) : json({reply: 'Ảnh thấy LED.'}); } });
@@ -124,4 +186,4 @@ const hanging = createAiClient({agentTimeoutMs: 20, account: {...account, reques
 }}, fetchImpl: async () => { throw new Error('No fallback'); }});
 await assert.rejects(hanging.requestReply('/api/tutor', payload), error => error.code === 'AI_REPLY_TIMEOUT');
 assert.equal(capturedSignal.aborted, true);
-console.log('PASS trusted lab catalogs, scoped browser reports, real account agent routing, saved-source markers, vision preservation, owner isolation and no silent fallback');
+console.log('PASS trusted lab catalogs, scoped browser reports, account agent routing and safe error diagnostics, saved-source markers, vision preservation, owner isolation and no silent fallback');

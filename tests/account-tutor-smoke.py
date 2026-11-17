@@ -75,7 +75,8 @@ with sync_playwright() as p:
                 agent_calls.append({'body': body, 'savedNote': note})
                 if mode['error']:
                     route.fulfill(status=503, content_type='application/json', headers=cors,
-                        body=json.dumps({'success': False, 'message': 'Fixture provider not configured'}))
+                        body=json.dumps({'success': False, 'message': 'Fixture provider not configured',
+                            **({'error': {'code': mode['backendCode']}} if mode.get('backendCode') else {})}))
                     return
                 data = {'message': 'AVR8js hợp thử LED; Wokwi phù hợp mạch có cảm biến.', 'conversationId': conversation,
                         'contextSources': {'source': 'postgresql-account', 'savedLearning': True, 'hasSnapshot': True,
@@ -125,7 +126,21 @@ with sync_playwright() as p:
     expect(page.locator('#tutorStatus')).to_contain_text('Trợ lý tài khoản chưa sẵn sàng')
     require(not vision_calls, 'An account agent error silently fell back to guest chat')
     expect(page.locator('#tutorQuestion')).to_have_value('Còn bước tiếp theo?')
+    for backend_code, guidance, client_code in [
+        ('FEATURE_DISABLED', 'Agent tài khoản đang tắt', 'AI_UNAVAILABLE'),
+        ('AI_MODEL_UNAVAILABLE', 'chưa có mô hình khả dụng', 'AI_MODEL'),
+    ]:
+        mode['backendCode'] = backend_code
+        page.locator('#tutorSend').click()
+        expect(page.locator('#tutorStatus')).to_contain_text(guidance)
+        report = json.loads(page.locator('#tutorErrorDetails pre').text_content())
+        require(report.get('backendCode') == backend_code and report.get('code') == client_code,
+                'Tutor diagnostics dropped the backend configuration failure')
+        require('Fixture provider not configured' not in json.dumps(report), 'Raw backend message leaked into diagnostics')
+        expect(page.locator('#tutorQuestion')).to_have_value('Còn bước tiếp theo?')
+    require(not vision_calls, 'A configuration failure fell back to guest chat')
     mode['error'] = False
+    mode.pop('backendCode', None)
 
     image = page.evaluate('''() => {const c=document.createElement('canvas');c.width=80;c.height=60;
       const x=c.getContext('2d');x.fillStyle='#008080';x.fillRect(0,0,80,60);return c.toDataURL('image/png');}''')
@@ -155,6 +170,13 @@ with sync_playwright() as p:
             'Homepage chat inherited the lesson tutor conversation or scope')
     expect(page.locator('.chat-context-source')).to_contain_text('dữ liệu học tập của tài khoản')
     require(len(vision_calls) == 1, 'Homepage authenticated chat fell back to the legacy AI')
+    mode.update(error=True, backendCode='FEATURE_DISABLED')
+    page.locator('#chatInputField').fill('Kiểm tra cấu hình agent')
+    page.locator('#chatSubmitBtn').click()
+    expect(page.locator('#chatMessageContainer')).to_contain_text('Agent tài khoản đang tắt')
+    report = json.loads(page.locator('.chat-error-report').text_content())
+    require(report.get('backendCode') == 'FEATURE_DISABLED', 'Homepage diagnostics dropped the backend failure')
+    mode['error'] = False
     page.evaluate('''async () => {
         const {accountService} = await import(new URL('../src/services/AccountService.js', location.href));
         await accountService.signOut();

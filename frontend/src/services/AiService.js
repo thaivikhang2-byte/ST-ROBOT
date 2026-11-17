@@ -11,6 +11,13 @@ export const AI_PROVIDER_CODES = Object.freeze(['invalid_api_key', 'invalid_auth
     'billing_error', 'rate_limit_exceeded', 'server_error', 'service_unavailable', 'overloaded_error',
     'no_available_channel', 'channel_not_found', 'unsupported_parameter', 'invalid_request_error', 'invalid_request']);
 const providerCodes = new Set(AI_PROVIDER_CODES);
+// Only known domain codes may enter a copied report; never include raw server messages.
+export const AI_ACCOUNT_CODES = Object.freeze(['FEATURE_DISABLED', 'AI_MODEL_UNAVAILABLE',
+    'AI_PROVIDER_UNAVAILABLE', 'AI_CAPABILITY_UNSUPPORTED', 'AI_QUOTA_EXCEEDED',
+    'AI_CONCURRENCY_EXCEEDED', 'AI_UPSTREAM_RATE_LIMIT', 'AI_PAYMENT_REQUIRED',
+    'AI_CONTENT_FILTERED', 'AI_CIRCUIT_OPEN', 'AI_TIMEOUT', 'AI_CANCELLED',
+    'AI_UPSTREAM_ERROR', 'AI_GATEWAY_ERROR', 'SERVICE_UNAVAILABLE', 'INTERNAL_ERROR']);
+const accountCodes = new Set(AI_ACCOUNT_CODES);
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
 export class AiRequestError extends Error {
@@ -23,6 +30,7 @@ export class AiRequestError extends Error {
         if (Number.isInteger(details.httpStatus) && details.httpStatus >= 100 && details.httpStatus <= 599) this.httpStatus = details.httpStatus;
         if (Number.isInteger(details.upstreamStatus) && details.upstreamStatus >= 400 && details.upstreamStatus <= 599) this.upstreamStatus = details.upstreamStatus;
         if (providerCodes.has(details.providerCode)) this.providerCode = details.providerCode;
+        if (accountCodes.has(details.backendCode)) this.backendCode = details.backendCode;
         if (typeof details.requestId === 'string' && uuid.test(details.requestId)) this.requestId = details.requestId;
         if (Number.isInteger(details.catalogStatus) && details.catalogStatus >= 100 && details.catalogStatus <= 599) this.catalogStatus = details.catalogStatus;
         if (['ok', 'http_error', 'invalid_response', 'timeout', 'network_error'].includes(details.catalogResult)) this.catalogResult = details.catalogResult;
@@ -133,14 +141,21 @@ export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...ar
             if (error?.name === 'AbortError' || error instanceof AiRequestError) throw error;
             if (error?.code === 'SESSION_CHANGED' || account.user?.id !== ownerId) throw cancelled();
             const status = error?.status;
+            const backendCode = accountCodes.has(error?.code) ? error.code : undefined;
+            const disabled = status === 503 && backendCode === 'FEATURE_DISABLED';
+            const missingModel = status === 503 && backendCode === 'AI_MODEL_UNAVAILABLE';
             const message = status === 401 ? 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để trợ lý đọc đúng dữ liệu của bạn.'
                 : status === 403 ? 'Tài khoản cần được xác nhận và cấp quyền sử dụng trợ lý. Hãy kiểm tra trong trang Tài khoản hoặc liên hệ quản trị viên.'
                 : status === 429 ? 'Trợ lý tài khoản đang đạt giới hạn sử dụng. Vui lòng thử lại sau.'
+                : disabled ? 'Agent tài khoản đang tắt. Quản trị viên mở Tài khoản → Quản trị → Cấu hình AI, lưu kết nối/mô hình rồi bấm Bật agent.'
+                : missingModel ? 'Agent tài khoản chưa có mô hình khả dụng. Quản trị viên kiểm tra ID mô hình và mô hình mặc định trong Tài khoản → Quản trị → Cấu hình AI.'
+                : status === 503 && backendCode === 'AI_PROVIDER_UNAVAILABLE' ? 'Nhà cung cấp của agent tài khoản chưa sẵn sàng. Quản trị viên kiểm tra kết nối và API key trong Tài khoản → Quản trị → Cấu hình AI.'
                 : status === 503 ? 'Trợ lý tài khoản chưa sẵn sàng. Người quản lí cần kiểm tra cấu hình AI trên máy chủ.'
                 : 'Chưa kết nối được trợ lý tài khoản. Tiến độ trên thiết bị vẫn được giữ; bạn có thể thử lại.';
             throw new AiRequestError(message, {
-                code: [401, 403].includes(status) ? 'AI_AUTH' : status === 429 ? 'AI_BUSY' : !status ? 'AI_NETWORK' : 'AI_UNAVAILABLE',
-                stage: 'reply', httpStatus: status, retryable: ![400, 401, 403].includes(status), api: endpoint,
+                code: [401, 403].includes(status) ? 'AI_AUTH' : status === 429 ? 'AI_BUSY' : !status ? 'AI_NETWORK' : missingModel ? 'AI_MODEL' : 'AI_UNAVAILABLE',
+                backendCode, stage: 'reply', httpStatus: status,
+                retryable: !disabled && !missingModel && ![400, 401, 403].includes(status), api: endpoint,
             });
         }
     }
