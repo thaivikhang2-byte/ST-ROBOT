@@ -132,6 +132,7 @@ with sync_playwright() as p:
         ('AI_REQUEST_LIMIT_EXCEEDED', 'vượt giới hạn đã đăng ký', 'AI_REQUEST', 400),
         ('AI_CAPABILITY_UNSUPPORTED', 'kiểm tra đúng ID model', 'AI_MODEL', 400),
         ('VALIDATION_ERROR', 'Máy chủ từ chối yêu cầu AI', 'AI_REQUEST', 400),
+        ('AI_PROVIDER_AUTH_FAILED', 'Nhà cung cấp AI đang từ chối khóa', 'AI_AUTH', 503),
     ]:
         mode['backendCode'] = backend_code
         mode['httpStatus'] = http_status

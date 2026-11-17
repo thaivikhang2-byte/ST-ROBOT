@@ -60,6 +60,30 @@ chế độ database; khôi phục database bằng bản sao lưu PostgreSQL và
 Các khóa `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` trong `.env` riêng lẻ không tự động
 thiết lập vault của backend này. AI cũ có cấu hình nhà cung cấp riêng.
 
+## Chọn đúng dịch vụ cho API key
+
+Key Woku phải dùng với preset **Woku — OpenAI compatible** và địa chỉ
+`https://llm.wokushop.com/v1`; key Google Gemini dùng preset **Google Gemini**.
+Không nhập key của dịch vụ này vào kết nối dịch vụ kia. Model đã lưu không ảnh
+hưởng thao tác Tra ID: discovery gọi API metadata của nhà cung cấp đang chọn.
+
+Để tạo kết nối Woku mới: chọn Woku, nhập key Woku, để ID model trống, xác nhận
+lưu kết nối rồi bấm Lưu. Sau đó bấm Tra ID mô hình, chọn ID thực sự hỗ trợ tools,
+điền các giới hạn theo model thật, tích dùng làm mặc định và lưu model. Việc đặt
+mặc định sẽ thay model mặc định cũ trong giao dịch; không dùng email làm ID.
+
+Kho khóa dùng thứ tự ưu tiên; chỉ thêm key mới không bảo đảm key cũ sai sẽ ngừng
+được chọn. Mục Các khóa API đã lưu chỉ hiện ID/trạng thái và cho xóa từng key với
+xác nhận rõ provider/ID. Không có tự xóa/thay khóa. Chỉ xóa khóa người vận hành
+đã xác định nhập nhầm; không thể đọc lại/khôi phục plaintext từ website. Khi đổi
+provider, số khóa hiển thị đổi theo provider đó, không dùng chung ngầm với provider cũ.
+
+`AI_PROVIDER_AUTH_FAILED` phân biệt provider từ chối khóa với lỗi model. Với
+Google HTTP 400, chỉ các Google ErrorInfo reason xác thực nằm trong allowlist,
+đọc từ body tối đa 16 KiB, mới nhận mã này; không giữ message, body hoặc key.
+Lỗi 400 khác giữ phân loại cũ. Khóa bị từ chối nhận cooldown tạm 300 giây ở đúng
+credential, không tự xóa và không bỏ qua giới hạn chung của tài khoản.
+
 ## ID mô hình và giới hạn của tutor
 
 Ô API key nhận khóa do nhà cung cấp AI cấp; ô ID mô hình nhận đúng tên model từ

@@ -13,7 +13,7 @@ export const AI_PROVIDER_CODES = Object.freeze(['invalid_api_key', 'invalid_auth
 const providerCodes = new Set(AI_PROVIDER_CODES);
 // Only known domain codes may enter a copied report; never include raw server messages.
 export const AI_ACCOUNT_CODES = Object.freeze(['FEATURE_DISABLED', 'AI_MODEL_UNAVAILABLE',
-    'AI_PROVIDER_UNAVAILABLE', 'AI_CAPABILITY_UNSUPPORTED', 'AI_REQUEST_LIMIT_EXCEEDED', 'VALIDATION_ERROR', 'AI_QUOTA_EXCEEDED',
+    'AI_PROVIDER_UNAVAILABLE', 'AI_PROVIDER_AUTH_FAILED', 'AI_CAPABILITY_UNSUPPORTED', 'AI_REQUEST_LIMIT_EXCEEDED', 'VALIDATION_ERROR', 'AI_QUOTA_EXCEEDED',
     'AI_CONCURRENCY_EXCEEDED', 'AI_UPSTREAM_RATE_LIMIT', 'AI_PAYMENT_REQUIRED',
     'AI_CONTENT_FILTERED', 'AI_CIRCUIT_OPEN', 'AI_TIMEOUT', 'AI_CANCELLED',
     'AI_UPSTREAM_ERROR', 'AI_GATEWAY_ERROR', 'SERVICE_UNAVAILABLE', 'INTERNAL_ERROR']);
@@ -144,6 +144,7 @@ export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...ar
             const backendCode = accountCodes.has(error?.code) ? error.code : undefined;
             const disabled = status === 503 && backendCode === 'FEATURE_DISABLED';
             const missingModel = status === 503 && backendCode === 'AI_MODEL_UNAVAILABLE';
+            const providerAuth = status === 503 && backendCode === 'AI_PROVIDER_AUTH_FAILED';
             const requestLimit = status === 400 && backendCode === 'AI_REQUEST_LIMIT_EXCEEDED';
             const incompatibleModel = status === 400 && backendCode === 'AI_CAPABILITY_UNSUPPORTED';
             const message = status === 401 ? 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để trợ lý đọc đúng dữ liệu của bạn.'
@@ -151,6 +152,7 @@ export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...ar
                 : status === 429 ? 'Trợ lý tài khoản đang đạt giới hạn sử dụng. Vui lòng thử lại sau.'
                 : disabled ? 'Agent tài khoản đang tắt. Quản trị viên mở Tài khoản → Quản trị → Cấu hình AI, lưu kết nối/mô hình rồi bấm Bật agent.'
                 : missingModel ? 'Agent tài khoản chưa có mô hình khả dụng. Quản trị viên kiểm tra ID mô hình và mô hình mặc định trong Tài khoản → Quản trị → Cấu hình AI.'
+                : providerAuth ? 'Nhà cung cấp AI đang từ chối khóa kết nối. Quản trị viên kiểm tra API key đúng nhà cung cấp trong Cấu hình AI: key Woku dùng với Woku, key Gemini dùng với Google Gemini.'
                 : requestLimit ? 'Ngữ cảnh bài học vượt giới hạn đã đăng ký cho mô hình. Quản trị viên mở Tài khoản → Quản trị → Cấu hình AI, kiểm tra giới hạn đầu vào/context theo khả năng thật của model rồi lưu lại.'
                 : incompatibleModel ? 'Nhà cung cấp chưa chấp nhận mô hình hoặc tính năng được yêu cầu. Quản trị viên kiểm tra đúng ID model, API key và khả năng gọi công cụ trong Cấu hình AI.'
                 : status === 400 ? 'Máy chủ từ chối yêu cầu AI. Kiểm tra ID model và cấu hình agent; Chi tiết lỗi có mã phản hồi để người quản trị xác định nguyên nhân.'
@@ -158,9 +160,9 @@ export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...ar
                 : status === 503 ? 'Trợ lý tài khoản chưa sẵn sàng. Người quản lí cần kiểm tra cấu hình AI trên máy chủ.'
                 : 'Chưa kết nối được trợ lý tài khoản. Tiến độ trên thiết bị vẫn được giữ; bạn có thể thử lại.';
             throw new AiRequestError(message, {
-                code: [401, 403].includes(status) ? 'AI_AUTH' : status === 429 ? 'AI_BUSY' : !status ? 'AI_NETWORK' : missingModel || incompatibleModel ? 'AI_MODEL' : status === 400 ? 'AI_REQUEST' : 'AI_UNAVAILABLE',
-                backendCode, stage: 'reply', httpStatus: status,
-                retryable: !disabled && !missingModel && ![400, 401, 403].includes(status), api: endpoint,
+                code: [401, 403].includes(status) || providerAuth ? 'AI_AUTH' : status === 429 ? 'AI_BUSY' : !status ? 'AI_NETWORK' : missingModel || incompatibleModel ? 'AI_MODEL' : status === 400 ? 'AI_REQUEST' : 'AI_UNAVAILABLE',
+                backendCode, stage: providerAuth ? 'provider' : 'reply', httpStatus: status,
+                retryable: !disabled && !missingModel && !providerAuth && ![400, 401, 403].includes(status), api: endpoint,
             });
         }
     }

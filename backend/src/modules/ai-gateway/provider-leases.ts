@@ -159,7 +159,8 @@ export class ProviderLeases {
       .eval(script, lease.keys.length, ...lease.keys, lease.id, charged - lease.reserved);
     const status =
       typeof error === 'object' && error !== null && 'status' in error ? Number(error.status) : 0;
-    if ([401, 403].includes(status))
+    if ([401, 403].includes(status) ||
+        (error instanceof AiError && error.code === ErrorCode.AI_PROVIDER_AUTH_FAILED))
       await this.redis.getClient().set(lease.keys[7], '1', 'EX', 300);
     else if (status === 429) await this.redis.getClient().set(lease.keys[6], '1', 'EX', 60);
     else if (status >= 500) await this.redis.getClient().set(lease.keys[8], '1', 'EX', 30);

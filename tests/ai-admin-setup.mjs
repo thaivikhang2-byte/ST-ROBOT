@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { AiSetupClient, canConfigureAi, validateAiConnection, aiSetupErrorMessage,
     aiModelLimitNotice, AI_SETUP_DEFAULT_LIMITS, AI_SETUP_TOOLS } from '../frontend/src/modules/account/AiAdminSetup.js';
+import { AccountService } from '../frontend/src/services/AccountService.js';
 
 const admin = () => ({ id: 'operator', email: 'operator@school.local', isActive: true, isEmailVerified: true,
     permissions: ['ai:manage'], roles: [{ group: 'MANAGER', scopeType: 'SYSTEM' }] });
@@ -19,6 +20,15 @@ function fixture({ configured = false, model = false, onRequest } = {}) {
             if (onRequest) await onRequest(path, options, session);
             if (path === '/v1/admin/ai/settings') return { enabled: options.body?.enabled || false, gatewayEnabled: true };
             if (path === '/v1/admin/ai/vault') return clone(vault);
+            if (options.method === 'DELETE') {
+                const match = path.match(/^\/v1\/admin\/ai\/providers\/([a-zA-Z0-9_-]+)\/credentials\/([a-zA-Z0-9_-]+)$/);
+                assert(match, 'Credential deletion must use the dedicated admin API');
+                if (options.body.expectedRevision !== vault.revision)
+                    throw Object.assign(new Error('Fixture revision changed'), { status: 409, code: 'CONFLICT' });
+                const provider = vault.providers.find(item => item.id === match[1]);
+                provider.credentials = provider.credentials.filter(item => item.id !== match[2]);
+                vault.revision++; return clone(vault);
+            }
             if (path.endsWith('/config')) {
                 assert.equal(options.body.expectedRevision, vault.revision);
                 const previous = vault.providers.find(item => item.id === options.body.provider.id);
@@ -185,4 +195,81 @@ for (const invalid of [
     assert.deepEqual(calls.at(-1).body, { enabled: true });
     assert(!aiSetupErrorMessage({ status: 503, message: key }).includes(key));
 }
-console.log('PASS AI setup permissions, model limit validation and explicit updates, email autofill rejection, encrypted-key routing, CAS, stale session guards and activation');
+{
+    const { client, calls, vault } = fixture({ configured: true });
+    vault.revision = 7;
+    vault.providers[0].credentials.push({ id: 'keep-this-key', enabled: true });
+    await client.load();
+    assert(calls.every(item => item.method === 'GET'), 'Loading credentials must never delete or replace them');
+    calls.length = 0;
+    await client.removeCredential('gemini', 'saved');
+    assert.deepEqual(calls, [
+        { path: '/v1/admin/ai/vault', method: 'GET' },
+        { path: '/v1/admin/ai/providers/gemini/credentials/saved', method: 'DELETE', body: { expectedRevision: 7 } },
+    ]);
+    assert.deepEqual(vault.providers[0].credentials, [{ id: 'keep-this-key', enabled: true }]);
+    assert.equal(vault.revision, 8);
+    assert(!JSON.stringify(calls).includes(key));
+}
+{
+    let sharedVault;
+    const { client, calls, vault } = fixture({ configured: true, onRequest(path, options) {
+        if (options.method === 'DELETE') sharedVault.revision++;
+    } });
+    sharedVault = vault;
+    await assert.rejects(client.removeCredential('gemini', 'saved'), error => error.status === 409);
+    assert.equal(calls.length, 2, 'A stale revision must not trigger an automatic retry or another deletion');
+    assert.deepEqual(vault.providers[0].credentials, [{ id: 'saved', enabled: true }]);
+}
+for (const mutate of [
+    owner => { owner.user = { ...admin(), id: 'other-operator' }; },
+    owner => { owner.sessionVersion++; },
+    owner => { owner.user.roles = []; },
+]) {
+    const { client, calls, vault } = fixture({ configured: true, onRequest(path, _, owner) {
+        if (path.endsWith('/vault')) mutate(owner);
+    } });
+    await assert.rejects(client.removeCredential('gemini', 'saved'), error => error.code === 'SESSION_CHANGED');
+    assert.equal(calls.length, 1, 'An account or authority change must stop before deletion');
+    assert.equal(vault.providers[0].credentials.length, 1);
+}
+for (const [providerId, credentialId] of [['../gemini', 'saved'], ['gemini', '../saved'], ['gemini', ''], ['gemini', key + '?secret']]) {
+    const { client, calls } = fixture({ configured: true });
+    await assert.rejects(client.removeCredential(providerId, credentialId), error => error.code === 'AI_SETUP_CREDENTIAL');
+    assert.equal(calls.length, 0);
+}
+{
+    const { client, calls } = fixture({ configured: true });
+    await assert.rejects(client.removeCredential('gemini', 'already-removed'), error => error.code === 'AI_SETUP_CREDENTIAL_NOT_FOUND');
+    assert.equal(calls.length, 1, 'A missing credential must not cause a DELETE');
+    const controller = new AbortController(); controller.abort();
+    await assert.rejects(client.removeCredential('gemini', 'saved', { signal: controller.signal }), error => error.name === 'AbortError');
+    assert.equal(calls.length, 1);
+}
+{
+    const calls = [];
+    const session = new AccountService({ baseUrl: 'https://accounts.example.test/api', warmup: false,
+        fetchImpl: async (url, options) => {
+            calls.push({ url, options });
+            return new Response(JSON.stringify({ success: true, data: { revision: 11, providers: [
+                { id: 'gemini', credentials: options.method === 'DELETE' ? [] : [{ id: 'saved', enabled: true }] },
+            ] } }), { headers: { 'Content-Type': 'application/json' } });
+        }, storage: { getItem: () => null } });
+    session._user = admin(); session._accessToken = 'fixture-account-token';
+    await new AiSetupClient(session).removeCredential('gemini', 'saved');
+    assert.deepEqual(calls.map(item => item.url), [
+        'https://accounts.example.test/api/v1/admin/ai/vault',
+        'https://accounts.example.test/api/v1/admin/ai/providers/gemini/credentials/saved',
+    ]);
+    assert(calls.every(item => item.options.credentials === 'omit'
+        && item.options.headers.Authorization === 'Bearer fixture-account-token'));
+    assert.deepEqual(JSON.parse(calls[1].options.body), { expectedRevision: 11 });
+    assert(!calls.some(item => item.url.includes('generativelanguage.googleapis.com')));
+}
+{
+    const message = aiSetupErrorMessage({ code: 'AI_PROVIDER_AUTH_FAILED', status: 503, message: key });
+    assert.match(message, /từ chối API key/);
+    assert.match(message, /Woku/);
+    assert(!message.includes(key));
+}
+console.log('PASS AI setup permissions, model limits, autofill rejection, encrypted keys, scoped credential deletion with CAS, session guards and explicit activation');

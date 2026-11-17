@@ -2,6 +2,12 @@
 
 Giữ nguyên giao diện và nội dung GitHub, bổ sung backend từ `src.rar`, `prisma.rar`, `scripts.rar`. Không nhập `.env`, tài khoản thật hoặc database cá nhân vào repository.
 
+## Provider/key và tra model — 17/11/2026
+
+- Kiểm tra đường discovery độc lập với model đã lưu: gọi danh sách model không dùng ID email hay ngân sách request tutor. Phân biệt lỗi xác thực Google dạng 400 bằng ErrorInfo allowlist, đọc body có trần 16 KiB và không giữ nội dung riêng; các 400 khác không đổi.
+- Bổ sung mã lỗi `AI_PROVIDER_AUTH_FAILED`, cooldown chỉ ở credential đã bị từ chối, và giao diện xóa từng key có xác nhận/CAS/phân quyền. Không tự xóa, tự gửi lại chat hoặc xoay key để né hạn mức. Chuyển dropdown provider cập nhật đúng số key của provider đó.
+- Build, typecheck và **36 bộ/266 kiểm thử backend** qua; các kiểm tra Node tutor/tài khoản/thiết lập AI qua. Không có provider thật hoặc khóa người vận hành nào được gọi trong kiểm tra. Cần người vận hành chọn đúng nhà cung cấp cho key và xác nhận model thực tế trên website.
+
 ## Cấu hình model và HTTP 400 của tutor — 17/11/2026
 
 - Tái hiện giới hạn model do form cũ tạo (6.000/2.048/8.192) khiến yêu cầu tutor bình thường bị từ chối trước provider. Form cho nhập giới hạn riêng, có bộ gợi ý cần đối chiếu khả năng model thật và yêu cầu người quản trị lưu rõ ràng; không tự sửa bản ghi cũ.

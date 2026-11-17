@@ -1,4 +1,6 @@
 import type { Content, GenerateContentResponse, EmbedContentResponse } from '@google/genai';
+import { AiError } from './ai.error';
+import { ErrorCode } from '../../shared/sdk/errors/error-codes.enum';
 
 interface GenerateParams {
   model: string;
@@ -15,6 +17,44 @@ interface GenerateParams {
 }
 
 const RESPONSE_BYTES = 4 * 1024 * 1024;
+const ERROR_BYTES = 16 * 1024;
+const GOOGLE_AUTH_REASONS = new Set([
+  'API_KEY_INVALID', 'API_KEY_EXPIRED', 'API_KEY_SERVICE_BLOCKED',
+  'API_KEY_HTTP_REFERRER_BLOCKED', 'API_KEY_IP_ADDRESS_BLOCKED',
+  'API_KEY_ANDROID_APP_BLOCKED', 'API_KEY_IOS_APP_BLOCKED',
+]);
+
+/** Inspect only bounded Google ErrorInfo metadata; never retain provider text. */
+async function rejectedGoogleCredential(response: Response): Promise<boolean> {
+  const reader = response.body?.getReader();
+  if (!reader) return false;
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > ERROR_BYTES) return false;
+      chunks.push(value);
+    }
+    const body = JSON.parse(Buffer.concat(chunks).toString('utf8')) as {
+      error?: { code?: unknown; details?: unknown };
+    } | null;
+    if (body?.error?.code !== response.status || !Array.isArray(body.error.details)) return false;
+    return body.error.details.some((detail: unknown) => {
+      if (!detail || typeof detail !== 'object') return false;
+      const info = detail as Record<string, unknown>;
+      return info['@type'] === 'type.googleapis.com/google.rpc.ErrorInfo' &&
+        info.domain === 'googleapis.com' && typeof info.reason === 'string' &&
+        GOOGLE_AUTH_REASONS.has(info.reason);
+    });
+  } catch { return false; }
+  finally {
+    await reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
+}
 
 async function jsonResponse(response: Response): Promise<unknown> {
   const reader = response.body?.getReader();
@@ -91,8 +131,16 @@ export function createGeminiClient(baseUrl: string, apiKey: string, timeoutMs: n
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     if (!response.ok) {
-      await response.body?.cancel();
-      // Do not retain upstream bodies, which can contain private request content.
+      if (response.status === 400 && await rejectedGoogleCredential(response))
+        throw new AiError(
+          ErrorCode.AI_PROVIDER_AUTH_FAILED,
+          503,
+          'AI provider credentials were rejected',
+          undefined,
+          { retryable: false, upstreamStatus: 400 },
+        );
+      if (!response.bodyUsed) await response.body?.cancel();
+      // Discard bodies and all non-allowlisted metadata, including private content.
       throw Object.assign(new Error('Gemini provider request failed'), { status: response.status, headers: response.headers });
     }
     return response;

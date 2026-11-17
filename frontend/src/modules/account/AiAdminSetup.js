@@ -70,6 +70,9 @@ export function aiModelLimitNotice(model) {
 
 export function aiSetupErrorMessage(error) {
     if (error?.code === 'SESSION_CHANGED') return 'Phiên hoặc quyền quản trị đã thay đổi. Hãy đăng nhập lại trước khi tiếp tục.';
+    if (error?.code === 'AI_PROVIDER_AUTH_FAILED') return 'Nhà cung cấp AI đã từ chối API key. Chọn đúng nhà cung cấp cấp khóa đó (Google Gemini, Woku hoặc dịch vụ tương ứng), rồi kiểm tra khóa đã lưu. Nếu có khóa sai, xóa riêng khóa đó trước khi thêm khóa đúng; mật khẩu admin và khóa JWT không phải API key của nhà cung cấp.';
+    if (error?.code === 'AI_SETUP_CREDENTIAL') return 'Mã nhà cung cấp hoặc mã khóa không hợp lệ. Tải lại trạng thái trước khi chọn khóa cần xóa.';
+    if (error?.code === 'AI_SETUP_CREDENTIAL_NOT_FOUND') return 'Khóa đã được thay đổi hoặc không còn trong kết nối này. Tải lại trạng thái; chưa có khóa nào được xóa bởi thao tác này.';
     if (error?.code === 'AI_SETUP_KEY_REQUIRED') return 'Kết nối mới cần API key. Khóa hiện có không thể đọc lại; để trống chỉ khi đã lưu khóa trước đó.';
     if (error?.code === 'AI_SETUP_URL') return 'Địa chỉ nhà cung cấp cần HTTPS, không chứa mật khẩu, tham số hoặc cổng riêng.';
     if (error?.code === 'AI_SETUP_PROVIDER') return 'Chọn một nhà cung cấp được hỗ trợ.';
@@ -179,6 +182,22 @@ export class AiSetupClient {
         if (!AI_SETUP_PROVIDERS[providerId]) throw setupError('AI_SETUP_PROVIDER');
         return this.scope().request(`/providers/${providerId}/models`, { signal });
     }
+    async removeCredential(providerId, credentialId, { signal } = {}) {
+        const { request } = this.scope();
+        if (typeof providerId !== 'string' || !/^[a-zA-Z0-9_-]{1,20}$/.test(providerId)
+            || typeof credentialId !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(credentialId))
+            throw setupError('AI_SETUP_CREDENTIAL');
+        if (signal?.aborted) throw new DOMException('Request cancelled', 'AbortError');
+        const vault = await request('/vault', { signal });
+        const provider = vault?.providers?.find(item => item.id === providerId);
+        if (!Number.isSafeInteger(vault?.revision) || vault.revision < 0
+            || !provider?.credentials?.some(item => item.id === credentialId))
+            throw setupError('AI_SETUP_CREDENTIAL_NOT_FOUND', 404);
+        if (signal?.aborted) throw new DOMException('Request cancelled', 'AbortError');
+        return request(`/providers/${encodeURIComponent(providerId)}/credentials/${encodeURIComponent(credentialId)}`, {
+            method: 'DELETE', signal, body: { expectedRevision: vault.revision },
+        });
+    }
     setEnabled(enabled, signal) { return this.scope().request('/settings', { method: 'PATCH', signal, body: { enabled } }); }
 }
 
@@ -210,7 +229,8 @@ export function attachAiAdminSetup(container, session = accountService) {
             'Lưu kết nối nhà cung cấp, chọn mô hình hỗ trợ gọi công cụ, rồi chủ động bật agent. Khóa chỉ gửi tới backend HTTPS để mã hóa; không lưu trong trình duyệt.'));
         const status = node('p', 'Đang đọc cấu hình trên server…', 'ai-admin-status');
         status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
-        const summary = node('div'), limitWarnings = node('div'), form = node('form'), fields = node('div', undefined, 'ai-admin-fields');
+        const summary = node('div'), selectedSummary = node('p'), credentialList = node('section'), limitWarnings = node('div'), form = node('form'), fields = node('div', undefined, 'ai-admin-fields');
+        credentialList.setAttribute('aria-label', 'Các khóa API đã lưu');
         form.dataset.aiSetupForm = ''; form.method = 'post'; form.autocomplete = 'off';
         const field = (labelText, input) => {
             const wrap = node('div', undefined, 'field'), label = node('label', labelText, 'label');
@@ -241,17 +261,49 @@ export function attachAiAdminSetup(container, session = accountService) {
         const defaultLabel = node('label', undefined, 'check'), defaultModel = node('input'); defaultModel.type = 'checkbox'; defaultModel.checked = true;
         defaultLabel.append(defaultModel, node('span', 'Dùng mô hình này làm mặc định cho agent.'));
         const consentLabel = node('label', undefined, 'check'), consent = node('input'); consent.type = 'checkbox'; consent.required = true;
-        consentLabel.append(consent, node('span', 'Tôi đã kiểm tra mô hình hỗ trợ gọi công cụ, các giới hạn token phù hợp model thật và đồng ý lưu các giá trị đang nhập.'));
+        consentLabel.append(consent, node('span', 'Tôi đồng ý lưu kết nối. Nếu đăng ký mô hình, tôi đã kiểm tra khả năng gọi công cụ và các giới hạn token phù hợp model thật.'));
         const save = node('button', 'Lưu kết nối / mô hình', 'btn btn--primary'); save.type = 'submit';
         const discover = node('button', 'Tra ID mô hình từ nhà cung cấp', 'btn'); discover.type = 'button';
         const refresh = node('button', 'Tải lại trạng thái', 'btn'); refresh.type = 'button';
         const toggle = node('button', 'Bật agent', 'btn'); toggle.type = 'button';
         const actions = node('div', undefined, 'ai-admin-actions'); actions.append(save, discover, refresh, toggle);
         form.append(fields, limitsHint, suggestions, defaultLabel, consentLabel, actions);
-        container.append(summary, limitWarnings, form, status, node('p',
+        container.append(summary, credentialList, limitWarnings, form, status, node('p',
             'Tra model chỉ gọi API metadata khi bạn bấm. Công cụ này không tự gửi câu hỏi thử hoặc kiểm tra khoản phí; nhà cung cấp có hạn mức riêng.', 'field-hint'));
         let snapshot = null, busy = false, endpointPristine = true;
         const selected = () => snapshot?.vault?.providers?.find(item => item.id === provider.value);
+        const renderSelectedProvider = () => {
+            const stored = selected();
+            const count = stored?.credentials?.filter(item => item.enabled).length || 0;
+            selectedSummary.textContent = `Kết nối đang chọn: ${provider.value}; ${count} khóa đang bật (chỉ metadata).${stored ? '' : ' Chưa lưu kết nối cho nhà cung cấp này.'}`;
+        };
+        const renderCredentials = () => {
+            credentialList.replaceChildren();
+            const stored = selected();
+            if (!stored?.credentials?.length) return;
+            credentialList.append(node('h4', `Các khóa của ${stored.id}`), node('p',
+                'Chỉ hiện mã khóa và trạng thái; không thể xem lại giá trị API key. Xóa từng khóa khi bạn đã xác định khóa đó không đúng.', 'field-hint'));
+            for (const credential of stored.credentials) {
+                const row = node('div', undefined, 'ai-admin-actions');
+                const metadata = node('span', `Mã khóa: ${credential.id} · ${credential.enabled ? 'đang bật' : 'đang tắt'}`);
+                metadata.style.overflowWrap = 'anywhere'; metadata.style.minWidth = '0'; row.append(metadata);
+                const remove = node('button', 'Xóa khóa', 'btn'); remove.type = 'button';
+                remove.setAttribute('aria-label', `Xóa khóa ${credential.id} của ${stored.id}`);
+                remove.disabled = busy || !current();
+                remove.addEventListener('click', () => {
+                    if (busy || !current()) return;
+                    if (!globalThis.confirm(`Xóa khóa ${credential.id} của nhà cung cấp ${stored.id}? Chỉ khóa này sẽ bị xóa; không thể xem lại hoặc khôi phục giá trị khóa từ website.`)) return;
+                    void act(async () => {
+                        await client.removeCredential(stored.id, credential.id, { signal });
+                        if (!current()) return;
+                        status.textContent = `Đã xóa khóa ${credential.id} của ${stored.id}. Các khóa khác được giữ nguyên.`;
+                        await load(true);
+                        document.dispatchEvent(new CustomEvent('strobot:agent-settings-changed'));
+                    });
+                });
+                row.append(remove); credentialList.append(row);
+            }
+        };
         const renderLimitWarnings = () => {
             limitWarnings.replaceChildren();
             for (const item of (snapshot?.models || []).filter(item => item.provider_id === provider.value)) {
@@ -261,6 +313,7 @@ export function attachAiAdminSetup(container, session = accountService) {
         };
         const controls = () => {
             for (const input of form.querySelectorAll('input,select,button')) input.disabled = busy || !current();
+            for (const button of credentialList.querySelectorAll('button')) button.disabled = busy || !current();
             save.disabled ||= !snapshot?.vault;
             discover.disabled ||= !selected()?.credentials?.some(item => item.enabled);
             toggle.textContent = snapshot?.settings?.enabled ? 'Tắt agent' : 'Bật agent';
@@ -273,6 +326,8 @@ export function attachAiAdminSetup(container, session = accountService) {
             for (const [name, input] of Object.entries(limitInputs)) input.value = String(AI_SETUP_DEFAULT_LIMITS[name]);
             endpointPristine = true;
             baseUrl.value = selected()?.endpoints?.[0]?.baseUrl || AI_SETUP_PROVIDERS[provider.value].baseUrl;
+            renderSelectedProvider();
+            renderCredentials();
             renderLimitWarnings();
             controls();
         };
@@ -284,7 +339,8 @@ export function attachAiAdminSetup(container, session = accountService) {
             summary.append(node('p', `Agent: ${result.settings?.enabled ? 'đã bật cờ chat' : 'đang tắt'}. Mô hình đã đăng ký: ${result.models.length}.`));
             const stored = selected();
             if (endpointPristine) baseUrl.value = stored?.endpoints?.[0]?.baseUrl || AI_SETUP_PROVIDERS[provider.value].baseUrl;
-            if (stored) summary.append(node('p', `Kết nối đang chọn: ${stored.id}; ${stored.credentials.filter(item => item.enabled).length} khóa đang bật (chỉ metadata).`));
+            summary.append(selectedSummary); renderSelectedProvider();
+            renderCredentials();
             renderLimitWarnings();
             if (result.quota) summary.append(node('p', `Hạn mức mặc định: ${result.quota.daily_requests ?? result.quota.dailyRequests ?? '—'} lượt/ngày; ${result.quota.daily_tokens ?? result.quota.dailyTokens ?? '—'} token/ngày.`));
             if (!keepStatus) status.textContent = result.errors.length ? aiSetupErrorMessage(result.errors[0]) : 'Đã đọc cấu hình. Chưa gọi mô hình AI.';

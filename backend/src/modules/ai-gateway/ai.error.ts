@@ -103,9 +103,9 @@ export function providerError(error: unknown, signal: AbortSignal, requestId: st
       );
     if (status === 401 || status === 403)
       return new AiError(
-        ErrorCode.AI_PROVIDER_UNAVAILABLE,
+        ErrorCode.AI_PROVIDER_AUTH_FAILED,
         503,
-        'AI provider configuration is unavailable',
+        'AI provider credentials were rejected',
         requestId,
         { retryable: false, upstreamStatus: status },
       );

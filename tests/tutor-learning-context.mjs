@@ -107,6 +107,7 @@ for (const path of ['/api/tutor', '/api/home-chat']) {
     { backendCode: 'FEATURE_DISABLED', code: 'AI_UNAVAILABLE', retryable: false, message: /bật agent/i },
     { backendCode: 'AI_MODEL_UNAVAILABLE', code: 'AI_MODEL', retryable: false, message: /mô hình|model/i },
     { backendCode: 'AI_PROVIDER_UNAVAILABLE', code: 'AI_UNAVAILABLE', retryable: true },
+    { backendCode: 'AI_PROVIDER_AUTH_FAILED', code: 'AI_AUTH', retryable: false, stage: 'provider', message: /key Woku.*Woku.*key Gemini.*Google Gemini/i },
   ]) {
     let legacyCalls = 0;
     const calls = [];
@@ -125,7 +126,7 @@ for (const path of ['/api/tutor', '/api/home-chat']) {
       assert.equal(error.backendCode, scenario.backendCode);
       assert.ok(AI_ACCOUNT_CODES.includes(error.backendCode));
       assert.equal(error.httpStatus, 503);
-      assert.equal(error.stage, 'reply');
+      assert.equal(error.stage, scenario.stage || 'reply');
       assert.equal(error.api, account.baseUrl + '/v1/ai/agent/chat');
       assert.equal(error.retryable, scenario.retryable);
       if (scenario.message) assert.match(error.message, scenario.message);
