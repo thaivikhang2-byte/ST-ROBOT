@@ -2,7 +2,11 @@
 // Prisma Seed — Initial Data
 // ═══════════════════════════════════════════
 
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { PrismaClient } from '../src/database/client';
+
+export const SEED_STARTUP_MARKER_KEY = 'system.seed.initial_defaults.v1';
 
 export async function seed(prisma: PrismaClient) {
   console.log('🌱 Initializing missing database defaults...');
@@ -464,9 +468,40 @@ export async function seed(prisma: PrismaClient) {
   }, { timeout: 60000 });
 }
 
+/** Skip unchanged CLI defaults only after this exact source completed successfully. */
+export async function seedForStartup(prisma: PrismaClient) {
+  // The complete core seed lives in this file. Hash the executing TS or compiled JS,
+  // rather than a manually maintained version that could miss a default change.
+  const sourceHash = createHash('sha256').update(readFileSync(__filename)).digest('hex');
+  const marker = await prisma.setting.findUnique({
+    where: { key: SEED_STARTUP_MARKER_KEY },
+    select: { value: true },
+  });
+  if (marker?.value === sourceHash) {
+    console.log('🌱 Database defaults already initialized for this seed version.');
+    return { seeded: false };
+  }
+
+  await seed(prisma);
+  // A failed seed never reaches this write. A failed marker write causes the next
+  // startup to retry the initialize-only core seed, preserving administrator policy.
+  await prisma.setting.upsert({
+    where: { key: SEED_STARTUP_MARKER_KEY },
+    update: { value: sourceHash },
+    create: {
+      key: SEED_STARTUP_MARKER_KEY,
+      value: sourceHash,
+      type: 'string',
+      group: 'system',
+      description: 'SHA-256 of successfully initialized database defaults source',
+    },
+  });
+  return { seeded: true };
+}
+
 if (require.main === module) {
   const prisma = new PrismaClient();
-  seed(prisma)
+  seedForStartup(prisma)
     .catch(() => {
       console.error('Seed failed; check database/schema configuration');
       process.exitCode = 1;
