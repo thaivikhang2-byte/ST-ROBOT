@@ -16,7 +16,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles, Permissions, CurrentUser } from '../../shared/sdk';
 import type { RequestUser } from '../../shared/sdk';
-import { UsersQueryDto, UserRoleDto, UserStatusDto } from './dto/users-query.dto';
+import { UsersQueryDto, UserRoleDto, UserStatusDto, StudentOverviewQueryDto } from './dto/users-query.dto';
 import { ManagedStudentDto, ManagedStudentPasswordDto } from './dto/managed-student.dto';
 
 @ApiTags('Users')
@@ -31,6 +31,13 @@ export class UsersController {
   @ApiOperation({ summary: 'List all users (paginated)' })
   findAll(@Query() query: UsersQueryDto) {
     return this.usersService.findAll(query);
+  }
+
+  @Get('student-overview')
+  @Permissions('users:read', 'analytics:read')
+  @ApiOperation({ summary: 'Student account status and derived learning counts; fresh SYSTEM management authority required' })
+  studentOverview(@Query() query: StudentOverviewQueryDto, @CurrentUser() actor: RequestUser) {
+    return this.usersService.studentOverview(query, actor);
   }
 
   @Get(':id')
@@ -52,6 +59,13 @@ export class UsersController {
   @ApiOperation({ summary: 'Explicit manager-attested student identity; server forces student role' })
   createStudent(@Body() dto: ManagedStudentDto, @CurrentUser() actor: RequestUser) {
     return this.usersService.createStudent(dto, actor);
+  }
+
+  @Post(':id/approve-student')
+  @Permissions('users:create')
+  @ApiOperation({ summary: 'Approve an inactive pending student request and attest its school identity' })
+  approveStudent(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: RequestUser) {
+    return this.usersService.approveStudent(id, actor);
   }
 
   @Post(':id/student-password')

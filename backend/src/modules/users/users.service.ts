@@ -19,12 +19,13 @@ import {
   Identity,
 } from '../auth/identity.repository';
 import { AuditService } from '../audit/audit.service';
-import { UsersQueryDto } from './dto/users-query.dto';
+import { UsersQueryDto, StudentOverviewQueryDto } from './dto/users-query.dto';
 import { AuthorizationService } from '../roles/authorization.service';
 import { ConfigService } from '@nestjs/config';
 import { ManagedStudentDto, ManagedStudentPasswordDto } from './dto/managed-student.dto';
 import { resolveGrants } from '../roles/authorization';
 import { managementProfile, studentManagementMetadata } from './management-profile';
+import { studentProgressSummary } from './student-progress-summary';
 
 @Injectable()
 export class UsersService {
@@ -76,7 +77,8 @@ export class UsersService {
       await this.managedActor(tx, actor, 'users:update');
       const user = await lockIdentity(tx, id);
       const grants = resolveGrants(user);
-      if (id === actor.id || !studentManagementMetadata(user).studentOnly || !user.is_active || !grants.length)
+      if (id === actor.id || !studentManagementMetadata(user).studentOnly || !user.is_active ||
+          user.student_approval_pending || !grants.length)
         throw new ForbiddenException('Only a separate active student account can be reset');
       await revokeIdentity(tx, id);
       await tx.credentialToken.updateMany({
@@ -87,6 +89,74 @@ export class UsersService {
       return { message: 'Student password updated; all previous sessions revoked' };
     });
   }
+  async approveStudent(id: string, actor: RequestUser) {
+    return this.mutate(async (tx) => {
+      const manager = await this.managedActor(tx, actor, 'users:create');
+      const user = await lockIdentity(tx, id);
+      if (id === actor.id || user.deleted_at || !user.student_approval_pending || user.is_active ||
+          user.role.name !== 'student' || !studentManagementMetadata(user).studentOnly)
+        throw new ConflictException('Only a pending student account can be approved');
+      await this.assignable(tx, user.role.id, manager);
+      const updated = await tx.user.update({
+        where: { id },
+        data: { is_active: true, is_email_verified: true, student_approval_pending: false },
+        include: identityInclude,
+      });
+      await AuditService.record(tx, 'user.student_request_approved', actor.id, id);
+      await AuditService.record(tx, 'user.identity_attested_by_manager', actor.id, id);
+      return managementProfile(updated);
+    });
+  }
+
+  async studentOverview(query: StudentOverviewQueryDto, actor: RequestUser) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.authorization.serialize(tx);
+      await this.managedActor(tx, actor, 'users:read');
+      await this.managedActor(tx, actor, 'analytics:read');
+      const now = new Date();
+      const where: Prisma.UserWhereInput = {
+        deleted_at: null,
+        role: { group: 'STUDENT', name: { not: 'guest' } },
+        // Staff appointments remain excluded even if temporarily disabled.
+        role_assignments: { none: {
+          revoked_at: null,
+          OR: [{ expires_at: null }, { expires_at: { gt: now } }],
+          role: { group: { not: 'STUDENT' } },
+        } },
+      };
+      if (query.status === 'pending') where.student_approval_pending = true;
+      if (query.status === 'active') { where.is_active = true; where.student_approval_pending = false; }
+      if (query.status === 'locked') { where.is_active = false; where.student_approval_pending = false; }
+      if (query.search) where.OR = ['email', 'first_name', 'last_name'].map(field => ({
+        [field]: { contains: query.search!.slice(0, 255), mode: 'insensitive' },
+      }));
+      const [users, total] = await Promise.all([
+        tx.user.findMany({
+          where, skip: query.skip, take: query.take,
+          orderBy: [{ created_at: 'desc' }, { id: 'asc' }],
+          select: {
+            id: true, email: true, first_name: true, last_name: true,
+            is_active: true, student_approval_pending: true, last_login_at: true, created_at: true,
+            deleted_at: true, rbac_migrated: true,
+            role: { select: { name: true, group: true, is_active: true, status: true } },
+            role_assignments: { select: { revoked_at: true, expires_at: true,
+              role: { select: { name: true, group: true, is_active: true, status: true } } } },
+            learner_state: { select: { summary: true, updated_at: true } },
+          },
+        }),
+        tx.user.count({ where }),
+      ]);
+      return new PaginatedResult(users.map(user => ({
+        id: user.id, email: user.email, firstName: user.first_name, lastName: user.last_name,
+        isActive: user.is_active, approvalPending: user.student_approval_pending,
+        role: { name: user.role.name }, management: studentManagementMetadata(user),
+        lastLoginAt: user.last_login_at, createdAt: user.created_at,
+        lastLearningAt: user.learner_state?.updated_at ?? null,
+        progressSummary: studentProgressSummary(user.learner_state?.summary),
+      })), total, query.page, query.limit);
+    });
+  }
+
   async findAll(query: UsersQueryDto) {
     const where: Prisma.UserWhereInput = { deleted_at: null };
     if (query.status) where.is_active = query.status === 'active';
@@ -198,6 +268,9 @@ export class UsersService {
       const current = await this.authorization.actor(tx, actor.id, 'users:update');
       const user = await lockIdentity(tx, id);
       if (user.deleted_at) throw new NotFoundException('User', id);
+      if (user.student_approval_pending &&
+          (dto.isActive !== undefined || dto.roleId !== undefined || dto.email !== undefined))
+        throw new ForbiddenException('Use the student approval action for a pending account');
       if (studentStatusOnly && (!current.grants.some(grant => grant.group === 'MANAGER' &&
         grant.scopeType === 'SYSTEM' && grant.permissions.includes('users:update')) ||
         !studentManagementMetadata(user).studentOnly))

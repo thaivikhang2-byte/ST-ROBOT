@@ -20,6 +20,13 @@ export class UserStatusDto {
   isActive!: boolean;
 }
 
+export class StudentOverviewQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ enum: ['all', 'pending', 'active', 'locked'], default: 'all' })
+  @IsOptional()
+  @IsIn(['all', 'pending', 'active', 'locked'])
+  status: 'all' | 'pending' | 'active' | 'locked' = 'all';
+}
+
 export class UserRoleDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID()

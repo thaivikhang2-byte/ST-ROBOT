@@ -40,6 +40,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     if (
       !user ||
       !user.is_active ||
+      user.student_approval_pending ||
       user.deleted_at ||
       user.auth_version !== payload.ver ||
       !user.refresh_tokens.length

@@ -119,7 +119,8 @@ describe('Explicit managed school accounts', () => {
       mail: { provider: 'disabled', host: 'private-host', password: 'must-stay-private' },
       app: { nodeEnv: 'production' },
     }));
-    expect(controller.options()).toEqual({ registrationEnabled: false, managedAccountsEnabled: true, emailDeliveryEnabled: false });
+    expect(controller.options()).toEqual({ registrationEnabled: false, managedAccountsEnabled: true,
+      emailDeliveryEnabled: false, approvalRegistrationEnabled: true, registrationMode: 'approval' });
     expect(JSON.stringify(controller.options())).not.toContain('private');
   });
 

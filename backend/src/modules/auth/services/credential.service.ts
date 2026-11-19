@@ -83,6 +83,7 @@ export class CredentialService {
       const user = await lockIdentity(tx, found.id);
       if (
         !user.is_active ||
+        user.student_approval_pending ||
         user.deleted_at ||
         !user.role.is_active ||
         (purpose === 'verify' && user.is_email_verified)

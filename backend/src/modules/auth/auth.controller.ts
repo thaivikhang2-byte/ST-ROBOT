@@ -4,7 +4,6 @@ import {
   ProfileResponseDto,
   SessionResponseDto,
   authSchema,
-  tokensSchema,
   profileSchema,
   sessionsSchema,
   messageSchema,
@@ -27,6 +26,7 @@ import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
+import { approvalRegistrationEnabled } from './account-options';
 import { CredentialService } from './services/credential.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -72,8 +72,12 @@ export class AuthController {
   options() {
     const provider = this.config.get<string>('mail.provider', 'smtp');
     const environment = this.config.get<string>('app.nodeEnv', 'development');
+    const approvalEnabled = approvalRegistrationEnabled(this.config);
+    const registrationEnabled = this.config.get<boolean>('feature.registrationEnabled', true);
     return {
-      registrationEnabled: this.config.get<boolean>('feature.registrationEnabled', true),
+      registrationEnabled,
+      approvalRegistrationEnabled: approvalEnabled,
+      registrationMode: approvalEnabled ? 'approval' : registrationEnabled ? 'email' : 'closed',
       managedAccountsEnabled: this.config.get<boolean>('feature.managedAccountsEnabled', false),
       emailDeliveryEnabled: (provider === 'smtp' && !!this.config.get<string>('mail.host')) ||
         (provider === 'file' && ['development', 'test'].includes(environment)),
@@ -107,8 +111,18 @@ export class AuthController {
   }
 
   @Public()
+  @Post('student-requests')
+  @HttpCode(202)
+  @Header('Cache-Control', 'no-store')
+  @Throttle({ default: { limit: 10, ttl: minute } })
+  @ApiOperation({ security: [], summary: 'Request a student account; manager approval required before login' })
+  requestStudent(@Body() dto: RegisterDto) {
+    return this.auth.requestStudentAccount(dto);
+  }
+
+  @Public()
   @ApiOperation({ security: [] })
-  @ApiOkResponse({ schema: tokensSchema })
+  @ApiOkResponse({ schema: authSchema })
   @Post('refresh')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')

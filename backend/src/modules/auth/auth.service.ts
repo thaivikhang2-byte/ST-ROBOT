@@ -27,6 +27,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { RequestUser } from '../../shared/sdk/auth/interfaces/request-user.interface';
 import { UpdateProfileDto } from './dto/credential.dto';
+import { approvalRegistrationEnabled } from './account-options';
 
 @Injectable()
 export class AuthService {
@@ -65,24 +66,28 @@ export class AuthService {
   async login(dto: LoginDto, ip?: string, userAgent?: string) {
     const found = await this.prisma.user.findUnique({
       where: { email: dto.email.trim().toLowerCase() },
-      select: { id: true },
+      select: { id: true, password_hash: true, auth_version: true },
     });
     if (!found) {
       await hashPassword(dto.password); // Match bcrypt cost for nonexistent accounts.
       await AuditService.record(this.prisma, 'auth.login_failed');
       throw new UnauthorizedException('Invalid email or password');
     }
+    // Expensive bcrypt work must not hold the identity row lock. Recheck the
+    // password snapshot under that lock so a concurrent reset cannot log in.
+    const valid = await comparePassword(dto.password, found.password_hash);
     const result = await this.prisma.$transaction(async (tx) => {
       const user = await lockIdentity(tx, found.id);
-      const valid = await comparePassword(dto.password, user.password_hash);
-      if (!valid || !user.is_active || user.deleted_at || !profile(user).roles.length) {
+      if (!valid || found.password_hash !== user.password_hash || found.auth_version !== user.auth_version ||
+          !user.is_active || user.student_approval_pending || user.deleted_at || !profile(user).roles.length) {
         await AuditService.record(tx, 'auth.login_failed', user.id);
         return null;
       }
       const tokens = await this.issue(tx, user, randomUUID(), ip, userAgent);
-      await tx.user.update({ where: { id: user.id }, data: { last_login_at: new Date() } });
+      const last_login_at = new Date();
+      await tx.user.update({ where: { id: user.id }, data: { last_login_at } });
       await AuditService.record(tx, 'auth.login', user.id);
-      return { user: profile(user), tokens };
+      return { user: profile({ ...user, last_login_at }), tokens };
     });
     if (!result) throw new UnauthorizedException('Invalid email or password');
     this.eventBus.emit(new UserLoggedInEvent(result.user.id, ip));
@@ -90,6 +95,8 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
+    if (approvalRegistrationEnabled(this.configService))
+      throw new ForbiddenException('Student registration requires manager approval');
     if (!this.configService.get<boolean>('feature.registrationEnabled', true))
       throw new ForbiddenException('Registration is currently disabled');
     const email = dto.email.trim().toLowerCase();
@@ -126,11 +133,45 @@ export class AuthService {
     }
   }
 
+  async requestStudentAccount(dto: RegisterDto) {
+    if (!approvalRegistrationEnabled(this.configService))
+      throw new ForbiddenException('Student account requests are not enabled');
+    const password_hash = await hashPassword(dto.password);
+    const response = {
+      status: 'pending' as const,
+      message: 'Đã nhận yêu cầu tài khoản học sinh. Nếu thông tin hợp lệ, quản trị viên sẽ duyệt; sau đó bạn đăng nhập bằng email và mật khẩu đã chọn.',
+    };
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        const role = await tx.role.findUnique({ where: { name: 'student' } });
+        if (!role?.is_default || !role.is_active || role.status !== 'ACTIVE' || role.group !== 'STUDENT')
+          throw new ForbiddenException('The student role is unavailable');
+        // Never upsert: repeating a request cannot replace anyone's password,
+        // reactivate a locked identity, or convert an existing staff account.
+        const user = await tx.user.create({
+          data: {
+            email: dto.email.trim().toLowerCase(), password_hash,
+            first_name: dto.firstName, last_name: dto.lastName, role_id: role.id,
+            is_active: false, is_email_verified: false, student_approval_pending: true,
+            rbac_migrated: true, role_assignments: { create: { role_id: role.id } },
+          },
+          select: { id: true },
+        });
+        await AuditService.record(tx, 'user.student_approval_requested', user.id, user.id);
+      });
+    } catch (error) {
+      // Match the public response for existing addresses without disclosing
+      // whether they belong to pending, active, locked, or staff identities.
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) throw error;
+    }
+    return response;
+  }
+
   async refreshToken(dto: RefreshTokenDto) {
     const payload = await this.tokenService.verifyRefreshToken(dto.refreshToken).catch(() => {
       throw new UnauthorizedException('Invalid or expired refresh token');
     });
-    const tokens = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const user = await lockIdentity(tx, payload.sub);
       assertActive(user);
       const stored = await tx.refreshToken.findUnique({
@@ -165,10 +206,10 @@ export class AuthService {
         stored.device_info ?? undefined,
       );
       await AuditService.record(tx, 'auth.refresh', user.id, stored.family_id);
-      return next;
+      return { tokens: next, user: profile(user) };
     });
-    if (!tokens) throw new UnauthorizedException('Invalid or expired refresh token');
-    return { tokens };
+    if (!result) throw new UnauthorizedException('Invalid or expired refresh token');
+    return result;
   }
 
   async logout(userId: string): Promise<void> {

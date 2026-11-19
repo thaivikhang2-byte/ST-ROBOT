@@ -53,6 +53,7 @@ export const envValidationSchema = Joi.object({
   MAIL_FROM: Joi.string().default('noreply@st-robot.com'),
   MAIL_SECURE: Joi.boolean().default(false),
   MANAGED_ACCOUNTS_ENABLED: Joi.boolean().default(false),
+  STUDENT_APPROVAL_REGISTRATION_ENABLED: Joi.boolean().default(true),
 
   // CDN
   CDN_PROVIDER: Joi.string().valid('minio', 'r2', 's3', 'local').default('minio'),

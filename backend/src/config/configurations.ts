@@ -165,6 +165,7 @@ export const featureConfig = registerAs('feature', () => ({
   cdnEnabled: process.env.FEATURE_CDN_ENABLED === 'true',
   registrationEnabled: process.env.FEATURE_REGISTRATION_ENABLED !== 'false',
   managedAccountsEnabled: process.env.MANAGED_ACCOUNTS_ENABLED === 'true',
+  approvalRegistrationEnabled: process.env.STUDENT_APPROVAL_REGISTRATION_ENABLED !== 'false',
   notificationEnabled: process.env.FEATURE_NOTIFICATION_ENABLED !== 'false',
 }));
 

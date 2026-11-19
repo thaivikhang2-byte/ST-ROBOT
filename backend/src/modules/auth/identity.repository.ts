@@ -25,7 +25,7 @@ export async function lockIdentity(tx: Prisma.TransactionClient, id: string): Pr
   }
 }
 export function assertActive(user: Identity): void {
-  if (!user.is_active || user.deleted_at || !resolveGrants(user).length)
+  if (!user.is_active || user.student_approval_pending || user.deleted_at || !resolveGrants(user).length)
     throw new UnauthorizedException('Invalid credentials or inactive account');
 }
 export function profile(user: Identity) {

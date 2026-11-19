@@ -73,6 +73,7 @@ model User {
   avatar_url        String?   @db.VarChar(500)
   is_active         Boolean   @default(true)
   is_email_verified Boolean   @default(false)
+  student_approval_pending Boolean @default(false)
   auth_version      Int       @default(0)
   rbac_migrated     Boolean   @default(false)
   role_id           String    @db.Uuid
@@ -117,6 +118,7 @@ model User {
   @@index([email])
   @@index([role_id])
   @@index([deleted_at])
+  @@index([student_approval_pending, created_at])
   @@map("users")
 }
 
