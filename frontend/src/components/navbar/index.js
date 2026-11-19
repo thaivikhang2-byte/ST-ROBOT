@@ -1,6 +1,7 @@
-import { getNavbarTemplate } from './template.js?v=account-sync-v1';
+import { getNavbarTemplate } from './template.js?v=product-workspace-v1';
 import { $, $$ } from '../../utils/dom.js';
 import { icon } from '../ui/icon.js';
+import { accountService } from '../../services/AccountService.js';
 
 /** Pure: does a page URL path correspond to the current location? Handles directory roots and base paths. */
 export function isActivePath(currentPath, linkPath) {
@@ -19,6 +20,10 @@ export class Navbar {
         this.setActiveLink();
         this.attachEvents();
         this.syncThemeButton();
+        this.syncAccountAction();
+        this._unsubscribeAccount?.();
+        this._unsubscribeAccount = accountService.subscribe(() => this.syncAccountAction());
+        void accountService.ready().then(() => this.syncAccountAction());
     }
 
     setActiveLink() {
@@ -35,6 +40,16 @@ export class Navbar {
         button.setAttribute('aria-pressed', String(dark));
         button.setAttribute('aria-label', dark ? 'Bật chế độ sáng' : 'Bật chế độ tối');
         button.innerHTML = icon(dark ? 'sun' : 'moon');
+    }
+
+    syncAccountAction() {
+        const action = $('#accountNavAction');
+        if (!action) return;
+        const user = accountService.user;
+        const manager = !accountService.sessionOffline && user?.isEmailVerified === true
+            && user.roles?.some(role => role.group === 'MANAGER' && role.scopeType === 'SYSTEM'
+                && role.permissions?.includes('users:read'));
+        action.textContent = manager ? 'Học viên' : user ? 'Học tiếp' : 'Đăng nhập';
     }
 
     attachEvents() {

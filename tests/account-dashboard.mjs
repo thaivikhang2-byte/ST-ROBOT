@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { workspaceAccess, canUpdateStudentStatus, readLearningDashboard } from '../frontend/src/modules/account/LearningDashboard.js';
+import { workspaceAccess, canUpdateStudentStatus, canApproveStudent, readLearningDashboard } from '../frontend/src/modules/account/LearningDashboard.js';
 import { quizQuestions } from '../frontend/src/data/quiz.js';
 
 const student = { id: 'student-a', isEmailVerified: true, role: { name: 'student' }, roles: [{ group: 'STUDENT', scopeType: 'SELF' }], permissions: ['learning:read'] };
@@ -21,6 +21,17 @@ assert.equal(canUpdateStudentStatus(manager, student, { offline: true }), false)
 assert.equal(canUpdateStudentStatus(manager, { ...student, isActive: false, roles: [], management: { studentOnly: true, roleGroups: ['STUDENT'] } }), true);
 assert.equal(canUpdateStudentStatus(manager, { ...student, isActive: false, roles: [] }), false, 'legacy role name alone cannot authorize a disabled account action');
 assert.equal(canUpdateStudentStatus(manager, { ...student, isActive: false, roles: [], management: { studentOnly: false, roleGroups: ['STUDENT', 'TEACHER'] } }), false);
+
+const pending = { ...student, isActive: false, approvalPending: true, management: { studentOnly: true, roleGroups: ['STUDENT'] } };
+assert.equal(canUpdateStudentStatus(manager, pending), false, 'pending requests use explicit approval, never generic activation');
+assert.equal(canApproveStudent(manager, pending), true);
+assert.equal(canApproveStudent(student, pending), false);
+assert.equal(canApproveStudent(manager, pending, { offline: true }), false);
+assert.equal(canApproveStudent({ ...manager, permissions: ['dashboard:read'] }, pending), false);
+assert.equal(canApproveStudent(manager, { ...pending, management: { studentOnly: false, roleGroups: ['STUDENT', 'TEACHER'] } }), false);
+assert.equal(canApproveStudent(manager, { ...pending, approvalPending: false }), false);
+assert.equal(canApproveStudent(manager, { ...pending, isActive: true }), false);
+assert.equal(canApproveStudent(manager, { ...pending, management: undefined }), false);
 
 const values = {
     'strobot.original.course.v3': JSON.stringify({ last: 'arduino', arduino: {

@@ -57,3 +57,91 @@
 .account-table td button { margin: 0 6px 6px 0; }
 @media (max-width: 750px) { .account-grid { grid-template-columns: 1fr; gap: 0; } }
 @media (max-width: 430px) { .account-form-row { grid-template-columns: 1fr; } .account-card { padding: 18px; } }
+
+/* Keep the daily learning path visible; maintenance stays in closed disclosures. */
+.account-page [hidden] { display: none !important; }
+.account-intro { display: flex; align-items: center; justify-content: space-between; gap: 20px; max-width: none; }
+.account-intro h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); margin-bottom: 10px; }
+.account-intro p { max-width: 64ch; margin-bottom: 0; }
+.account-guest-link { flex-shrink: 0; }
+#account-auth { max-width: 760px; margin-inline: auto; }
+#account-auth .account-form { max-width: none; }
+#account-auth .account-tabs { padding-bottom: 14px; border-bottom: 1px solid var(--color-border); }
+#account-auth .account-actions { margin-bottom: 0; }
+#account-server-status { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; font-size: var(--text-sm); }
+.account-workspace-heading { display: flex; justify-content: space-between; align-items: start; gap: 20px; }
+.account-workspace-heading p { margin-block: 4px; color: var(--color-text-muted); }
+.account-workspace-heading > button { flex-shrink: 0; }
+.account-workspace-nav { padding-block: 8px; border-bottom: 1px solid var(--color-border); margin-bottom: 0; }
+.account-sync-bar { display: flex; gap: 12px; justify-content: space-between; align-items: center; font-size: var(--text-sm); color: var(--color-text-muted); min-height: 44px; }
+.account-sync-bar > span { overflow-wrap: anywhere; }
+.account-sync-bar > button { flex-shrink: 0; }
+.account-sync-bar .btn { min-height: 36px; padding-block: 6px; }
+#account-student-dashboard > h2 { margin-bottom: 20px; }
+.account-resume { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px; border: 1px solid var(--color-primary); border-radius: var(--radius-md); background: var(--color-primary-soft); }
+.account-resume .account-role-note { font-size: 0.72rem; font-weight: var(--weight-bold); letter-spacing: 0.06em; color: var(--color-primary); }
+.account-resume h3 { font-size: var(--text-xl); margin-block: 8px 4px; }
+.account-resume p { margin: 0; color: var(--color-text-muted); }
+.account-resume .account-actions { flex-shrink: 0; margin: 0; }
+.account-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-block: 20px; }
+.account-metrics > div { padding: 18px; }
+.account-learning-courses { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.account-learning-course { display: flex; flex-direction: column; gap: 0; }
+.account-learning-course p { margin-bottom: 0; }
+.account-learning-course progress { margin-top: auto; }
+.account-learning-course h3 { min-height: 1.5em; }
+.account-resume-link { font-size: var(--text-sm); font-weight: var(--weight-medium); }
+.account-disclosure { margin-block: 14px; padding: 20px 24px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+.account-disclosure > summary { cursor: pointer; font-weight: var(--weight-bold); min-height: 28px; padding-right: 8px; }
+.account-disclosure[open] > summary { margin-bottom: 16px; }
+.account-disclosure > p { color: var(--color-text-muted); max-width: 85ch; }
+.account-disclosure .account-form { margin-bottom: 0; }
+.account-student-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.account-filter-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.account-filter-tabs button[aria-pressed="true"] { color: var(--color-primary); background: var(--color-primary-soft); border-color: var(--color-primary); }
+.account-management-extra { position: relative; align-self: center; }
+.account-management-extra summary { cursor: pointer; padding: 10px 12px; font-size: var(--text-sm); }
+.account-management-extra[open] { flex-basis: 100%; }
+.account-management-extra[open] button { margin: 8px 8px 0 0; }
+.account-search { margin-top: 6px; }
+.account-create-student { background: var(--color-surface-muted); }
+.account-create-student summary { min-height: 28px; }
+.account-student-name { display: grid; gap: 6px; min-width: 170px; }
+.account-student-name span { color: var(--color-text-muted); }
+.account-state { display: inline-flex; padding: 4px 8px; border-radius: var(--radius-sm); white-space: nowrap; font-weight: var(--weight-medium); background: var(--color-surface-muted); }
+.account-state[data-state="active"] { color: var(--color-primary); background: var(--color-primary-soft); }
+.account-state[data-state="pending"] { color: #805500; background: #fff3cf; }
+.account-student-progress { display: grid; gap: 8px; min-width: 170px; }
+.account-student-progress progress { width: 100%; accent-color: var(--color-primary); height: 8px; }
+.account-student-progress small { color: var(--color-text-muted); }
+.account-student-progress summary { cursor: pointer; }
+.account-student-progress details p { margin-block: 6px; }
+.account-student-actions { min-width: 130px; }
+.account-empty { padding: 24px 16px; text-align: center; background: var(--color-surface-muted); border-radius: var(--radius-md); }
+@media (max-width: 900px) {
+    .account-resume { align-items: start; flex-direction: column; gap: 18px; }
+    .account-learning-courses { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .account-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+    .account-intro { align-items: start; flex-direction: column; gap: 12px; }
+    .account-workspace-heading { flex-wrap: wrap; gap: 10px; }
+    .account-workspace-heading > button { margin-left: auto; }
+    .account-workspace-nav { gap: 4px; }
+    .account-workspace-nav .btn { padding-inline: 10px; font-size: var(--text-sm); }
+    .account-learning-courses { grid-template-columns: 1fr; gap: 12px; }
+    .account-resume { padding: 18px; }
+    .account-disclosure { padding: 18px; }
+    .account-metrics { gap: 8px; }
+    .account-metrics > div { padding: 14px; }
+    .account-metrics dt { font-size: 0.8rem; }
+    .account-sync-bar { align-items: start; }
+    .account-student-toolbar > button { margin-left: auto; }
+}
+.account-workspace { margin-top: 8px; }
+@media (max-width: 600px) {
+    .account-workspace-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+    .account-workspace-heading > div { min-width: 0; }
+    .account-workspace-heading p { overflow-wrap: anywhere; }
+    .account-workspace-heading > button { padding-inline: 8px; font-size: var(--text-sm); }
+}

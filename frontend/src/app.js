@@ -1,5 +1,5 @@
 import { learnerSync } from './services/LearnerSyncService.js';
-import { Navbar } from './components/navbar/index.js?v=account-sync-v1';
+import { Navbar } from './components/navbar/index.js?v=product-workspace-v1';
 import { Footer } from './components/footer/index.js?v=copy-v4';
 import { Chatbox } from './components/chatbox/index.js?v=account-agent-v2';
 import { BackToTop } from './components/backtotop/index.js';

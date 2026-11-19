@@ -24,9 +24,10 @@ def main():
     manager_id = '10000000-0000-4000-8000-000000000002'
     other_id = '10000000-0000-4000-8000-000000000003'
     inactive_staff_id = '10000000-0000-4000-8000-000000000005'
+    pending_id = '10000000-0000-4000-8000-000000000006'
 
     def profile(id, email, group='STUDENT', role='student'):
-        perms = ['learning:read', 'learning:update'] if group == 'STUDENT' else ['dashboard:read', 'users:read', 'users:update', 'users:create', 'audit:read', 'analytics:read']
+        perms = ['learning:read', 'learning:update'] if group == 'STUDENT' else ['dashboard:read', 'users:read', 'users:update', 'users:create', 'audit:read', 'analytics:read', 'ai:manage']
         return {'id': id, 'email': email, 'firstName': 'Fixture', 'lastName': role.title(), 'isActive': True,
                 'isEmailVerified': True, 'permissions': perms, 'role': {'name': role},
                 'roles': [{'roleName': role, 'group': group, 'scopeType': 'SELF' if group == 'STUDENT' else 'SYSTEM', 'permissions': perms}]}
@@ -40,7 +41,7 @@ def main():
     profiles = {student['email']: student, manager['email']: manager}
     tokens = {'fixture-student': student, 'fixture-manager': manager}
     state = {'revision': 1, 'values': {'strobot.original.course.v3': json.dumps({'last': 'arduino', 'arduino': {'led': {'done': True, 'note': 'Private student note'}, 'timing': {'done': False, 'note': ''}}})}, 'updatedAt': '2026-11-14T00:00:00Z'}
-    errors, mutations = [], []
+    errors, mutations, api_requests = [], [], []
     temporary_password = 'Fixture-Temporary-Password-42!'
 
     with sync_playwright() as playwright:
@@ -92,6 +93,7 @@ def main():
                 route.fulfill(status=204, headers=cors)
                 return
             path = url.path.removeprefix('/api')
+            api_requests.append((request.method, path))
             body = json.loads(request.post_data or '{}')
             actor = tokens.get(request.headers.get('authorization', '').removeprefix('Bearer '))
             data = {}
@@ -99,9 +101,23 @@ def main():
                 assert request.method == 'GET' and not request.headers.get('authorization') and not request.post_data
                 data = {'status': 'ok'}
             elif path == '/v1/auth/options':
-                data = {'registrationEnabled': False, 'emailDeliveryEnabled': False, 'managedAccountsEnabled': True}
+                data = {'registrationEnabled': False, 'approvalRegistrationEnabled': True, 'registrationMode': 'approval', 'emailDeliveryEnabled': False, 'managedAccountsEnabled': True}
+            elif path == '/v1/auth/student-requests':
+                assert request.method == 'POST' and not request.headers.get('authorization')
+                assert set(body) == {'email', 'password', 'firstName', 'lastName'}
+                assert body['password'] == temporary_password
+                pending = {**profile(pending_id, body['email']), 'isActive': False, 'isEmailVerified': False,
+                           'approvalPending': True, 'roles': [], 'management': {'studentOnly': True, 'roleGroups': ['STUDENT']}}
+                users.append(pending)
+                profiles[pending['email']] = pending
+                mutations.append(('request', pending_id))
+                route.fulfill(status=202, content_type='application/json', headers=cors, body=json.dumps({'success': True, 'data': {'status': 'pending'}}))
+                return
             elif path == '/v1/auth/login':
                 user = profiles[body['email']]
+                if user.get('approvalPending'):
+                    route.fulfill(status=401, content_type='application/json', headers=cors, body=json.dumps({'success': False, 'error': {'code': 'INVALID_CREDENTIALS', 'message': 'Invalid credentials'}}))
+                    return
                 data = {'user': user, 'tokens': {'accessToken': 'fixture-manager' if user['id'] == manager_id else 'fixture-student', 'refreshToken': 'fixture-refresh', 'expiresIn': 900}}
             elif path == '/v1/auth/me':
                 data = actor
@@ -114,6 +130,30 @@ def main():
             elif path == '/v1/admin/dashboard':
                 assert actor and actor['id'] == manager_id
                 data = {'users': len(users), 'activeStudents': 2, 'teachers': 0, 'publishedCourses': 5, 'learningActivityLast7Days': 1, 'pendingApprovals': 0}
+            elif path == '/v1/users/student-overview':
+                assert actor and actor['id'] == manager_id
+                query = urllib.parse.parse_qs(url.query)
+                status = query.get('status', ['all'])[0]
+                rows = []
+                for user in users:
+                    if status == 'pending' and not user.get('approvalPending'):
+                        continue
+                    if status == 'active' and (user.get('approvalPending') or not user['isActive']):
+                        continue
+                    if status == 'locked' and (user.get('approvalPending') or user['isActive']):
+                        continue
+                    completed = 1 if user['id'] == student_id else 0
+                    rows.append({**user, 'progressSummary': {'source': 'learner-self-report', 'completed': completed,
+                        'total': 30, 'percentage': round(completed / 30 * 100), 'courses': [{'courseId': 'arduino', 'completed': completed, 'total': 6}]},
+                        'lastLearningAt': '2026-11-14T00:00:00Z' if completed else None})
+                data = {'data': rows, 'meta': {'totalPages': 1, 'page': 1, 'total': len(rows)}}
+            elif path.endswith('/approve-student'):
+                assert actor and actor['id'] == manager_id and path == '/v1/users/' + pending_id + '/approve-student'
+                assert request.method == 'POST' and body == {}
+                pending = profiles['pending-learner@example.test']
+                pending.update(isActive=True, isEmailVerified=True, approvalPending=False, roles=profile(pending_id, pending['email'])['roles'])
+                mutations.append(('approve', pending_id))
+                data = pending
             elif path == '/v1/users' and request.method == 'GET':
                 assert actor and actor['id'] == manager_id
                 data = {'data': users}
@@ -137,6 +177,10 @@ def main():
                 other['management'] = {'studentOnly': True, 'roleGroups': ['STUDENT']}
                 mutations.append(('status-on' if body['isActive'] else 'status-off', other_id))
                 data = other
+            elif path.startswith('/v1/admin/ai/'):
+                assert actor and actor['id'] == manager_id
+                assert request.method == 'GET', 'opening settings never changes the saved provider'
+                data = {'enabled': True, 'serverEnabled': True} if path.endswith('/settings') else {'revision': 1, 'providers': []} if path.endswith('/vault') else [] if path.endswith('/models') else {'dailyRequestLimit': 20}
             elif path.startswith('/v1/ai/agent/'):
                 data = {'available': False, 'message': 'Agent fixture chưa cấu hình', 'data': []} if '/status' in path else {'data': []}
             else:
@@ -148,7 +192,21 @@ def main():
         for selector in ['#account-login', '#account-register', '#account-reset', '#account-change-password', '#account-student-password']:
             expect(page.locator(selector)).to_have_attribute('method', 'post')
         expect(page.locator('#account-registration-options')).to_be_visible()
-        expect(page.locator('[data-auth-mode="register"]')).to_be_hidden()
+        expect(page.locator('[data-auth-mode="register"]')).to_be_visible()
+        page.locator('[data-auth-mode="register"]').click()
+        for selector, value in {'#register-first': 'Pending', '#register-last': 'Learner', '#register-email': 'pending-learner@example.test', '#register-password': temporary_password}.items():
+            page.locator(selector).fill(value)
+        page.locator('#account-register button[type="submit"]').click()
+        expect(page.locator('#account-message')).to_contain_text('Quản trị viên sẽ duyệt')
+        expect(page.locator('#account-register input[type="password"]')).to_have_value('')
+        expect(page.locator('#account-signed-in')).to_be_hidden()
+        assert page.evaluate('async () => (await import(new URL("../src/services/AccountService.js", location.href))).accountService.user === null')
+        page.locator('#login-email').fill('pending-learner@example.test')
+        page.locator('#login-password').fill(temporary_password)
+        page.locator('#account-login button[type="submit"]').click()
+        expect(page.locator('#account-message')).to_have_attribute('data-kind', 'error')
+        expect(page.locator('#account-signed-in')).to_be_hidden()
+        print('PASS student signup submits a pending request without creating an authenticated session', flush=True)
         expect(page.locator('[data-auth-mode="reset"]')).to_be_hidden()
 
         def login(email):
@@ -162,22 +220,59 @@ def main():
         expect(page.locator('#account-student-dashboard')).to_be_visible()
         expect(page.locator('#account-student-content')).to_contain_text('1/30')
         expect(page.locator('#account-management')).to_be_hidden()
-        expect(page.locator('#account-workspace-switch')).to_be_hidden()
+        expect(page.locator('[data-workspace-view="management"]')).to_be_hidden()
+        expect(page.locator('#account-resume-study')).to_have_attribute('href', 'course.learning.html?course=arduino&lesson=timing')
+        expect(page.locator('.account-learning-course')).to_have_count(5)
+        expect(page.locator('#account-settings')).to_be_hidden()
+        expect(page.locator('#account-ai-setup')).to_be_empty()
+        assert not any(path.startswith('/v1/admin/ai/') for method, path in api_requests)
+        page.locator('[data-workspace-view="settings"]').click()
+        expect(page.locator('#account-profile')).not_to_be_visible()
+        expect(page.locator('#account-ai-settings-details')).to_be_hidden()
+        page.locator('[data-workspace-view="learning"]').click()
+        page.locator('#account-activity > summary').click()
         page.locator('#account-activity-load').click()
         expect(page.locator('#account-activity-content')).to_contain_text('Mở phòng lab')
         assert 'Private student note' not in page.locator('#account-student-content').inner_text()
-        print('PASS student dashboard reads owned progress without management controls', flush=True)
+        page.screenshot(path='/tmp/strobot-product-account/student-desktop.png', full_page=True)
+        page.set_viewport_size({'width': 390, 'height': 844})
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        page.screenshot(path='/tmp/strobot-product-account/student-mobile.png', full_page=True)
+        page.set_viewport_size({'width': 1440, 'height': 1000})
+        print('PASS student resume, five course cards, private progress and collapsed settings on desktop/mobile', flush=True)
 
         page.locator('#account-logout').click()
         expect(page.locator('#account-signed-in')).to_be_hidden()
         login(manager['email'])
         expect(page.locator('#account-role-label')).to_have_text('Quản trị hệ thống')
-        expect(page.locator('#account-workspace-title')).to_contain_text('quản trị')
+        expect(page.locator('#account-workspace-title')).to_contain_text('Học viên')
         expect(page.locator('#account-management')).to_be_visible()
         expect(page.locator('#account-student-dashboard')).to_be_hidden()
+        expect(page.locator('[data-student-filter="pending"]')).to_be_visible()
+        expect(page.locator('#account-management-content')).to_contain_text('1/30 bài')
+        assert 'Private student note' not in page.locator('#account-management-content').inner_text()
+        assert not any(path.startswith('/v1/admin/ai/') for method, path in api_requests)
+        page.screenshot(path='/tmp/strobot-product-account/admin-desktop.png', full_page=True)
+        page.locator('[data-student-filter="pending"]').click()
+        expect(page.locator('[data-student-approve="' + pending_id + '"]')).to_be_visible()
+        expect(page.locator('[data-student-status="' + pending_id + '"]')).to_have_count(0)
+        expect(page.locator('[data-student-password="' + pending_id + '"]')).to_have_count(0)
+        page.once('dialog', lambda dialog: dialog.accept())
+        page.locator('[data-student-approve="' + pending_id + '"]').click()
+        expect(page.locator('#account-management-content')).to_contain_text('Không có đăng ký đang chờ duyệt')
+        page.locator('[data-student-filter="all"]').click()
+        expect(page.locator('[data-student-status="' + pending_id + '"]')).to_be_visible()
+        page.locator('[data-workspace-view="settings"]').click()
+        expect(page.locator('#account-ai-settings-details')).to_be_visible()
+        expect(page.locator('#account-ai-setup')).to_be_empty()
+        assert not any(path.startswith('/v1/admin/ai/') for method, path in api_requests)
+        page.locator('#account-ai-settings-details > summary').click()
+        expect(page.locator('[data-ai-setup-form]')).to_be_visible()
+        assert any(path.startswith('/v1/admin/ai/') for method, path in api_requests)
         page.locator('[data-workspace-view="learning"]').click()
         expect(page.locator('#account-student-dashboard')).to_be_visible()
         expect(page.locator('#account-student-content')).to_contain_text('0/30')
+        expect(page.locator('#account-ai-setup')).to_be_empty()
         page.locator('[data-workspace-view="management"]').click()
         page.locator('[data-management-mode="users"]').click()
         expect(page.locator('[data-student-status="' + manager_id + '"]')).to_have_count(0)
@@ -208,7 +303,7 @@ def main():
         page.locator('[data-student-status="' + other_id + '"]').click()
         expect(page.locator('[data-student-status="' + other_id + '"]')).to_have_text('Khóa học viên')
         expect(page.locator('[data-student-password="' + other_id + '"]')).to_have_count(1)
-        assert mutations == [('create', '10000000-0000-4000-8000-000000000004'), ('password', other_id), ('status-off', other_id), ('status-on', other_id)]
+        assert mutations == [('request', pending_id), ('approve', pending_id), ('create', '10000000-0000-4000-8000-000000000004'), ('password', other_id), ('status-off', other_id), ('status-on', other_id)]
         print('PASS managed student create/password/status actions use guarded APIs and clear passwords', flush=True)
 
         page.set_viewport_size({'width': 390, 'height': 844})
@@ -216,7 +311,9 @@ def main():
         manager.update(roles=[], permissions=[], role={'name': 'student'})
         page.evaluate('''async () => { const {accountService}=await import(new URL('../src/services/AccountService.js',location.href)); await accountService.reloadProfile(); }''')
         expect(page.locator('#account-management')).to_be_hidden()
-        expect(page.locator('#account-workspace-switch')).to_be_hidden()
+        expect(page.locator('[data-workspace-view="management"]')).to_be_hidden()
+        expect(page.locator('#account-ai-settings-details')).to_be_hidden()
+        expect(page.locator('#account-ai-setup')).to_be_empty()
         assert not errors, errors
         print('PASS mobile layout and loss of management role hide administration immediately', flush=True)
         browser.close()

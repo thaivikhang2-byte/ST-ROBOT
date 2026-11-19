@@ -11,20 +11,20 @@
   <link rel="stylesheet" href="../src/assets/css/components.css?v=guided-learning-v15">
   <link rel="stylesheet" href="../src/vendor/katex/katex.min.css?v=ai-render-v14">
   <link rel="stylesheet" href="../src/assets/css/ai-message.css?v=ai-render-v14">
-  <link rel="stylesheet" href="../src/assets/css/pages/account.css?v=account-views-v2">
+  <link rel="stylesheet" href="../src/assets/css/pages/account.css?v=product-account-v3">
 </head>
 <body class="account-page">
   <header id="navbar-container"></header>
   <main id="main" class="container account-main" tabindex="-1">
-    <div class="account-intro"><span class="eyebrow">Không gian học tập của bạn</span><h1>Tài khoản &amp; học tập</h1><p>Đăng nhập để lưu học tập theo tài khoản. Bạn vẫn có thể <a href="dangky.html">chọn khóa và học ngay</a> khi chưa đăng nhập.</p></div>
+    <div class="account-intro"><div><span class="eyebrow">ST-Robot · không gian cá nhân</span><h1 id="account-page-title">Học tập, cùng một tài khoản</h1><p id="account-page-description">Đăng nhập để tiếp tục bài học, lưu tiến độ và nhận hỗ trợ từ trợ lý AI.</p></div><a class="btn btn--ghost account-guest-link" href="course.learning.html">Xem khóa học</a></div>
     <p id="account-server-status" class="account-notice" role="status">Đang kiểm tra phiên đăng nhập…</p>
     <p id="account-message" class="account-message" role="status" tabindex="-1" hidden></p>
     <section id="account-auth" class="account-card" aria-labelledby="account-auth-title">
-      <h2 id="account-auth-title">Kết nối tài khoản</h2>
+      <h2 id="account-auth-title">Chào mừng đến ST-Robot</h2>
       <p id="account-registration-options" class="account-role-note" hidden></p>
       <nav class="account-tabs" aria-label="Tùy chọn tài khoản">
         <button type="button" class="btn btn--ghost" data-auth-mode="login" aria-pressed="true">Đăng nhập</button>
-        <button type="button" class="btn btn--ghost" data-auth-mode="register" aria-pressed="false">Tạo tài khoản</button>
+        <button type="button" class="btn btn--ghost" data-auth-mode="register" aria-pressed="false">Đăng ký học sinh</button>
         <button type="button" class="btn btn--ghost" data-auth-mode="verify" aria-pressed="false">Xác minh email</button>
         <button type="button" class="btn btn--ghost" data-auth-mode="reset" aria-pressed="false">Quên mật khẩu</button>
       </nav>
@@ -32,16 +32,16 @@
         <form method="post" id="account-login" class="account-form">
           <div class="field"><label for="login-email">Email</label><input id="login-email" name="email" type="email" autocomplete="username" maxlength="255" required></div>
           <div class="field"><label for="login-password">Mật khẩu</label><input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="100" required></div>
-          <button class="btn btn--primary" type="submit">Đăng nhập</button>
+          <div class="account-actions"><button class="btn btn--primary" type="submit">Đăng nhập</button><button class="btn btn--ghost" type="button" data-cancel-login hidden>Hủy đăng nhập</button></div>
         </form>
       </div>
       <div data-auth-panel="register" hidden>
-        <p>Mật khẩu từ 12 ký tự, tối đa 72 byte. Sau khi tạo tài khoản, xác minh email để bật lưu tiến độ lên máy chủ.</p>
+        <p id="account-register-help">Điền thông tin để gửi yêu cầu tài khoản học sinh. Quản trị viên duyệt trước khi bạn đăng nhập.</p>
         <form method="post" id="account-register" class="account-form">
           <div class="account-form-row"><div class="field"><label for="register-first">Tên</label><input id="register-first" name="firstName" autocomplete="given-name" maxlength="100" required></div><div class="field"><label for="register-last">Họ và tên đệm</label><input id="register-last" name="lastName" autocomplete="family-name" maxlength="100" required></div></div>
           <div class="field"><label for="register-email">Email</label><input id="register-email" name="email" type="email" autocomplete="username" maxlength="255" required></div>
           <div class="field"><label for="register-password">Mật khẩu mới</label><input id="register-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></div>
-          <button class="btn btn--primary" type="submit">Tạo tài khoản</button>
+          <button id="account-register-submit" class="btn btn--primary" type="submit">Gửi yêu cầu đăng ký</button>
         </form>
       </div>
       <div data-auth-panel="verify" hidden>
@@ -56,30 +56,27 @@
     </section>
     <div id="account-signed-in" hidden>
       <section class="account-workspace" aria-labelledby="account-workspace-title">
-        <span id="account-role-label" class="account-role-badge"></span>
-        <h2 id="account-workspace-title">Không gian học tập cá nhân</h2>
-        <p id="account-workspace-description">Tiếp tục bài học và xem dữ liệu thuộc tài khoản của bạn.</p>
-        <nav id="account-workspace-switch" class="account-tabs" aria-label="Không gian tài khoản" hidden>
+        <div class="account-workspace-heading"><div><span id="account-role-label" class="account-role-badge"></span><h2 id="account-workspace-title">Việc học của tôi</h2><p id="account-workspace-description">Tiếp tục bài học và theo dõi tiến độ.</p><p id="account-identity" class="account-role-note"></p></div><button id="account-logout" class="btn btn--ghost" type="button">Đăng xuất</button></div>
+        <nav id="account-workspace-switch" class="account-tabs account-workspace-nav" aria-label="Không gian tài khoản">
+          <button class="btn btn--ghost" type="button" data-workspace-view="management" aria-pressed="false" hidden>Học viên</button>
           <button class="btn btn--ghost" type="button" data-workspace-view="learning" aria-pressed="true">Việc học của tôi</button>
-          <button class="btn btn--ghost" type="button" data-workspace-view="management" aria-pressed="false">Quản lí hệ thống / lớp</button>
+          <button class="btn btn--ghost" type="button" data-workspace-view="settings" aria-pressed="false">Tài khoản</button>
         </nav>
       </section>
-      <section id="account-management" class="account-card" aria-labelledby="account-management-title" hidden><h2 id="account-management-title">Quản lí học tập</h2><p>Thông tin được lấy từ máy chủ theo quyền hiện tại của tài khoản.</p><nav id="account-management-tabs" class="account-tabs" aria-label="Chức năng quản lí"></nav><div id="account-management-content" aria-live="polite"></div><div id="account-ai-setup" hidden></div></section>
-      <section id="account-student-dashboard" class="account-card" data-workspace-section="learning" aria-labelledby="account-student-title">
-        <h2 id="account-student-title">Việc học của tôi</h2>
-        <p>Tiến độ, nhật ký và kết quả tự kiểm tra thuộc tài khoản đang đăng nhập. Đây là dữ liệu tự học, chưa phải điểm hoặc chứng nhận của giáo viên.</p>
-        <div id="account-student-content" aria-live="polite"><p>Đang mở dữ liệu học tập…</p></div>
-      </section>
-      <div class="account-grid">
-        <section class="account-card" aria-labelledby="account-profile-title"><h2 id="account-profile-title">Hồ sơ</h2><p id="account-identity"></p><p id="account-verification"></p><div class="account-actions"><button id="account-show-verify" class="btn btn--ghost" type="button" hidden>Xác minh email</button><button id="account-logout" class="btn btn--ghost" type="button">Đăng xuất</button></div>
+      <div class="account-sync-bar"><span id="account-sync-status" role="status">Đang mở dữ liệu học tập…</span><button id="account-sync-now" class="btn btn--ghost btn--sm" type="button">Đồng bộ</button></div>
+      <section id="account-management" class="account-card" aria-labelledby="account-management-title" hidden><h2 id="account-management-title">Học viên</h2><p>Đăng ký mới, tình trạng tài khoản và tiến độ từ các thiết bị.</p><nav id="account-management-tabs" class="account-tabs" aria-label="Chức năng quản lí"></nav><div id="account-management-content" aria-live="polite"></div></section>
+      <section id="account-student-dashboard" class="account-card" data-workspace-section="learning" aria-labelledby="account-student-title"><h2 id="account-student-title">Việc học của tôi</h2><div id="account-student-content" aria-live="polite"><p>Đang mở dữ liệu học tập…</p></div><p class="account-role-note">Tiến độ tự học được lưu theo tài khoản; kết quả này chưa phải điểm chấm của giáo viên.</p></section>
+      <details id="account-enrollments" class="account-disclosure" data-workspace-section="learning"><summary id="account-enrollments-title">Khóa học đã tham gia</summary><p>Tham gia để giảng viên phụ trách có thể xem bản tóm tắt tiến độ tự học của bạn. Nhật ký riêng không được chia sẻ. Bạn vẫn có thể tự học mà không tham gia khóa.</p><div id="account-enrollments-content" aria-live="polite"></div></details>
+      <details id="account-activity" class="account-disclosure" data-workspace-section="learning"><summary id="account-activity-title">Hoạt động gần đây</summary><p>Các lần mở bài, thực hành và đồng bộ được ghi nhận theo tài khoản; đây là lịch sử thao tác, không phải điểm được giáo viên xác nhận.</p><button id="account-activity-load" class="btn btn--ghost" type="button">Xem hoạt động</button><div id="account-activity-content" aria-live="polite"></div></details>
+      <details id="account-agent-details" class="account-disclosure" data-workspace-section="learning"><summary>Trao đổi với trợ lý AI</summary><p>Trợ lý đã được hệ thống cấu hình. Bạn chỉ cần đặt câu hỏi về bài học và tiến độ của mình.</p><div id="account-agent"></div></details>
+      <section id="account-settings" data-workspace-section="settings" hidden><h2 id="account-settings-title">Tài khoản của bạn</h2>
+        <details id="account-profile-details" class="account-disclosure"><summary id="account-profile-title">Hồ sơ &amp; bảo mật</summary><p id="account-verification"></p><div class="account-actions"><button id="account-show-verify" class="btn btn--ghost" type="button" hidden>Xác minh email</button></div>
           <form method="post" id="account-profile" class="account-form"><div class="account-form-row"><div class="field"><label for="profile-first">Tên</label><input id="profile-first" name="firstName" autocomplete="given-name" maxlength="100" required></div><div class="field"><label for="profile-last">Họ và tên đệm</label><input id="profile-last" name="lastName" autocomplete="family-name" maxlength="100" required></div></div><button class="btn btn--primary" type="submit">Lưu hồ sơ</button></form>
           <details class="account-security"><summary>Đổi mật khẩu &amp; phiên đăng nhập</summary><form method="post" id="account-change-password" class="account-form"><div class="field"><label for="change-current">Mật khẩu hiện tại</label><input id="change-current" name="currentPassword" type="password" autocomplete="current-password" required></div><div class="field"><label for="change-new">Mật khẩu mới</label><input id="change-new" name="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></div><button class="btn btn--ghost" type="submit">Đổi mật khẩu và đăng xuất</button></form><button id="account-logout-all" class="btn btn--ghost" type="button">Đăng xuất mọi thiết bị</button></details>
-        </section>
-        <section class="account-card" aria-labelledby="account-sync-title"><h2 id="account-sync-title">Tiến độ của bạn</h2><p id="account-sync-status" role="status">Đang đọc trạng thái đồng bộ…</p><div class="account-actions"><button id="account-sync-now" class="btn btn--primary" type="button">Đồng bộ ngay</button><button id="account-import-local" class="btn btn--ghost" type="button" hidden>Nhập dữ liệu học khi chưa đăng nhập</button><button id="account-sync-export" class="btn btn--ghost" type="button" hidden>Tải bản sao trên thiết bị</button><button id="account-sync-use-server" class="btn btn--ghost" type="button" hidden>Dùng bản trên máy chủ</button><button id="account-sync-keep-local" class="btn btn--ghost" type="button" hidden>Dùng bản trên thiết bị</button></div><p class="text-small text-muted">Tiến độ và nhật ký được gắn với từng tài khoản. Dữ liệu học khi chưa đăng nhập chỉ được nhập khi bạn chọn; các phần đã có trong tài khoản được giữ lại.</p><a href="course.learning.html">Tiếp tục học →</a></section>
-      </div>
-      <section id="account-enrollments" class="account-card" data-workspace-section="learning" aria-labelledby="account-enrollments-title"><h2 id="account-enrollments-title">Tham gia khóa học</h2><p>Tham gia để giảng viên phụ trách có thể xem bản tóm tắt tiến độ tự học của bạn. Nhật ký riêng không được chia sẻ. Bạn vẫn có thể tự học mà không tham gia khóa.</p><div id="account-enrollments-content" aria-live="polite"></div></section>
-      <section id="account-activity" class="account-card" data-workspace-section="learning" aria-labelledby="account-activity-title"><h2 id="account-activity-title">Hoạt động gần đây</h2><p>Các lần mở bài, thực hành và đồng bộ được ghi nhận theo tài khoản; đây là lịch sử thao tác, không phải điểm được giáo viên xác nhận.</p><button id="account-activity-load" class="btn btn--ghost" type="button">Xem hoạt động</button><div id="account-activity-content" aria-live="polite"></div></section>
-      <div id="account-agent"></div>
+        </details>
+        <details id="account-sync-tools" class="account-disclosure"><summary id="account-sync-title">Nhập dữ liệu &amp; xử lý đồng bộ</summary><div class="account-actions"><button id="account-import-local" class="btn btn--ghost" type="button" hidden>Nhập dữ liệu học khi chưa đăng nhập</button><button id="account-sync-export" class="btn btn--ghost" type="button" hidden>Tải bản sao trên thiết bị</button><button id="account-sync-use-server" class="btn btn--ghost" type="button" hidden>Dùng bản trên máy chủ</button><button id="account-sync-keep-local" class="btn btn--ghost" type="button" hidden>Dùng bản trên thiết bị</button></div><p class="text-small text-muted">Tiến độ và nhật ký được gắn với từng tài khoản. Dữ liệu học khi chưa đăng nhập chỉ được nhập khi bạn chọn; các phần đã có trong tài khoản được giữ lại.</p><a href="course.learning.html">Tiếp tục học →</a></details>
+        <details id="account-ai-settings-details" class="account-disclosure" hidden><summary>Cấu hình AI của hệ thống</summary><p>Cấu hình dùng chung cho mọi học sinh. Chỉ mở mục này khi cần bảo trì; người học không phải nhập API key.</p><div id="account-ai-setup" hidden></div></details>
+      </section>
     </div>
     <dialog id="account-student-password-dialog" class="account-dialog" aria-labelledby="account-student-password-title">
       <h2 id="account-student-password-title">Đặt mật khẩu cho học sinh</h2>
@@ -94,6 +91,6 @@
   </main>
   <div id="footer-container"></div><div id="backtotop-container"></div><div id="chatbox-container"></div>
   <script type="module" src="../src/app.js?v=account-agent-v2"></script>
-  <script type="module" src="../src/modules/account/AccountPage.js?v=account-views-v2"></script>
+  <script type="module" src="../src/modules/account/AccountPage.js?v=product-account-v3"></script>
 </body>
 </html>

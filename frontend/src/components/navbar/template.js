@@ -8,7 +8,6 @@ export const NAV_ITEMS = [
     { href: ROUTES.HOC_LIEU, label: 'Khóa học & Học liệu' },
     { href: ROUTES.COURSE_LEARNING, label: 'Tự học' },
     { href: ROUTES.QUIZ, label: 'Kiểm tra' },
-    { href: ROUTES.ACCOUNT, label: 'Tài khoản' },
 ];
 
 export const getNavbarTemplate = () => `
@@ -20,7 +19,7 @@ export const getNavbarTemplate = () => `
         ${NAV_ITEMS.map((item) => `<li><a class="nav-link" href="${item.href}" data-path="${item.href}">${item.label}</a></li>`).join('')}
       </ul>
       <div class="navbar-actions">
-        <a class="btn btn--primary btn--sm" href="${ROUTES.DANG_KY}" data-path="${ROUTES.DANG_KY}">Chọn khóa</a>
+        <a id="accountNavAction" class="btn btn--primary btn--sm" href="${ROUTES.ACCOUNT}" data-path="${ROUTES.ACCOUNT}">Đăng nhập</a>
         <button id="themeToggleBtn" class="btn btn--ghost btn--icon" type="button" aria-pressed="false" aria-label="Chế độ tối">${icon('moon')}</button>
         <button id="navToggle" class="btn btn--ghost btn--icon navbar-toggle" type="button" aria-expanded="false" aria-controls="mainNavbar" aria-label="Mở menu">${icon('menu')}</button>
       </div>

@@ -26,13 +26,22 @@ export function workspaceAccess(user, { offline = false } = {}) {
 }
 
 export function canUpdateStudentStatus(actor, student, options = {}) {
-    if (!workspaceAccess(actor, options).canUpdateStudents || !student?.id || actor.id === student.id) return false;
+    if (!workspaceAccess(actor, options).canUpdateStudents || !student?.id || actor.id === student.id || student.approvalPending) return false;
     if (['admin', 'superadmin', 'teacher'].includes(student.role?.name)) return false;
     if (student.management !== undefined) return student.management?.studentOnly === true
         && Array.isArray(student.management.roleGroups) && student.management.roleGroups.length > 0
         && student.management.roleGroups.every(group => group === 'STUDENT');
     if (student.isActive === false) return false;
     return Array.isArray(student.roles) && student.roles.length > 0 && student.roles.every(role => role.group === 'STUDENT');
+}
+
+export function canApproveStudent(actor, student, options = {}) {
+    const access = workspaceAccess(actor, options);
+    return Boolean(access.manager && access.management && actor?.permissions?.includes('users:create')
+        && student?.id && student.approvalPending === true && student.isActive === false
+        && actor.id !== student.id && student.management?.studentOnly === true
+        && Array.isArray(student.management.roleGroups) && student.management.roleGroups.length > 0
+        && student.management.roleGroups.every(group => group === 'STUDENT'));
 }
 
 /** Read only the current account's storage facade; never read the guest keys here. */
