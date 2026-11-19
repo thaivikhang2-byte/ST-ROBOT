@@ -269,4 +269,68 @@ assert.equal(resolveBackendUrl(baseUrl + '/'), baseUrl);
     assert.deepEqual(await service.request('/v1/learner-state'), { owner: secondUser.id });
 }
 
-console.log('PASS account configuration, session isolation, refresh/auth intent races, offline restoration, stale consumers and logout');
+// A fresh profile returned by refresh avoids a redundant /me and replaces cached authority.
+{
+    const storage = store(), calls = [];
+    const freshUser = { ...user, firstName: 'Fresh', roles: [], permissions: ['learning:read'] };
+    storage.setItem(ACCOUNT_SESSION_KEY, JSON.stringify({ version: 1, baseUrl, refreshToken: 'refresh-one', profile: { ...user, roles: ['ADMIN'] } }));
+    const service = new AccountService({ baseUrl, storage, fetchImpl: async url => {
+        calls.push(url);
+        assert.equal(url, baseUrl + '/v1/auth/refresh');
+        return response({ tokens: auth('fresh-access', 'fresh-refresh').tokens, user: freshUser });
+    } });
+    assert.equal(await service.ready(), freshUser);
+    assert.equal(service.user, freshUser);
+    assert.deepEqual(service.user.permissions, ['learning:read']);
+    assert.equal(service.sessionOffline, false);
+    assert.equal(calls.length, 1);
+    assert.equal(JSON.parse(storage.getItem(ACCOUNT_SESSION_KEY)).refreshToken, 'fresh-refresh');
+}
+
+// A malformed or different-owner profile cannot install its rotated refresh tokens.
+for (const invalidUser of [secondUser, { email: user.email }, { ...user, id: 42 }]) {
+    const storage = store();
+    storage.setItem(ACCOUNT_SESSION_KEY, JSON.stringify({ version: 1, baseUrl, refreshToken: 'refresh-one', profile: user }));
+    const service = new AccountService({ baseUrl, storage, fetchImpl: async () => response({ tokens: auth('wrong-access', 'wrong-refresh').tokens, user: invalidUser }) });
+    await assert.rejects(service._refresh(), { code: 'INVALID_RESPONSE' });
+    assert.equal(service.user, null);
+    assert.equal(service._accessToken, '');
+    assert.equal(JSON.parse(storage.getItem(ACCOUNT_SESSION_KEY)).refreshToken, 'refresh-one');
+}
+
+// Fresh refresh identity recovers an offline owner without adding another profile round trip.
+{
+    const storage = store(), calls = [];
+    storage.setItem(ACCOUNT_SESSION_KEY, JSON.stringify({ version: 1, baseUrl, refreshToken: 'refresh-one', profile: user }));
+    let online = false;
+    const service = new AccountService({ baseUrl, storage, fetchImpl: async url => {
+        calls.push(url);
+        if (!online) throw new TypeError('fixture offline');
+        if (url.endsWith('/refresh')) return response({ tokens: auth('fresh-access', 'fresh-refresh').tokens, user });
+        assert.equal(url, baseUrl + '/v1/learner-state');
+        return response({ owner: user.id });
+    } });
+    assert.equal((await service.ready()).id, user.id);
+    assert.equal(service.sessionOffline, true);
+    assert.deepEqual(service.user.roles, []);
+    online = true;
+    assert.deepEqual(await service.request('/v1/learner-state'), { owner: user.id });
+    assert.equal(service.sessionOffline, false);
+    assert.equal(calls.filter(url => url.endsWith('/refresh')).length, 2);
+    assert.equal(calls.some(url => url.endsWith('/me')), false);
+}
+
+// A late profile-bearing refresh cannot replace a newer explicit login.
+{
+    const refresh = deferred(), storage = store();
+    storage.setItem(ACCOUNT_SESSION_KEY, JSON.stringify({ version: 1, baseUrl, refreshToken: 'refresh-one', profile: user }));
+    const service = new AccountService({ baseUrl, storage, fetchImpl: async url => url.endsWith('/refresh') ? refresh.promise : response(secondAuth()) });
+    const oldRestore = service.ready();
+    await service.signIn({ email: secondUser.email, password: 'fixture password' });
+    refresh.resolve(response({ tokens: auth('rotated-old-access', 'rotated-old-refresh').tokens, user }));
+    assert.equal(await oldRestore, secondUser);
+    assert.equal(service.user, secondUser);
+    assert.equal(JSON.parse(storage.getItem(ACCOUNT_SESSION_KEY)).refreshToken, 'refresh-two');
+}
+
+console.log('PASS account configuration, session isolation, refresh/auth intent races, offline and fresh-profile restoration, stale consumers and logout');

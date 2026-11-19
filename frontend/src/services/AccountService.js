@@ -1,7 +1,10 @@
 import { resolveBackendUrl } from '../config/backend.config.js';
 
 export const ACCOUNT_SESSION_KEY = 'strobot.account.session.v1';
+export const ACCOUNT_CONNECTION_KEY = 'strobot.account.connection.v1';
 export const ACCOUNT_CONNECTION_EVENT = 'strobot:account-connection';
+
+const CONNECTION_HINT_MAX_AGE = 5 * 60 * 1000;
 
 const abortedRequest = () => new AccountError('Kết nối đã bị hủy. Vui lòng thử lại.', 0, 'REQUEST_ABORTED');
 const changedSession = () => new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
@@ -45,6 +48,8 @@ export class AccountService {
         } : null;
         this._connectionUntil = 0;
         this._connectionFlight = null;
+        this._connectionStartedAt = 0;
+        this._connectionRevision = 0;
         this.connectionStatus = 'idle';
         this.sessionError = null;
         this.sessionOffline = false;
@@ -59,6 +64,15 @@ export class AccountService {
                     this._cachedUser = { id: cached.id, email: cached.email.slice(0, 255), firstName: String(cached.firstName || '').slice(0, 100), lastName: String(cached.lastName || '').slice(0, 100), isEmailVerified: cached.isEmailVerified === true, roles: [], permissions: [] };
             }
         } catch { /* Invalid or disabled storage is equivalent to no persisted session. */ }
+        if (this._warmup) {
+            try {
+                const hint = JSON.parse(storage?.getItem(ACCOUNT_CONNECTION_KEY) || 'null');
+                const now = Date.now(), maximum = Math.min(this._warmup.ttlMs, CONNECTION_HINT_MAX_AGE);
+                if (hint?.version === 1 && hint.baseUrl === baseUrl && Number.isSafeInteger(hint.checkedAt)
+                    && hint.checkedAt >= 0 && hint.checkedAt <= now && now - hint.checkedAt < maximum)
+                    this._connectionUntil = hint.checkedAt + maximum;
+            } catch { /* A missing readiness hint only adds one safe health request. */ }
+        }
     }
 
     get user() { return this._user; }
@@ -66,6 +80,10 @@ export class AccountService {
     get configured() { return !!this.baseUrl; }
     // Opaque revision for consumers that perform state changes after awaiting an API call.
     get sessionVersion() { return `${this._generation}:${this._authIntent}`; }
+    get connectionElapsedMs() {
+        return this.connectionStatus === 'connecting' ? Math.max(0, Date.now() - this._connectionStartedAt) : 0;
+    }
+    get connectionTimeoutMs() { return this._warmup?.timeoutMs ?? 0; }
 
     subscribe(listener) {
         this._listeners.add(listener);
@@ -76,8 +94,33 @@ export class AccountService {
     _connection(status) {
         if (this.connectionStatus === status) return;
         this.connectionStatus = status;
+        this._connectionStartedAt = status === 'connecting' ? Date.now() : 0;
         if (typeof globalThis.dispatchEvent === 'function' && typeof globalThis.CustomEvent === 'function')
             globalThis.dispatchEvent(new CustomEvent(ACCOUNT_CONNECTION_EVENT, { detail: { status } }));
+    }
+
+    _rememberConnection() {
+        if (!this._warmup) return;
+        const checkedAt = Date.now();
+        this._connectionUntil = checkedAt + this._warmup.ttlMs;
+        this._connectionRevision++;
+        try {
+            // This short-lived server hint contains no identity, token, permission or provider key.
+            this.storage?.setItem(ACCOUNT_CONNECTION_KEY, JSON.stringify({ version: 1, baseUrl: this.baseUrl, checkedAt }));
+        } catch { /* Readiness remains cached in memory when session storage is unavailable. */ }
+        this._connection('ready');
+    }
+
+    _forgetConnection(revision = this._connectionRevision) {
+        // An old failed request cannot erase evidence from a newer successful response.
+        if (!this._warmup || revision !== this._connectionRevision) return;
+        this._connectionUntil = 0;
+        try { this.storage?.removeItem(ACCOUNT_CONNECTION_KEY); } catch { /* Storage can be disabled. */ }
+    }
+
+    prepareConnection({ signal } = {}) {
+        this._checkPath('/v1/auth/options');
+        return this._ensureConnection(signal);
     }
 
     _waitWithSignal(promise, signal, onAbort) {
@@ -130,10 +173,7 @@ export class AccountService {
                 if (flight.controller.signal.aborted) throw abortedRequest();
                 try {
                     await this._healthAttempt(flight.controller.signal, Math.min(this._warmup.requestTimeoutMs, deadline - Date.now()));
-                    if (this._connectionFlight === flight) {
-                        this._connectionUntil = Date.now() + this._warmup.ttlMs;
-                        this._connection('ready');
-                    }
+                    if (this._connectionFlight === flight) this._rememberConnection();
                     return;
                 } catch (error) {
                     if (error.code !== 'NETWORK_ERROR') throw error;
@@ -147,7 +187,10 @@ export class AccountService {
             }
             throw connectionFailure();
         } catch (error) {
-            if (this._connectionFlight === flight) this._connection(error.code === 'REQUEST_ABORTED' ? 'idle' : 'error');
+            if (this._connectionFlight === flight) {
+                this._forgetConnection();
+                this._connection(error.code === 'REQUEST_ABORTED' ? 'idle' : 'error');
+            }
             throw error;
         }
     }
@@ -217,15 +260,16 @@ export class AccountService {
             if (!this.configured || !this._refreshToken) return null;
             const generation = this._generation;
             try {
-                await this._refresh();
+                const refreshed = await this._refresh();
                 if (generation !== this._generation) return this._user;
-                const user = await this.request('/v1/auth/me');
+                const user = refreshed || await this.request('/v1/auth/me');
                 if (generation !== this._generation) return this._user;
+                const changed = this._user !== user || this.sessionOffline;
                 this._user = user;
                 this.sessionError = null;
                 this.sessionOffline = false;
                 this._persist();
-                this._notify();
+                if (changed) this._notify();
                 return user;
             } catch (error) {
                 if (generation !== this._generation || error.code === 'SESSION_CHANGED') return this._user;
@@ -260,6 +304,7 @@ export class AccountService {
         // A delayed connection must not attach a new account's token to an old account's body.
         if (sessionGuard && !sessionGuard()) throw changedSession();
         if (signal?.aborted) throw abortedRequest();
+        const readinessRevision = this._connectionRevision;
         const controller = new AbortController();
         const abort = () => controller.abort();
         if (signal?.aborted) controller.abort();
@@ -274,14 +319,24 @@ export class AccountService {
             });
             const payload = await response.json().catch(() => null);
             if (controller.signal.aborted) throw abortedRequest();
-            if (!response.ok || payload?.success === false)
+            if (!response.ok || payload?.success === false) {
+                if (response.status >= 500) this._forgetConnection(readinessRevision);
                 throw new AccountError(typeof payload?.message === 'string' ? payload.message : 'Không thể thực hiện yêu cầu. Vui lòng thử lại.', response.status, payload?.error?.code || 'HTTP_ERROR');
-            if (!payload || payload.success !== true || !Object.hasOwn(payload, 'data'))
+            }
+            if (!payload || payload.success !== true || !Object.hasOwn(payload, 'data')) {
+                this._forgetConnection(readinessRevision);
                 throw new AccountError('Máy chủ trả về dữ liệu không hợp lệ.', response.status, 'INVALID_RESPONSE');
-            if (this._warmup) this._connectionUntil = Date.now() + this._warmup.ttlMs;
+            }
+            this._rememberConnection();
             return payload.data;
         } catch (error) {
-            if (error instanceof AccountError) throw error;
+            if (error instanceof AccountError) {
+                if (error.code === 'REQUEST_ABORTED') this._forgetConnection(readinessRevision);
+                throw error;
+            }
+            this._forgetConnection(readinessRevision);
+            if (!controller.signal.aborted && this._warmup && readinessRevision === this._connectionRevision)
+                this._connection('error');
             throw new AccountError(controller.signal.aborted ? 'Kết nối quá thời gian hoặc đã bị hủy. Vui lòng thử lại.' : 'Không kết nối được máy chủ. Kiểm tra mạng và thử lại.', 0, controller.signal.aborted ? 'REQUEST_ABORTED' : 'NETWORK_ERROR');
         } finally {
             clearTimeout(timer);
@@ -292,11 +347,25 @@ export class AccountService {
     _refresh() {
         if (this._refreshPromise) return this._refreshPromise;
         const token = this._refreshToken, generation = this._generation;
+        const ownerId = this._user?.id || this._cachedUser?.id;
         if (!token) return Promise.reject(new AccountError('Vui lòng đăng nhập để tiếp tục.', 401, 'UNAUTHORIZED'));
         this._refreshPromise = this._send('/v1/auth/refresh', { method: 'POST', body: { refreshToken: token }, auth: false, sessionGuard: () => generation === this._generation })
             .then(async data => {
                 if (generation !== this._generation) throw new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
+                const refreshed = data?.user;
+                if (refreshed != null && (typeof refreshed !== 'object'
+                    || typeof refreshed.id !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(refreshed.id)
+                    || typeof refreshed.email !== 'string' || (ownerId && refreshed.id !== ownerId)))
+                    throw new AccountError('Máy chủ trả về hồ sơ phiên không hợp lệ.', 0, 'INVALID_RESPONSE');
                 this._tokens(data.tokens);
+                if (refreshed) {
+                    this._user = refreshed;
+                    this.sessionOffline = false;
+                    this.sessionError = null;
+                    this._persist();
+                    this._notify();
+                    return refreshed;
+                }
                 if (this.sessionOffline) {
                     const user = await this._send('/v1/auth/me');
                     if (generation !== this._generation) throw new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
@@ -305,6 +374,7 @@ export class AccountService {
                     this.sessionError = null;
                     this._persist();
                     this._notify();
+                    return user;
                 }
             }).catch(error => {
                 if (error.status === 401 && generation === this._generation) this._clear();

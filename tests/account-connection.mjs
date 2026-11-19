@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { AccountService, ACCOUNT_SESSION_KEY, ACCOUNT_CONNECTION_EVENT } from '../frontend/src/services/AccountService.js';
+import { AccountService, ACCOUNT_SESSION_KEY, ACCOUNT_CONNECTION_KEY, ACCOUNT_CONNECTION_EVENT } from '../frontend/src/services/AccountService.js';
 
 const baseUrl = 'https://account.example.test/api';
 const user = { id: 'learner-one', email: 'learner@example.test', firstName: 'Learner', roles: ['STAFF'], permissions: ['users:manage'] };
@@ -74,6 +74,137 @@ const storage = profile => {
     await delay(25);
     await service.request('/v1/auth/options', { auth: false });
     assert.equal(checks, 2);
+}
+
+// A recent server-bound timestamp skips redundant health on another page, without restoring authority.
+{
+    const saved = storage(), calls = [];
+    const fetchImpl = async (url, options) => {
+        calls.push({ url, options });
+        return url.endsWith('/system/health/live') ? healthy() : response(auth());
+    };
+    const first = new AccountService({ baseUrl, warmup: timing, storage: saved, fetchImpl });
+    await first.prepareConnection();
+    const hint = JSON.parse(saved.getItem(ACCOUNT_CONNECTION_KEY));
+    assert.deepEqual(Object.keys(hint).sort(), ['baseUrl', 'checkedAt', 'version']);
+    assert.equal(hint.baseUrl, baseUrl);
+    assert.equal(Number.isSafeInteger(hint.checkedAt), true);
+    const next = new AccountService({ baseUrl, warmup: timing, storage: saved, fetchImpl });
+    assert.equal(next.user, null);
+    assert.equal(next.connectionStatus, 'idle');
+    await next.prepareConnection();
+    assert.equal(calls.length, 1);
+    assert.equal((await next.signIn(credentials)).id, user.id);
+    assert.equal(calls.length, 2);
+    assert.equal(next.connectionStatus, 'ready');
+    assert.equal(calls[0].options.headers.Authorization, undefined);
+    assert.equal(calls[0].options.body, undefined);
+    assert.equal(calls[1].options.method, 'POST');
+    const serialized = saved.getItem(ACCOUNT_CONNECTION_KEY);
+    assert.equal(serialized.includes(user.email), false);
+    assert.equal(serialized.includes('refresh-'), false);
+}
+
+// Future, malformed, foreign and older-than-five-minute hints always require a real health check.
+for (const changes of [
+    { checkedAt: Date.now() - 300001 }, { checkedAt: Date.now() + 60000 },
+    { baseUrl: 'https://other.example.test/api' }, { version: 2 }, { checkedAt: 'recent' },
+]) {
+    const saved = storage();
+    saved.setItem(ACCOUNT_CONNECTION_KEY, JSON.stringify({ version: 1, baseUrl, checkedAt: Date.now(), ...changes }));
+    let checks = 0;
+    const service = new AccountService({ baseUrl, warmup: { ...timing, ttlMs: 900000 }, storage: saved, fetchImpl: async url => {
+        assert.equal(url, baseUrl + '/system/health/live'); checks++; return healthy();
+    } });
+    await service.prepareConnection();
+    assert.equal(checks, 1);
+}
+
+// A failing API invalidates the short-lived hint; only a new manual attempt resubmits credentials.
+for (const failure of ['status', 'network']) {
+    const saved = storage(), calls = [];
+    let online = false;
+    const service = new AccountService({ baseUrl, warmup: timing, storage: saved, fetchImpl: async (url, options) => {
+        calls.push(options.method);
+        if (url.endsWith('/system/health/live')) return healthy();
+        if (!online) {
+            if (failure === 'network') throw new TypeError('fixture offline');
+            return response(null, 503);
+        }
+        return response(auth());
+    } });
+    await assert.rejects(service.signIn(credentials), failure === 'network' ? { code: 'NETWORK_ERROR' } : { status: 503 });
+    assert.equal(saved.getItem(ACCOUNT_CONNECTION_KEY), null);
+    assert.deepEqual(calls, ['GET', 'POST']);
+    online = true;
+    await service.signIn(credentials);
+    assert.deepEqual(calls, ['GET', 'POST', 'GET', 'POST']);
+}
+
+// A late network failure must not erase evidence from a newer successful response.
+{
+    const slow = deferred(), saved = storage();
+    const service = new AccountService({ baseUrl, warmup: timing, storage: saved, fetchImpl: async url => {
+        if (url.endsWith('/system/health/live')) return healthy();
+        if (url.endsWith('/slow')) return slow.promise;
+        return response({ ok: true });
+    } });
+    await service.prepareConnection();
+    const older = service.request('/v1/fixture/slow', { auth: false });
+    const rejected = assert.rejects(older, { code: 'NETWORK_ERROR' });
+    await delay(0);
+    await service.request('/v1/fixture/fast', { auth: false });
+    slow.reject(new TypeError('late fixture failure'));
+    await rejected;
+    assert.ok(saved.getItem(ACCOUNT_CONNECTION_KEY));
+    assert.equal(service.connectionStatus, 'ready');
+}
+
+// Cancelling the public preparation API leaves a login sharing the warmup intact.
+{
+    const health = deferred(), calls = [], controller = new AbortController();
+    const service = new AccountService({ baseUrl, warmup: timing, storage: storage(), fetchImpl: async (url, options) => {
+        calls.push(options.method);
+        return url.endsWith('/system/health/live') ? health.promise : response(auth());
+    } });
+    assert.equal(service.connectionElapsedMs, 0);
+    assert.equal(service.connectionTimeoutMs, timing.timeoutMs);
+    const preparation = service.prepareConnection({ signal: controller.signal });
+    const rejected = assert.rejects(preparation, { code: 'REQUEST_ABORTED' });
+    const login = service.signIn(credentials);
+    await delay(5);
+    assert.equal(service.connectionStatus, 'connecting');
+    assert.ok(service.connectionElapsedMs > 0);
+    controller.abort();
+    await rejected;
+    health.resolve(healthy());
+    assert.equal((await login).id, user.id);
+    assert.equal(service.connectionElapsedMs, 0);
+    assert.deepEqual(calls, ['GET', 'POST']);
+}
+
+// Count the actual round trips on a restored account navigation; timing is illustrative only.
+{
+    const measurements = {};
+    for (const fast of [false, true]) {
+        const saved = storage(user), calls = [];
+        if (fast) saved.setItem(ACCOUNT_CONNECTION_KEY, JSON.stringify({ version: 1, baseUrl, checkedAt: Date.now() }));
+        const service = new AccountService({ baseUrl, warmup: timing, storage: saved, fetchImpl: async url => {
+            calls.push(url);
+            await delay(10);
+            if (url.endsWith('/system/health/live')) return healthy();
+            if (url.endsWith('/refresh')) return response({ tokens: auth().tokens, ...(fast ? { user } : {}) });
+            assert.equal(url, baseUrl + '/v1/auth/me');
+            return response(user);
+        } });
+        const started = Date.now();
+        assert.equal((await service.ready()).id, user.id);
+        measurements[fast ? 'optimized' : 'old'] = { requests: calls.length, elapsedMs: Date.now() - started };
+        assert.equal(calls.filter(url => url.endsWith('/refresh')).length, 1);
+    }
+    assert.equal(measurements.old.requests, 3);
+    assert.equal(measurements.optimized.requests, 1);
+    console.log('Returning account navigation fixture:', JSON.stringify({ ...measurements, roundTripDelayMs: 10 }));
 }
 
 // One cancelled consumer must not cancel a shared connection or send its subsequent API call.
