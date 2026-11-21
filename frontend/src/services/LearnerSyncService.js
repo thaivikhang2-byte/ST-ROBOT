@@ -21,6 +21,25 @@ const sameValues = (left, right) => {
     return keys.length === Object.keys(right).length && keys.every(key => right[key] === left[key]);
 };
 const COURSE_KEY = 'strobot.original.course.v3';
+const COURSE_BYTE_LIMIT = 5 * 1024 * 1024;
+const SNAPSHOT_BYTE_LIMIT = 8 * 1024 * 1024;
+const storageEncoder = new TextEncoder();
+// Check the values already read by the atomic writer. Re-reading through the
+// facade for each key parses the complete (possibly multi-MiB) envelope again.
+function assertSnapshotQuota(values, key, replacement) {
+    const course = key === COURSE_KEY ? replacement : values[COURSE_KEY];
+    const replacementBytes = storageEncoder.encode(replacement).length;
+    const courseBytes = key === COURSE_KEY ? replacementBytes : typeof course === 'string' ? storageEncoder.encode(course).length : 0;
+    if (courseBytes > COURSE_BYTE_LIMIT)
+        throw Object.assign(new Error('Hồ sơ khóa học vượt 5 MiB; tải mã hoặc hồ sơ để giữ bản nháp.'), { code: 'LEARNER_QUOTA_EXCEEDED' });
+    let bytes = replacementBytes;
+    for (const [storedKey, raw] of Object.entries(values)) {
+        if (storedKey !== key) bytes += storedKey === COURSE_KEY ? courseBytes : storageEncoder.encode(raw).length;
+        if (bytes > SNAPSHOT_BYTE_LIMIT) break;
+    }
+    if (bytes > SNAPSHOT_BYTE_LIMIT)
+        throw Object.assign(new Error('Hồ sơ đồng bộ vượt 8 MiB. Bản nháp được giữ; hãy tải mã hoặc hồ sơ trước khi thu gọn.'), { code: 'LEARNER_QUOTA_EXCEEDED' });
+}
 const ABSENT = Symbol('absent');
 const equalTree = (left, right) => {
     if (left === right) return true;
@@ -169,6 +188,7 @@ export class LearnerSyncService {
         let courseBaseline = ownerId ? this._read(ownerId).values[COURSE_KEY] ?? null : this.storage.getItem(COURSE_KEY);
         return {
             ownerId,
+            enforcesSnapshotQuota: true,
             getItem: key => {
                 if (!KEY_SET.has(key)) return null;
                 const value = ownerId ? this._read(ownerId).values[key] ?? null : this.storage.getItem(key);
@@ -187,6 +207,14 @@ export class LearnerSyncService {
                         throw Object.assign(new Error('Mục này đã được sửa ở tab khác. Bản nháp vẫn ở tab này; hãy tải hồ sơ trước khi chọn bản muốn giữ.'), { code: 'TAB_EDIT_CONFLICT' });
                     }
                 }
+                // A disjoint-tab merge can be larger than either individual
+                // edit. Validate the merged value before changing the bundle,
+                // saved baseline, draft recovery state or revision.
+                const values = bundle?.values ?? Object.fromEntries(LEARNER_KEYS.flatMap(storedKey => {
+                    const value = this.storage.getItem(storedKey);
+                    return typeof value === 'string' ? [[storedKey, value]] : [];
+                }));
+                assertSnapshotQuota(values, key, merged);
                 if (!ownerId) {
                     this.storage.setItem(key, merged);
                     if (key === COURSE_KEY) courseBaseline = raw;
@@ -234,7 +262,7 @@ export class LearnerSyncService {
         else {
             this._status('pending', 'Đã lưu trên thiết bị; đang chờ đồng bộ.');
             clearTimeout(this._timer);
-            this._timer = setTimeout(() => { void this.sync(); }, this.debounceMs);
+            this._timer = setTimeout(() => { void this.sync({ refresh: false }); }, this.debounceMs);
             this._timer.unref?.();
         }
     }
@@ -300,7 +328,21 @@ export class LearnerSyncService {
             this._timer.unref?.();
         }
     }
-    async sync() {
+    async flushPending() {
+        const ownerId = this.ownerId, epoch = this.epoch;
+        // Drain a pending edit that changed during a previous PUT, without
+        // turning a clean AI preflight into a full remote workspace refresh.
+        // A continuing stream of edits remains queued after this bounded pass.
+        for (let attempt = 0; attempt < 3; attempt++) {
+            await this.sync({ refresh: false });
+            if (ownerId !== this.ownerId || epoch !== this.epoch || !ownerId
+                || !['pending', 'syncing', 'synced'].includes(this.status.status)) break;
+            try { if (!this._read(ownerId).dirty) break; }
+            catch { break; } // sync() has already exposed corruption without changing it.
+        }
+        return this.status;
+    }
+    async sync({ refresh = true } = {}) {
         if (!this.ownerId) return this.status;
         if (!verified(this.user)) {
             this._status('verification', 'Đã lưu trên thiết bị. Xác minh email để đồng bộ với tài khoản.');
@@ -316,6 +358,9 @@ export class LearnerSyncService {
                     return this.status;
                 }
                 if (!sent.dirty) {
+                    // Keep the existing status: skipping a read is not proof
+                    // that an offline/cached copy has just reached the server.
+                    if (!refresh) return this.status;
                     // A manual refresh also receives work saved on another device.
                     const remote = await this.account.request('/v1/learner-state', { timeoutMs: 8000 });
                     if (epoch !== this.epoch) return this.status;
@@ -359,7 +404,7 @@ export class LearnerSyncService {
                 this._flight = null;
                 if (epoch === this.epoch && this.status.status === 'pending') {
                     clearTimeout(this._timer);
-                    this._timer = setTimeout(() => { void this.sync(); }, this.debounceMs);
+                    this._timer = setTimeout(() => { void this.sync({ refresh: false }); }, this.debounceMs);
                     this._timer.unref?.();
                 }
             }

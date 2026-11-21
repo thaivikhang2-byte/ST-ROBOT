@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { LearnerSyncService, LEARNER_WORKSPACE_PREFIX } from '../frontend/src/services/LearnerSyncService.js';
+import { LearnerSyncService, LEARNER_KEYS, LEARNER_WORKSPACE_PREFIX } from '../frontend/src/services/LearnerSyncService.js';
 
 const COURSE = 'strobot.original.course.v3';
 const QUIZ = 'strobot.quiz.history.v1';
@@ -327,4 +327,176 @@ const waitForSave = (auth, edit) => new Promise((resolve, reject) => {
     sync.destroy();
 }
 
-console.log('Learner sync: guest preservation, account isolation, offline queue, CAS conflicts and in-flight edits passed.');
+// AI preflight only flushes pending edits. An explicit refresh still downloads
+// work from another device; a clean offline status is never reported as synced.
+{
+    const auth = account(user('alice')), sync = make(auth);
+    await sync.ready(); auth.calls.length = 0;
+    await sync.flushPending(); await sync.flushPending();
+    assert.equal(auth.calls.length, 0, 'Clean AI preflight must not download a full workspace');
+    sync.scopedStorage().setItem(COURSE, '{"last":"arduino"}');
+    await sync.flushPending();
+    assert.deepEqual(auth.calls.map(call => call.method), ['PUT']);
+    assert.equal(sync.exportDraft().dirty, false);
+    auth.snapshots.alice.values[COURSE] = '{"last":"microbit"}';
+    auth.snapshots.alice.revision++;
+    await sync.sync();
+    assert.equal(auth.calls.length, 2, 'Explicit sync must still retrieve another device’s changes');
+    assert.equal(sync.scopedStorage().getItem(COURSE), '{"last":"microbit"}');
+    auth.online = false; await sync.sync();
+    assert.equal(sync.status.status, 'offline');
+    const calls = auth.calls.length;
+    await sync.flushPending();
+    assert.equal(auth.calls.length, calls);
+    assert.equal(sync.status.status, 'offline', 'Skipping a clean read cannot invent a successful reconnection');
+    sync.destroy();
+}
+
+// Flush waits for the existing PUT and then saves the new edit with its next
+// revision, without inserting a clean GET or losing the changed draft.
+{
+    const auth = account(user('alice')), sync = make(auth);
+    await sync.ready(); auth.calls.length = 0;
+    const original = auth.request.bind(auth);
+    let release, entered;
+    const started = new Promise(resolve => { entered = resolve; });
+    auth.request = async (path, options) => {
+        if (options?.method === 'PUT' && !release) await new Promise(resolve => { release = resolve; entered(); });
+        return original(path, options);
+    };
+    const local = sync.scopedStorage();
+    local.setItem(COURSE, '{"last":"arduino"}');
+    const first = sync.sync(); await started;
+    local.setItem(COURSE, '{"last":"microbit"}');
+    const flushing = sync.flushPending(); release();
+    await first; await flushing;
+    assert.deepEqual(auth.calls.map(call => call.method), ['PUT', 'PUT']);
+    assert.equal(auth.snapshots.alice.values[COURSE], '{"last":"microbit"}');
+    assert.equal(auth.snapshots.alice.revision, 2);
+    assert.equal(sync.exportDraft().dirty, false);
+    sync.destroy();
+}
+
+// A write's debounce timer can outlive an early AI flush. It must not turn the
+// already-saved workspace into a second GET when that timer eventually fires.
+{
+    const auth = account(user('alice'));
+    const sync = new LearnerSyncService({ account: auth, storage: memoryStorage(),
+        events: null, window: null, debounceMs: 10, retryMs: 60000 });
+    await sync.ready(); auth.calls.length = 0;
+    sync.scopedStorage().setItem(COURSE, '{"last":"arduino"}');
+    await sync.flushPending();
+    await new Promise(resolve => setTimeout(resolve, 40));
+    assert.deepEqual(auth.calls.map(call => call.method), ['PUT']);
+    assert.equal(sync.status.status, 'synced');
+    sync.destroy();
+}
+
+// Flush preserves conflicts and cannot start saves for an account that replaces
+// the original owner while the preflight is settling.
+{
+    const auth = account(user('alice')), sync = make(auth);
+    await sync.ready();
+    sync.scopedStorage().setItem(COURSE, '{"last":"arduino"}');
+    auth.snapshots.alice = { revision: 1, values: { [COURSE]: '{"last":"microbit"}' }, updatedAt: null };
+    await sync.flushPending();
+    assert.equal(sync.status.status, 'conflict');
+    const calls = auth.calls.length;
+    await sync.flushPending();
+    assert.equal(auth.calls.length, calls, 'A conflict must wait for the learner’s explicit resolution');
+    await sync.useServerCopy();
+    const flushing = sync.flushPending(); auth.change(user('bob'));
+    await flushing; await tick();
+    assert.equal(sync.ownerId, 'bob');
+    assert.equal(auth.snapshots.bob.revision, 0);
+    assert.equal(auth.calls.filter(call => call.owner === 'bob' && call.method === 'PUT').length, 0);
+    sync.destroy();
+}
+
+// One quota-checked write reads the large owned envelope once. Projects and
+// remotely preserved sections survive unchanged, and the small journal edit is
+// still durable immediately (not deferred until the HTTP debounce).
+{
+    const projects = Object.fromEntries(LEARNER_KEYS.filter(key => key.startsWith('strobot.microbit.editor.'))
+        .map(key => [key, JSON.stringify({ project: { files: { 'main.py': 'A'.repeat(400000) } } })]));
+    const values = { ...projects, [COURSE]: '{"arduino":{"led":{"note":"old"}}}', [ASSESSMENT]: '{"version":"account-owned-existing-archive"}' };
+    const auth = account(user('alice'), { alice: { revision: 9, values, updatedAt: null } });
+    const storage = memoryStorage(), sync = make(auth, storage);
+    await sync.ready(); const local = sync.scopedStorage();
+    assert.equal(local.enforcesSnapshotQuota, true);
+    const get = storage.getItem.bind(storage), set = storage.setItem.bind(storage);
+    let reads = 0, writes = 0;
+    storage.getItem = key => { if (key === `${LEARNER_WORKSPACE_PREFIX}alice`) reads++; return get(key); };
+    storage.setItem = (key, value) => { if (key === `${LEARNER_WORKSPACE_PREFIX}alice`) writes++; set(key, value); };
+    const before = performance.now();
+    local.setItem(COURSE, '{"arduino":{"led":{"note":"new"}}}');
+    const elapsed = performance.now() - before;
+    assert.equal(reads, 1, 'Quota measurement must reuse the writer’s parsed envelope');
+    assert.equal(writes, 1);
+    const saved = JSON.parse(get(`${LEARNER_WORKSPACE_PREFIX}alice`));
+    assert.equal(saved.revision, 9);
+    assert.equal(saved.dirty, true);
+    assert.match(saved.values[COURSE], /new/);
+    for (const [key, raw] of Object.entries(projects)) assert.equal(saved.values[key], raw);
+    assert.equal(saved.values[ASSESSMENT], values[ASSESSMENT]);
+    console.log(`Large workspace quota/save: 2.4 MB, ${reads} envelope read, ${writes} durable write (${elapsed.toFixed(1)} ms on this runtime).`);
+    sync.destroy();
+}
+
+// A quota failure after merging disjoint tabs leaves the stored bundle, revision
+// and the losing tab’s baseline unchanged; a smaller retry still merges safely.
+{
+    const initial = { arduino: { led: { note: 'a'.repeat(2 * 1024 * 1024) } } };
+    const snapshot = { revision: 11, values: { [COURSE]: JSON.stringify(initial) }, updatedAt: null };
+    const storage = memoryStorage(), sync = make(account(user('alice'), { alice: snapshot }), storage);
+    await sync.ready();
+    const first = sync.scopedStorage(), second = sync.scopedStorage();
+    const editA = JSON.parse(first.getItem(COURSE)), editB = JSON.parse(second.getItem(COURSE));
+    editA.arduino.distance = { note: 'b'.repeat(2 * 1024 * 1024) };
+    first.setItem(COURSE, JSON.stringify(editA));
+    const saved = storage.getItem(`${LEARNER_WORKSPACE_PREFIX}alice`);
+    editB.arduino.project = { note: 'c'.repeat(2 * 1024 * 1024) };
+    assert.ok(new TextEncoder().encode(JSON.stringify(editB)).length < 5 * 1024 * 1024);
+    assert.throws(() => second.setItem(COURSE, JSON.stringify(editB)), { code: 'LEARNER_QUOTA_EXCEEDED' });
+    assert.equal(storage.getItem(`${LEARNER_WORKSPACE_PREFIX}alice`), saved);
+    editB.arduino.project.note = 'smaller retry';
+    second.setItem(COURSE, JSON.stringify(editB));
+    const merged = JSON.parse(sync.exportDraft().values[COURSE]);
+    assert.equal(merged.arduino.distance.note, editA.arduino.distance.note);
+    assert.equal(merged.arduino.project.note, 'smaller retry');
+    assert.equal(sync.exportDraft().revision, 11);
+    sync.destroy();
+}
+
+// Shared-browser assessment is not imported, but an assessment section already
+// owned by this server account still counts toward the true 8 MiB server cap.
+{
+    const projects = Object.fromEntries(LEARNER_KEYS.filter(key => key.startsWith('strobot.microbit.editor.'))
+        .map(key => [key, JSON.stringify({ project: { files: { 'main.py': 'A'.repeat(500000) } } })]));
+    const course = JSON.stringify({ arduino: { led: { note: 'a'.repeat(4 * 1024 * 1024) } } });
+    const archive = JSON.stringify({ archive: 'b'.repeat(1.5 * 1024 * 1024) });
+    const values = { ...projects, [COURSE]: course, [ASSESSMENT]: archive };
+    const storage = memoryStorage(), sync = make(account(user('alice'), { alice: { revision: 5, values, updatedAt: null } }), storage);
+    await sync.ready(); const local = sync.scopedStorage();
+    const before = storage.getItem(`${LEARNER_WORKSPACE_PREFIX}alice`);
+    assert.throws(() => local.setItem(COURSE, course.replace('aaaa', 'bbbb')), { code: 'LEARNER_QUOTA_EXCEEDED' });
+    assert.equal(storage.getItem(`${LEARNER_WORKSPACE_PREFIX}alice`), before);
+    local.setItem(COURSE, '{"last":"arduino"}');
+    assert.equal(sync.exportDraft().values[ASSESSMENT], archive);
+    assert.equal(sync.exportDraft().revision, 5);
+    sync.destroy();
+}
+
+// Limits use UTF-8 bytes rather than UTF-16 string length.
+{
+    const storage = memoryStorage(), sync = make(account(user('alice')), storage);
+    await sync.ready(); const local = sync.scopedStorage();
+    const before = storage.getItem(`${LEARNER_WORKSPACE_PREFIX}alice`);
+    const multibyte = JSON.stringify({ arduino: { led: { note: 'ế'.repeat(1800000) } } });
+    assert.ok(multibyte.length < 5 * 1024 * 1024);
+    assert.throws(() => local.setItem(COURSE, multibyte), { code: 'LEARNER_QUOTA_EXCEEDED' });
+    assert.equal(storage.getItem(`${LEARNER_WORKSPACE_PREFIX}alice`), before);
+    sync.destroy();
+}
+
+console.log('Learner sync: guest preservation, account isolation, offline queue, CAS conflicts, pending-only preflight and atomic quotas passed.');

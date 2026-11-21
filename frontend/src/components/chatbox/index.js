@@ -118,7 +118,7 @@ export class Chatbox {
             try {
                 const reply = await aiClient.requestReply('/api/home-chat', { question, history: this.history.slice(-6) }, {
                     signal: controller.signal,
-                    beforeAccountRequest: async () => { await learnerSync.ready(); return learnerSync.sync(); },
+                    beforeAccountRequest: async () => { await learnerSync.ready(); return learnerSync.flushPending?.() ?? learnerSync.sync({ refresh: false }); },
                     onContext: value => { context = value; },
                     onStatus: state => { pending.textContent = state === 'starting' ? 'Đang khởi động trợ lý…' : 'AI đang trả lời…'; }
                 });
