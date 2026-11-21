@@ -1,4 +1,5 @@
 import { learnerSync } from './services/LearnerSyncService.js';
+import { warmAccountConnection } from './services/AccountConnectionWarmup.js';
 import { Navbar } from './components/navbar/index.js?v=product-workspace-v1';
 import { Footer } from './components/footer/index.js?v=copy-v4';
 import { Chatbox } from './components/chatbox/index.js?v=account-agent-v2';
@@ -42,6 +43,7 @@ class App {
         this.footer.render();
         this.chatbox.render();
         this.backToTop.render();
+        warmAccountConnection();
         
         // Public pages can render while a sleeping backend restores the session.
         // Quiz history must wait for the correct account; the lesson page waits
