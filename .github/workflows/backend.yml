@@ -14,6 +14,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
       postgres:
         image: postgres:16-alpine
         env:
@@ -27,6 +33,7 @@ jobs:
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://strobot_test:ci-disposable-only@localhost:5432/strobot_ci_test
+      REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -67,4 +74,27 @@ jobs:
           node tests/learner-sync.mjs &&
           node tests/quiz-service.mjs &&
           node tests/adaptive-review.mjs &&
-          node tests/microbit-editor-bridge.mjs
+          node tests/microbit-editor-bridge.mjs &&
+          node tests/practice-portfolio.mjs &&
+          node tests/lab-workspace.mjs
+      - name: Install browser journey dependencies
+        run: |
+          python3 -m pip install playwright
+          python3 -m playwright install --with-deps chromium
+      - name: Verify student approval and cross-device learning journey
+        shell: bash
+        run: |
+          strobot_fixture="$(mktemp)"
+          trap 'rm -f "$strobot_fixture"' EXIT
+          node - "$strobot_fixture" <<'NODE'
+          const fs = require('node:fs');
+          const { randomBytes } = require('node:crypto');
+          fs.writeFileSync(process.argv[2], JSON.stringify({
+            NODE_ENV: 'test', DATABASE_URL: process.env.DATABASE_URL,
+            REDIS_URL: process.env.REDIS_URL,
+            JWT_SECRET: randomBytes(32).toString('hex'),
+            JWT_REFRESH_SECRET: randomBytes(32).toString('hex'),
+            AI_CREDENTIALS_MASTER_KEY: randomBytes(32).toString('hex'),
+          }), { mode: 0o600 });
+          NODE
+          python3 tests/product-journey-smoke.py --env-file "$strobot_fixture"

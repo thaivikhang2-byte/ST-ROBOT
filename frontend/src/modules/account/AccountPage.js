@@ -1,7 +1,7 @@
 import { accountService, ACCOUNT_CONNECTION_EVENT } from '../../services/AccountService.js';
 import { learnerSync } from '../../services/LearnerSyncService.js';
 import { attachAgentPanel } from './AgentPanel.js';
-import { workspaceAccess, canUpdateStudentStatus, canApproveStudent, readLearningDashboard } from './LearningDashboard.js';
+import { workspaceAccess, canUpdateStudentStatus, canApproveStudent, readLearningDashboard } from './LearningDashboard.js?v=product-account-v3';
 import { attachAiAdminSetup, canConfigureAi } from './AiAdminSetup.js';
 
 const node = (tag, text, className) => {
@@ -545,8 +545,8 @@ export class AccountPage {
         const body = node('tbody');
         for (const row of rows) {
             const tr = node('tr');
-            for (const value of row) {
-                const td = node('td');
+            for (const [index, value] of row.entries()) {
+                const td = node('td'); td.dataset.label = headers[index];
                 if (value instanceof Node) td.append(value);
                 else td.textContent = value ?? '—';
                 tr.append(td);
@@ -610,6 +610,7 @@ export class AccountPage {
             return [identity, state, progress, date(user.lastLoginAt), action];
         });
         this.table(output, ['Học sinh', 'Trạng thái', 'Tiến độ tự học', 'Đăng nhập gần nhất', 'Thao tác'], tableRows);
+        output.lastElementChild.querySelector('table').classList.add('account-student-table');
     }
     createStudentForm(output, version) {
         const actor = accountService.user, access = workspaceAccess(actor, { offline: accountService.sessionOffline });
@@ -632,7 +633,7 @@ export class AccountPage {
             if (version !== this.managementVersion) return;
             await accountService.request('/v1/users/students', { method: 'POST', body: { email: data.email, password: data.password, firstName: data.firstName, lastName: data.lastName } });
             if (!isCurrent() || version !== this.managementVersion) return;
-            this.message('Đã tạo tài khoản học sinh được xác nhận. Cung cấp thông tin đăng nhập qua kênh riêng; không gửi mật khẩu vào nhóm công khai.');
+            this.message('Đã tạo tài khoản học sinh. Học sinh có thể đăng nhập và học ngay.');
             this.loadManagement('users');
         });
     }

@@ -31,13 +31,13 @@ Các trang HTML ở thư mục gốc chuyển về `frontend/public/` và giữ 
 - AI khách và chụp/cắt ảnh gọi dịch vụ `st-robot-1.onrender.com`; chat chữ đã đăng nhập dùng agent của backend khi đã kết nối. Agent đọc tiến độ, nhật ký, lịch sử học và đúng danh sách lab được cấp quyền; khóa bí mật giữ trên máy chủ.
 - Chế độ sáng/tối và menu điện thoại.
 
-Người học khách vẫn lưu tiến độ và nhật ký trong trình duyệt. Trang **Tài khoản** hỗ trợ đăng ký, đăng nhập, xác minh email, khôi phục mật khẩu, đồng bộ dữ liệu giữa các thiết bị, tham gia khóa và các bảng quản lí theo quyền. Dữ liệu khách được giữ riêng; người học chủ động chọn nhập vào tài khoản.
+Người học khách vẫn lưu tiến độ và nhật ký trong trình duyệt. Trong chế độ nhà trường, học sinh **tự đăng ký → admin duyệt → đăng nhập để học**. Màn hình cá nhân có bài gần nhất, tiến độ năm khóa và dữ liệu đồng bộ giữa thiết bị. Admin có danh sách học sinh, duyệt yêu cầu, cấp tài khoản và xem tiến độ tổng hợp. Cấu hình AI chỉ xuất hiện khi admin chủ động mở Cài đặt; học sinh dùng agent chung, không nhập API key. Dữ liệu khách được giữ riêng; người học chủ động chọn nhập vào tài khoản. Xem [tài khoản nhà trường](docs/managed-accounts.md) và [lưu bài lab theo tài khoản](docs/lab-account-integration.md).
 
 ## Backend tài khoản và database
 
 Mã nguồn ở `backend/`; cấu hình chạy local bằng Docker ở `docker-compose.yml`. Với một bản local mới, chạy `node scripts/init-backend.cjs`, rồi `docker compose up --build -d`. Không ghi đè `.env` đã có hoặc xóa volume database để cập nhật.
 
-**GitHub Pages chỉ chạy frontend.** Muốn sử dụng tài khoản/database trên website công khai, cần triển khai backend HTTPS, PostgreSQL, Redis và SMTP, rồi đặt API công khai trong `frontend/src/config/backend.config.js`. Khi chưa cấu hình, giao diện tài khoản báo rõ tình trạng và học khách vẫn hoạt động. Dịch vụ AI Tutor hiện tại được giữ riêng.
+**GitHub Pages chỉ chạy frontend.** Tài khoản/database dùng backend HTTPS, PostgreSQL và Redis; SMTP chỉ cần cho luồng xác minh/khôi phục qua email, không cần cho chế độ admin duyệt. API công khai được đặt trong `frontend/src/config/backend.config.js`. Khi chưa kết nối, giao diện báo rõ tình trạng và nội dung học công khai vẫn hiển thị. Render Free có thể mất thời gian khởi động sau khi ngủ; bộ nhớ kết nối ngắn hạn và khởi tạo database theo phiên bản giảm các yêu cầu lặp nhưng không loại bỏ giới hạn hạ tầng đó.
 
 Xem [hướng dẫn chạy, quản trị viên và triển khai](docs/backend-deployment.md) và [cấu hình agent](docs/backend-agent.md). Không có tài khoản quản trị mặc định; các tệp `.env`, khóa và dữ liệu riêng không được đưa lên GitHub.
 
@@ -135,7 +135,7 @@ Trên trang **Kiểm tra**, hoàn thành một lượt rồi chọn **Ôn theo k
 
 Hồ sơ lưu đáp án từng câu của tối đa 120 lượt hoàn thành gần nhất. Lượt bỏ dở không được ghi nhận; lịch sử điểm cũ không tự chuyển thành dữ liệu lỗi từng câu. Có nút tải JSON và xóa dữ liệu kiểm tra, ôn tập riêng của khóa đã chọn. Nhật ký học, các khóa khác và dữ liệu đánh giá trước–sau được giữ lại.
 
-Hồ sơ ôn thuộc trình duyệt đang sử dụng, chưa liên kết với tài khoản hoặc đồng bộ giữa các máy. Khi đổi người học trên máy chung, tải dữ liệu cần giữ rồi xóa hồ sơ của khóa trước khi bắt đầu.
+Khi đăng nhập, hồ sơ ôn nằm trong không gian tài khoản và được đồng bộ giữa các máy. Khi chưa đăng nhập, hồ sơ thuộc trình duyệt đang dùng. Chờ trạng thái đã đồng bộ trước khi chuyển máy; học sinh khác không nhận hồ sơ này. Dữ liệu đánh giá nhiều người tham gia ở mục sau vẫn tách riêng khỏi hồ sơ cá nhân.
 
 ## Đánh giá trước và sau khi học
 

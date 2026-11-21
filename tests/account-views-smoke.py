@@ -308,6 +308,15 @@ def main():
 
         page.set_viewport_size({'width': 390, 'height': 844})
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        assert page.locator('.account-student-table thead').bounding_box()['height'] <= 1
+        assert page.evaluate('''() => {
+            const wrap = document.querySelector('.account-student-table').parentElement.getBoundingClientRect();
+            return [...document.querySelectorAll('.account-student-table td')].every(cell => {
+                const bounds = cell.getBoundingClientRect();
+                return bounds.left >= wrap.left && bounds.right <= wrap.right;
+            });
+        }'''), 'mobile student cards keep progress and actions within the viewport'
+        page.screenshot(path='/tmp/strobot-product-account/admin-mobile.png', full_page=True)
         manager.update(roles=[], permissions=[], role={'name': 'student'})
         page.evaluate('''async () => { const {accountService}=await import(new URL('../src/services/AccountService.js',location.href)); await accountService.reloadProfile(); }''')
         expect(page.locator('#account-management')).to_be_hidden()

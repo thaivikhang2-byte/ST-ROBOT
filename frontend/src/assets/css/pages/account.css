@@ -145,3 +145,14 @@
     .account-workspace-heading p { overflow-wrap: anywhere; }
     .account-workspace-heading > button { padding-inline: 8px; font-size: var(--text-sm); }
 }
+@media (max-width: 600px) {
+    .account-student-table, .account-student-table tbody { display: block; width: 100%; }
+    .account-student-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .account-student-table tbody tr { display: grid; gap: 12px; padding: 18px; border-bottom: 1px solid var(--color-border); }
+    .account-student-table tbody tr:last-child { border-bottom: 0; }
+    .account-student-table td { display: block; padding: 0; border: 0; }
+    .account-student-table td::before { content: attr(data-label); display: block; margin-bottom: 6px; color: var(--color-text-muted); font-size: var(--text-xs); }
+    .account-student-table td:nth-child(1)::before, .account-student-table td:nth-child(2)::before, .account-student-table td:nth-child(5)::before { display: none; }
+    .account-student-table .account-student-name, .account-student-table .account-student-progress, .account-student-table .account-student-actions { min-width: 0; }
+    .account-student-table .account-student-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+}
