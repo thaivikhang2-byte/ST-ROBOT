@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { normalizeLabWork, normalizeLabWorkMap } from '../frontend/src/modules/learning/LabWorkspace.js';
+import { normalizeLabWork, normalizeLabWorkMap, LabWorkspacePanel } from '../frontend/src/modules/learning/LabWorkspace.js';
 import { createCourseBackup, parseCourseBackup } from '../frontend/src/modules/learning/PracticePortfolio.js';
 import { buildTutorLearningContext } from '../frontend/src/services/TutorLearningContext.js';
 const work = {version: 1, savedAt: '2026-11-19T11:00:00.000Z', code: 'print("Tiếp tục")', notes: 'Đổi đầu vào rồi chạy lại', projectUrl: 'https://example.com/project/owned', fileName: 'main.py'};
@@ -19,4 +19,12 @@ assert.match(report({platformKey:'avr'}).currentLesson.journal.note, /selected/)
 assert.ok(!JSON.stringify(report({platformKey:'avr'})).includes('do-not-forward'));
 assert.ok(!JSON.stringify(report({platformKey:'avr'})).includes('other-platform-private'));
 assert.ok(!JSON.stringify(report({})).includes('selected'));
+// The component itself rejects guest writes even with a permissive host callback.
+let guestWrites = 0;
+const guestPanel = {ready: true, context: {ownerId: null}, isCurrent: () => true,
+    onSave: () => {guestWrites++;return true;}, values: () => work,
+    status: {}, drafts: new Map(), getSyncStatus: () => ({status: 'guest'}),
+    updateStatus() {}, remember() {}};
+assert.equal(LabWorkspacePanel.prototype.persist.call(guestPanel), false);
+assert.equal(guestWrites, 0);
 console.log('PASS lab work: byte limits, exact schema, platform scope, safe URL/file names, backup preservation and selected scrubbed tutor context');

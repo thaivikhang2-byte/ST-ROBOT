@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { AccountService, ACCOUNT_SESSION_KEY } from '../frontend/src/services/AccountService.js';
+import { AccountService, ACCOUNT_SESSION_KEY, ACCOUNT_LOGOUT_CHANNEL } from '../frontend/src/services/AccountService.js';
 import { BACKEND_CONFIG, resolveBackendUrl } from '../frontend/src/config/backend.config.js';
 
 const store = () => {
@@ -13,6 +13,23 @@ const baseUrl = 'https://account.example.test/api';
 const secondUser = { ...user, id: 'learner-two', email: 'second@example.test' };
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 const secondAuth = () => ({ user: secondUser, tokens: { accessToken: 'access-two', refreshToken: 'refresh-two', expiresIn: '15m' } });
+const logoutHub = () => {
+    const channels = [], pending = [], sent = [];
+    return {
+        sent,
+        create: () => {
+            const listeners = new Set();
+            const channel = {
+                addEventListener: (type, listener) => { if (type === 'message') listeners.add(listener); },
+                postMessage: data => { sent.push(structuredClone(data)); pending.push({ sender: channel, data: structuredClone(data) }); },
+                receive: data => { for (const listener of listeners) listener({ data: structuredClone(data) }); },
+            };
+            channels.push(channel); return channel;
+        },
+        flush: () => { for (const { sender, data } of pending.splice(0)) for (const channel of channels) if (channel !== sender) channel.receive(data); },
+        inject: data => { for (const channel of channels) channel.receive(data); },
+    };
+};
 
 assert.equal(resolveBackendUrl('', 'thaivikhang2-byte.github.io'), '');
 assert.equal(resolveBackendUrl('', 'localhost'), 'http://localhost:3000/api');
@@ -333,4 +350,121 @@ for (const invalidUser of [secondUser, { email: user.email }, { ...user, id: 42 
     assert.equal(JSON.parse(storage.getItem(ACCOUNT_SESSION_KEY)).refreshToken, 'refresh-two');
 }
 
-console.log('PASS account configuration, session isolation, refresh/auth intent races, offline and fresh-profile restoration, stale consumers and logout');
+// Logout is immediately shared with matching browser tabs, without credentials or API replay.
+{
+    const hub = logoutHub(), calls = [], logout = deferred(); let clock = 100;
+    const make = (profile, server = baseUrl) => new AccountService({ baseUrl: server, storage: store(),
+        logoutChannelFactory: hub.create, now: () => clock, fetchImpl: async (url, options) => {
+            calls.push({ url, options });
+            if (url.endsWith('/login')) return response({ user: profile, tokens: auth('access-private', 'refresh-private').tokens });
+            assert.equal(url, baseUrl + '/v1/auth/logout-current'); return logout.promise;
+        } });
+    const first = make(user), same = make(user), foreignOwner = make(secondUser), foreignServer = make(user, 'https://other.example.test/api');
+    await Promise.all([first, same, foreignOwner, foreignServer].map(service => service.signIn({ email: 'private@example.test', password: 'private-password' })));
+    assert.equal(hub.sent.length, 0, 'Login/profile information is never broadcast');
+    let notifications = 0; same.subscribe(profile => { assert.equal(profile, null); notifications++; });
+    clock = 200;
+    const signingOut = first.signOut();
+    assert.equal(first.user, null);
+    assert.deepEqual(hub.sent, [{ version: 1, type: 'logout', baseUrl, ownerId: user.id, issuedAt: clock }]);
+    hub.flush();
+    assert.equal(same.user, null); assert.equal(notifications, 1);
+    assert.equal(same.storage.getItem(ACCOUNT_SESSION_KEY), null);
+    assert.equal(foreignOwner.user.id, secondUser.id); assert.equal(foreignServer.user.id, user.id);
+    assert.equal(hub.sent.length, 1, 'Receivers do not echo logout');
+    await Promise.resolve();
+    assert.equal(calls.filter(call => !call.url.endsWith('/login')).length, 1, 'Only the initiating tab revokes its captured session');
+    for (const secret of ['access-private', 'refresh-private', 'private@example.test', 'private-password', 'email', 'tokens'])
+        assert.equal(JSON.stringify(hub.sent).includes(secret), false);
+    logout.resolve(response({ message: 'Done' })); await signingOut;
+    await same.signOut(); assert.equal(hub.sent.length, 1, 'An already signed-out guest does not broadcast');
+}
+
+// Remote-tab logout invalidates a restoring refresh and an offline cached identity.
+for (const offline of [false, true]) {
+    const hub = logoutHub(), pending = deferred(), saved = store(); let clock = 100;
+    saved.setItem(ACCOUNT_SESSION_KEY, JSON.stringify({ version: 1, baseUrl, refreshToken: 'saved-private-refresh', profile: user }));
+    const calls = [];
+    const restored = new AccountService({ baseUrl, storage: saved, logoutChannelFactory: hub.create, now: () => clock,
+        fetchImpl: async url => { calls.push(url); if (offline) throw Error('fixture offline'); return pending.promise; } });
+    const ready = restored.ready();
+    if (offline) { assert.equal((await ready).id, user.id); assert.equal(restored.sessionOffline, true); }
+    const source = new AccountService({ baseUrl, storage: store(), logoutChannelFactory: hub.create, now: () => clock,
+        fetchImpl: async () => response(auth('source-access', 'source-refresh')) });
+    await source.signIn({ email: user.email, password: 'fixture password' });
+    clock = 200;
+    await source.signOutEverywhere(); hub.flush();
+    assert.equal(restored.user, null); assert.equal(restored._cachedUser, null); assert.equal(restored.sessionOffline, false);
+    assert.equal(saved.getItem(ACCOUNT_SESSION_KEY), null);
+    if (!offline) { pending.resolve(response({ user, tokens: auth('late-access', 'late-refresh').tokens })); assert.equal(await ready, null); }
+    assert.equal(restored.user, null); assert.equal(saved.getItem(ACCOUNT_SESSION_KEY), null);
+    assert.deepEqual(calls, [baseUrl + '/v1/auth/refresh'], 'Receiving logout never sends a revocation or replay');
+    assert.equal(hub.sent.length, 1);
+}
+
+// A queued old logout cannot clear a newer login, including its still-pending response.
+for (const pendingLogin of [false, true]) {
+    const hub = logoutHub(), pending = deferred(); let clock = 100, logins = 0;
+    const service = new AccountService({ baseUrl, storage: store(), logoutChannelFactory: hub.create, now: () => clock,
+        fetchImpl: async () => ++logins === 2 && pendingLogin ? pending.promise : response(auth('current-access', 'current-refresh')) });
+    await service.signIn({ email: user.email, password: 'fixture password' });
+    clock = 300;
+    const newerLogin = service.signIn({ email: user.email, password: 'new fixture password' });
+    if (!pendingLogin) await newerLogin;
+    clock = 400;
+    hub.inject({ version: 1, type: 'logout', baseUrl, ownerId: user.id, issuedAt: 200 });
+    assert.equal(service.user.id, user.id);
+    if (pendingLogin) pending.resolve(response(auth('new-access', 'new-refresh')));
+    await newerLogin; assert.equal(service.user.id, user.id);
+}
+
+// Reject stale, future, malformed, different-owner and different-backend signals.
+{
+    const hub = logoutHub(); let clock = 1000000;
+    const service = new AccountService({ baseUrl, storage: store(), logoutChannelFactory: hub.create, now: () => clock,
+        fetchImpl: async () => response(auth('access-one', 'refresh-one')) });
+    await service.signIn({ email: user.email, password: 'fixture password' }); clock += 400001;
+    const message = { version: 1, type: 'logout', baseUrl, ownerId: user.id, issuedAt: clock };
+    for (const invalid of [null, [], {}, { ...message, type: 'login' }, { ...message, version: 2 },
+        { ...message, issuedAt: clock - 300001 }, { ...message, issuedAt: clock + 30001 }, { ...message, issuedAt: NaN },
+        { ...message, ownerId: '../invalid' }, { ...message, ownerId: secondUser.id },
+        { ...message, baseUrl: 'https://other.example.test/api' }, { ...message, accessToken: 'do-not-accept' }]) {
+        hub.inject(invalid); assert.equal(service.user.id, user.id);
+    }
+    hub.inject(message); assert.equal(service.user, null); assert.equal(hub.sent.length, 0);
+}
+
+// Browsers without BroadcastChannel use a same-origin storage event containing no session data.
+{
+    const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window'), tabs = [], events = [];
+    const browserTab = unavailable => {
+        const listeners = new Set();
+        const tab = { document: {}, location: { origin: 'https://frontend.example.test' },
+            addEventListener: (type, listener) => { if (type === 'storage') listeners.add(listener); },
+            receive: (key, value) => { for (const listener of listeners) listener({ storageArea: tab.localStorage, key, newValue: value }); } };
+        tab.localStorage = {
+            setItem: (key, value) => { events.push({ key, value }); for (const other of tabs) if (other !== tab) other.receive(key, value); },
+            removeItem: key => { for (const other of tabs) if (other !== tab) other.receive(key, null); },
+        };
+        if (unavailable) tab.BroadcastChannel = class { constructor() { throw Error('Channel disabled'); } };
+        tabs.push(tab); return tab;
+    };
+    try {
+        const services = [];
+        for (let index = 0; index < 2; index++) {
+            Object.defineProperty(globalThis, 'window', { configurable: true, value: browserTab(index === 1) });
+            services.push(new AccountService({ baseUrl, storage: store(), warmup: false,
+                fetchImpl: async () => response(auth('private-access', 'private-refresh')) }));
+        }
+        await Promise.all(services.map(service => service.signIn({ email: user.email, password: 'fixture password' })));
+        await services[0].signOutEverywhere();
+        assert.equal(services[1].user, null); assert.equal(events.length, 1);
+        assert.equal(events[0].key, ACCOUNT_LOGOUT_CHANNEL);
+        assert.deepEqual(Object.keys(JSON.parse(events[0].value)).sort(), ['baseUrl', 'issuedAt', 'ownerId', 'type', 'version']);
+        assert.equal(events[0].value.includes('private-'), false);
+    } finally {
+        if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow); else delete globalThis.window;
+    }
+}
+
+console.log('PASS account sessions, refresh/auth races, offline restoration and owner-bound cross-tab logout without credentials or replay');

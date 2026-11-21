@@ -39,9 +39,15 @@ with sync_playwright() as pw:
     page.locator('#lessonList button').nth(1).click();page.locator('#tabBtnLab').click()
     assert page.evaluate('course.id')=='microbit' and page.evaluate('lesson().id')=='buttons'
     expect(page.locator('#practiceFrame')).to_have_count(0)
-    assert page.evaluate('localStorage.getItem("strobot.original.course.v3")') is None
+    guest_record = {'microbit': {'buttons': {'note': 'Existing guest journal stays local', 'done': False,
+        'labWork': {'python': {'version': 1, 'savedAt': '2026-11-19T00:00:00Z', 'code': 'legacy guest source',
+            'notes': 'Legacy guest checkpoint', 'projectUrl': '', 'fileName': 'legacy.py'}}}}}
+    guest_raw = json.dumps(guest_record)
+    page.evaluate('(raw) => localStorage.setItem("strobot.original.course.v3",raw)', guest_raw)
     page.evaluate('__openWorkspace("ownerA")')
     expect(page.locator('#labWorkSave')).to_be_enabled()
+    expect(page.locator('#labWorkNotes')).to_have_value('')
+    assert page.evaluate('localStorage.getItem("strobot.original.course.v3")') == guest_raw
     expect(page.locator('#labView')).to_be_visible()
     expect(page.locator('#practiceFrame')).to_have_count(1)
     assert page.evaluate('lesson().id')=='buttons' and page.evaluate('frameKey')=='python'
@@ -84,15 +90,51 @@ with sync_playwright() as pw:
     page.locator('#tabBtnLab').click()
     expect(page.locator('#labWorkNotes')).to_have_value('')
     expect(page.locator('#labWorkCode')).to_have_value('')
-    # An invalid restored session resolves to guest, without importing A/B records.
-    page.reload(wait_until='domcontentloaded')
-    expect(page.locator('#labWorkSave')).to_be_disabled()
+    # Real scope-change notification on logout clears private source immediately.
+    page.locator('#labWorkspace summary').click()
+    page.locator('#labWorkCode').fill('print("private owner B")')
+    page.locator('#labWorkNotes').fill('Private account B checkpoint')
+    page.locator('#labWorkSave').click()
+    expect(page.locator('#labWorkStatus')).to_contain_text('Đã đồng bộ')
+    owner_b_saved = page.evaluate('localStorage.getItem("fixture.owner.ownerB.strobot.original.course.v3")')
+    page.evaluate('''() => { window.originalArrayBuffer=File.prototype.arrayBuffer;
+        File.prototype.arrayBuffer=function(){return new Promise(resolve=>window.releaseLogoutImport=()=>resolve(new TextEncoder().encode('late-after-logout').buffer))}; }''')
+    page.locator('#labWorkFile').set_input_files({'name':'late-logout.py','mimeType':'text/plain','buffer':b'ignored'})
+    with page.expect_navigation(wait_until='domcontentloaded'):
+        page.evaluate('''() => { __fixtureSync.ownerId=null;
+            document.dispatchEvent(new CustomEvent('strobot:learner-scope-changed',{detail:{previousUserId:'ownerB',userId:null}}));
+            releaseLogoutImport(); }''')
+    page.wait_for_function('typeof window.__openWorkspace === "function"')
     page.evaluate('__openWorkspace(null)')
-    expect(page.locator('#labWorkSave')).to_be_enabled()
     page.locator('#tabBtnLab').click()
+    expect(page.locator('#labWorkSave')).to_be_disabled()
+    expect(page.locator('#labWorkSave')).to_be_hidden()
+    expect(page.locator('#labWorkSignInNotice')).to_be_visible()
+    expect(page.locator('#labWorkSignIn')).to_have_attribute('href', 'account.html')
+    expect(page.locator('#labWorkStatus')).to_contain_text('Đăng nhập')
     expect(page.locator('#labWorkNotes')).to_have_value('')
     expect(page.locator('#labWorkCode')).to_have_value('')
-    assert page.evaluate('localStorage.getItem("strobot.original.course.v3")') is None
+    assert 'private owner B' not in page.locator('#labWorkspace').inner_text()
+    assert page.evaluate('localStorage.getItem("fixture.owner.ownerB.strobot.original.course.v3")') == owner_b_saved
+    assert page.evaluate('localStorage.getItem("strobot.original.course.v3")') == guest_raw
+    # A synthetic click/input must not bypass disabled/hidden guest controls.
+    page.evaluate('''() => {
+        document.getElementById('labWorkCode').value='guest must not save';
+        document.getElementById('labWorkCode').dispatchEvent(new Event('input',{bubbles:true}));
+        document.getElementById('labWorkSave').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    }''')
+    page.wait_for_timeout(650)
+    assert page.evaluate('labWorkspace.persist()') is False
+    assert page.evaluate('localStorage.getItem("strobot.original.course.v3")') == guest_raw
+    assert page.evaluate('localStorage.getItem("fixture.owner.ownerB.strobot.original.course.v3")') == owner_b_saved
+    # Public theory, models and pre-existing guest journals remain usable.
+    page.locator('#tabBtnTheory').click()
+    expect(page.locator('#lessonTitle')).to_be_visible()
+    page.locator('#tabBtnLab').click()
+    page.locator('#labButtons button[data-lab-key="local"]').click()
+    expect(page.locator('#localLab')).to_be_visible()
+    expect(page.locator('#journal')).to_have_value('Existing guest journal stays local')
+    assert page.evaluate('localStorage.getItem("strobot.original.course.v3")') == guest_raw
     assert not errors,errors
     browser.close()
-print('PASS public lessons stay usable while identity waits; selected lesson/tab survive; lab code/files persist by platform and account; stale-owner writes blocked')
+print('PASS public-first lessons; signed-in lab persistence; stale-owner/delayed-import isolation; logout blocks guest lab saves and preserves prior guest records')

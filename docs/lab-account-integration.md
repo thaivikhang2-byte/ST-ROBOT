@@ -1,6 +1,6 @@
 # Tài khoản học tập và bài thực hành
 
-Học sinh dùng một tài khoản ST-Robot để xem tiến độ, ghi chép và tiếp tục bài thực hành trên các thiết bị. Trong mỗi bài, chọn **Thực hành**, chọn nền tảng rồi dùng **Bài thực hành của tôi**. Ghi chú, liên kết dự án và bản mã được lưu riêng theo khóa, bài và nền tảng. Khi trạng thái báo **Đã đồng bộ bài làm vào tài khoản**, máy khác đăng nhập cùng tài khoản có thể nạp lại bản này. Bản khách vẫn tách riêng; hệ thống không tự nhập bài của người trước vào tài khoản mới.
+Học sinh dùng một tài khoản ST-Robot để xem tiến độ, ghi chép và tiếp tục bài thực hành trên các thiết bị. Trong mỗi bài, chọn **Thực hành**, chọn nền tảng rồi dùng **Bài thực hành của tôi**. Ghi chú, liên kết dự án và bản mã được lưu riêng theo khóa, bài và nền tảng. Khi trạng thái báo **Đã đồng bộ bài làm vào tài khoản**, máy khác đăng nhập cùng tài khoản có thể nạp lại bản này. Mục **Bài thực hành của tôi** yêu cầu đăng nhập: sau khi đăng xuất, các ô mã, ghi chú và nút lưu của mục này được ẩn/khóa và có lối vào đăng nhập. Hệ thống không ghi bài mới vào `labWork` của khách. Lý thuyết, lab công khai và nhật ký khách vẫn dùng được; dữ liệu khách đã có được giữ riêng, không tự nhập vào tài khoản mới.
 
 Mã và ghi chú là bản riêng của người học trong ST-Robot. Admin xem báo cáo tiến độ tổng hợp, không nhận nội dung mã/ghi chú qua báo cáo đó. AI học tập của chính người học có thể đọc bản đã đồng bộ của bài/nền tảng đang chọn để hỗ trợ; đây là bản sao đã lưu, không phải khả năng nhìn trực tiếp editor ngoài. Các chuỗi giống khóa/mật khẩu được che trước khi chuyển vào ngữ cảnh AI; học sinh vẫn không nên ghi thông tin đăng nhập trong bài.
 
@@ -25,6 +25,8 @@ Bản bài làm dùng khóa đồng bộ hiện có `strobot.original.course.v3`
 - Chỉ nhận nền tảng được phép của từng khóa; từ chối khóa prototype và trường lạ cả khi nhập bản sao.
 - Tổng trạng thái khóa học tối đa 5 MiB, snapshot đồng bộ tối đa 8 MiB. Backup hồ sơ khóa tối đa 5 MiB và giữ `labWork`; tệp không hợp lệ không thay bản đang nhập/lưu.
 - Mã quá lớn không bị cắt để lưu: bản đang nhập được giữ, có nút tải mã. Dự án nén/nhị phân được giữ tại nền tảng gốc hoặc trên máy, liên kết có thể lưu trong ST-Robot.
+- Đăng xuất dừng ngay các thao tác lưu/nhập tệp vào bài thực hành cá nhân, kể cả tệp đang đọc dở. Dữ liệu riêng của tài khoản không xuất hiện trong mục này ở chế độ khách; bản khách cũ không bị xóa hoặc tự chuyển thành bài của tài khoản khác.
+- Đăng xuất được thông báo tới các tab cùng website, cùng backend và cùng tài khoản trong trình duyệt đó. Các tab nhận thông báo chỉ xóa phiên cục bộ, không gửi lại thao tác logout. Tài khoản khác và thiết bị khác không bị đăng xuất bởi thao tác thông thường này; dùng Đăng xuất mọi thiết bị nếu muốn thu hồi toàn bộ phiên trên server.
 - Lưu trên thiết bị khác với đã đồng bộ. Mất mạng giữ hàng đợi theo đúng tài khoản; xung đột yêu cầu người học chọn/giữ bản, không tự ghi đè nội dung chồng nhau.
 - Trong lúc khôi phục phiên/kết nối, lý thuyết và điều hướng hiển thị ngay. Chức năng sửa hồ sơ, tự hoàn thành, nhập tệp và bridge editor chỉ mở sau khi xác định đúng không gian lưu. Chọn bài/tab/nền tảng trong lúc chờ được giữ lại.
 

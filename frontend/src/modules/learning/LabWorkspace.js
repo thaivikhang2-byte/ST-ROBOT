@@ -53,6 +53,9 @@ export class LabWorkspacePanel {
     build() {
         this.scopeLabel = element('p', '', 'small');
         this.status = element('p', 'Đang mở bài làm…', 'small'); this.status.id = 'labWorkStatus'; this.status.setAttribute('role', 'status'); this.status.setAttribute('aria-live', 'polite');
+        this.signIn = element('div'); this.signIn.id = 'labWorkSignInNotice'; this.signIn.hidden = true;
+        this.signIn.append(element('p', 'Đăng nhập để lưu bài thực hành vào tài khoản và mở lại trên thiết bị khác. Bạn vẫn có thể xem bài và dùng các mô hình thực hành.'));
+        const signInLink = element('a', 'Đăng nhập để lưu bài', 'btn btn--primary'); signInLink.id = 'labWorkSignIn'; signInLink.href = 'account.html'; this.signIn.append(signInLink);
         this.fieldset = element('fieldset'); Object.assign(this.fieldset.style, { border: '0', padding: '0', minWidth: '0' });
         const field = (label, node) => { const title = element('label', label); title.htmlFor = node.id; this.fieldset.append(title, node); };
         this.notes = element('textarea'); this.notes.id = 'labWorkNotes'; this.notes.rows = 2; this.notes.maxLength = LAB_WORK_LIMITS.notes; this.notes.placeholder = 'Bạn đang làm đến đâu? Bước tiếp theo là gì?'; field('Ghi chú để tiếp tục bài', this.notes);
@@ -70,7 +73,7 @@ export class LabWorkspacePanel {
         const actions = element('div', undefined, 'lab-actions');
         this.save = element('button', 'Lưu bài thực hành', 'btn--primary'); this.save.id = 'labWorkSave'; this.save.type = 'button';
         this.restore = element('button', 'Nạp bản đã lưu'); this.restore.id = 'labWorkRestore'; this.restore.type = 'button'; actions.append(this.save, this.restore); this.fieldset.append(actions);
-        this.host.replaceChildren(element('h2', 'Bài thực hành của tôi'), this.scopeLabel, this.fieldset, this.status);
+        this.host.replaceChildren(element('h2', 'Bài thực hành của tôi'), this.scopeLabel, this.signIn, this.fieldset, this.status);
         for (const input of [this.code, this.notes, this.url]) input.addEventListener('input', () => {
             if (!this.ready || !this.isCurrent(this.context)) return;
             this.dirty = true; this.privacy.hidden = !this.url.value.trim(); this.remember();
@@ -98,18 +101,24 @@ export class LabWorkspacePanel {
         this.fileName.textContent = this.currentFileName ? 'Tệp: ' + this.currentFileName : ''; this.privacy.hidden = !this.url.value; this.dirty = false;
     }
     setContext(context, record, ready) {
-        this.remember(); clearTimeout(this.timer); this.generation++; this.context = { ...context }; this.ready = ready;
+        const previousOwner = this.context?.ownerId;
+        this.remember(); clearTimeout(this.timer); this.generation++; this.context = { ...context }; this.ready = Boolean(ready && context.ownerId);
+        // A logout/account switch must not retain the previous owner's drafts in the visible panel.
+        if (previousOwner !== context.ownerId) this.drafts.clear();
         this.key = [context.ownerId || '@guest', context.courseId, context.lessonId, context.platformKey].join('|'); this.saved = null; this.corrupt = false;
-        try { if (record?.labWork?.[context.platformKey]) this.saved = normalizeLabWork(record.labWork[context.platformKey]); } catch { this.corrupt = true; }
-        const draft = this.drafts.get(this.key); this.fill(draft || this.saved); this.dirty = !!draft; this.fieldset.disabled = !ready; this.capture.hidden = context.platformKey !== 'python'; this.restore.disabled = this.corrupt;
-        this.scopeLabel.textContent = context.platformName + ' · ' + (!ready ? 'Đang mở hồ sơ' : context.ownerId ? 'Bản riêng của tài khoản đang đăng nhập' : 'Bản khách trên thiết bị này');
+        try { if (this.ready && record?.labWork?.[context.platformKey]) this.saved = normalizeLabWork(record.labWork[context.platformKey]); } catch { this.corrupt = true; }
+        const draft = this.ready ? this.drafts.get(this.key) : null; this.fill(draft || this.saved); this.dirty = !!draft;
+        this.fieldset.disabled = !this.ready; this.fieldset.hidden = !this.ready; this.signIn.hidden = !ready || Boolean(context.ownerId);
+        this.capture.hidden = context.platformKey !== 'python'; this.restore.disabled = this.corrupt;
+        this.scopeLabel.textContent = context.platformName + ' · ' + (!ready ? 'Đang kiểm tra tài khoản' : context.ownerId ? 'Lưu cho tài khoản: ' + (context.accountLabel || 'tài khoản đang đăng nhập') : 'Chưa đăng nhập');
         if (!ready) this.status.textContent = 'Bạn có thể đọc bài trong lúc chờ mở bài làm.';
+        else if (!context.ownerId) this.status.textContent = 'Chưa lưu vào tài khoản. Đăng nhập để lưu và đồng bộ bài thực hành.';
         else if (this.corrupt) this.status.textContent = 'Bản đã lưu cần kiểm tra và được giữ nguyên. Bấm Lưu để chủ động thay thế sau khi giữ hồ sơ dự phòng.';
         else if (this.dirty) this.status.textContent = 'Bản nháp chưa lưu vẫn được giữ. Bấm Lưu để thử lại hoặc tải bản mã.';
         else this.updateStatus();
     }
     persist() {
-        clearTimeout(this.timer); if (!this.ready || !this.isCurrent(this.context)) return false;
+        clearTimeout(this.timer); if (!this.ready || !this.context?.ownerId || !this.isCurrent(this.context)) return false;
         if (this.corrupt && !confirm('Thay thế bản lưu chưa đọc được bằng nội dung đang nhập? Hãy giữ hồ sơ dự phòng trước.')) return false;
         try {
             const work = normalizeLabWork(this.values());
@@ -118,11 +127,10 @@ export class LabWorkspacePanel {
         } catch (error) { this.dirty = true; this.remember(); this.status.textContent = error?.message || 'Chưa lưu được bài; bản nháp vẫn được giữ.'; return false; }
     }
     updateStatus() {
-        if (!this.ready || this.dirty || this.corrupt) return;
-        if (!this.saved) { this.status.textContent = 'Ghi chú, liên kết và mã sẽ được lưu riêng cho nền tảng này.'; return; }
+        if (!this.ready || !this.context?.ownerId || this.dirty || this.corrupt) return;
+        if (!this.saved) { this.status.textContent = 'Ghi chú, liên kết và mã sẽ được lưu vào tài khoản đang đăng nhập, riêng cho nền tảng này.'; return; }
         const time = new Date(this.saved.savedAt).toLocaleString('vi-VN'), sync = this.getSyncStatus();
-        this.status.textContent = !this.context.ownerId ? `Đã lưu lúc ${time} trên thiết bị này. Đăng nhập để lưu theo tài khoản.`
-            : sync?.status === 'synced' ? `Đã đồng bộ bài làm vào tài khoản · ${time}.` : `Đã lưu trên thiết bị · ${time}. ${sync?.message || 'Đang chờ đồng bộ với tài khoản.'}`;
+        this.status.textContent = sync?.status === 'synced' ? `Đã đồng bộ bài làm vào tài khoản · ${time}.` : `Đã giữ bản nháp của tài khoản trên thiết bị · ${time}. ${sync?.message || 'Đang chờ đồng bộ với tài khoản.'}`;
     }
     async importFile() {
         const file = this.file.files?.[0]; this.file.value = ''; if (!file || !this.ready || !this.isCurrent(this.context)) return;
@@ -141,5 +149,5 @@ export class LabWorkspacePanel {
         const url = URL.createObjectURL(new Blob([this.code.value], { type: 'text/plain;charset=utf-8' })); const link = element('a'); link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
     hasDraft() { return this.dirty || this.drafts.size > 0; }
-    destroy() { this.remember(); clearTimeout(this.timer); this.generation++; this.ready = false; }
+    destroy() { clearTimeout(this.timer); this.generation++; this.ready = false; this.drafts.clear(); this.fill(null); this.saved = null; this.fieldset.disabled = true; this.fieldset.hidden = true; }
 }

@@ -3,8 +3,44 @@ import { resolveBackendUrl } from '../config/backend.config.js';
 export const ACCOUNT_SESSION_KEY = 'strobot.account.session.v1';
 export const ACCOUNT_CONNECTION_KEY = 'strobot.account.connection.v1';
 export const ACCOUNT_CONNECTION_EVENT = 'strobot:account-connection';
+export const ACCOUNT_LOGOUT_CHANNEL = 'strobot.account.logout.v1';
 
 const CONNECTION_HINT_MAX_AGE = 5 * 60 * 1000;
+const LOGOUT_SIGNAL_MAX_AGE = 5 * 60 * 1000;
+const logoutFields = new Set(['version', 'type', 'baseUrl', 'ownerId', 'issuedAt']);
+const sessionTime = () => {
+    const clock = globalThis.performance;
+    return clock && Number.isFinite(clock.timeOrigin) && typeof clock.now === 'function'
+        ? clock.timeOrigin + clock.now() : Date.now();
+};
+
+// Browsers isolate this channel to the current origin. Node/injected clients stay local.
+// The storage fallback contains only a short-lived logout signal, never account credentials.
+const browserLogoutChannel = () => {
+    const view = globalThis.window;
+    if (!view?.document || !view.location) return null;
+    try {
+        if (typeof view.BroadcastChannel === 'function') return new view.BroadcastChannel(ACCOUNT_LOGOUT_CHANNEL);
+    } catch { /* Storage events also support browsers without a usable channel. */ }
+    try {
+        const storage = view.localStorage, listeners = new Set();
+        if (!storage || typeof view.addEventListener !== 'function') return null;
+        view.addEventListener('storage', event => {
+            if (event.storageArea !== storage || event.key !== ACCOUNT_LOGOUT_CHANNEL || !event.newValue) return;
+            try {
+                const data = JSON.parse(event.newValue);
+                for (const listener of listeners) listener({ data });
+            } catch { /* Ignore unrelated or malformed same-origin storage events. */ }
+        });
+        return {
+            addEventListener: (type, listener) => { if (type === 'message') listeners.add(listener); },
+            postMessage: data => {
+                storage.setItem(ACCOUNT_LOGOUT_CHANNEL, JSON.stringify(data));
+                storage.removeItem(ACCOUNT_LOGOUT_CHANNEL);
+            },
+        };
+    } catch { return null; }
+};
 
 const abortedRequest = () => new AccountError('Kết nối đã bị hủy. Vui lòng thử lại.', 0, 'REQUEST_ABORTED');
 const changedSession = () => new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
@@ -25,7 +61,7 @@ const browserStorage = () => {
 };
 
 export class AccountService {
-    constructor({ baseUrl = resolveBackendUrl(), fetchImpl = globalThis.fetch?.bind(globalThis), storage = browserStorage(), warmup = typeof globalThis.window !== 'undefined' } = {}) {
+    constructor({ baseUrl = resolveBackendUrl(), fetchImpl = globalThis.fetch?.bind(globalThis), storage = browserStorage(), warmup = typeof globalThis.window !== 'undefined', logoutChannelFactory = browserLogoutChannel, now = sessionTime } = {}) {
         this.baseUrl = baseUrl;
         this.fetchImpl = fetchImpl;
         this.storage = storage;
@@ -36,6 +72,8 @@ export class AccountService {
         this._refreshPromise = null;
         this._generation = 0;
         this._authIntent = 0;
+        this._now = now;
+        this._authStartedAt = 0;
         this._listeners = new Set();
         // Browser requests wait for a sleeping server before starting their normal API timeout.
         // Injected clients can opt in with `warmup: true` or provide shorter durations for tests.
@@ -73,6 +111,11 @@ export class AccountService {
                     this._connectionUntil = hint.checkedAt + maximum;
             } catch { /* A missing readiness hint only adds one safe health request. */ }
         }
+        try {
+            this._logoutChannel = logoutChannelFactory?.();
+            this._logoutChannel?.addEventListener('message', event => this._receiveLogout(event.data));
+            this._logoutChannel?.unref?.();
+        } catch { /* Disabled cross-tab messaging does not prevent a local sign-out. */ }
     }
 
     get user() { return this._user; }
@@ -90,6 +133,28 @@ export class AccountService {
         return () => this._listeners.delete(listener);
     }
     onAuthChange(listener) { return this.subscribe(listener); }
+
+    _receiveLogout(data) {
+        const now = this._now();
+        if (!data || typeof data !== 'object' || Array.isArray(data)
+            || Object.keys(data).length !== logoutFields.size || Object.keys(data).some(key => !logoutFields.has(key))
+            || data.version !== 1 || data.type !== 'logout' || data.baseUrl !== this.baseUrl
+            || typeof data.ownerId !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(data.ownerId)
+            || !Number.isFinite(data.issuedAt) || data.issuedAt < 0 || data.issuedAt > now + 30000
+            || now - data.issuedAt > LOGOUT_SIGNAL_MAX_AGE
+            || data.issuedAt < this._authStartedAt) return;
+        const ownerId = this._user?.id || this._cachedUser?.id;
+        if (data.ownerId !== ownerId) return;
+        // Only clear this tab. Do not rebroadcast or replay any logout/refresh POST.
+        ++this._authIntent;
+        this._clear();
+    }
+
+    _broadcastLogout(ownerId, issuedAt) {
+        if (typeof ownerId !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(ownerId)) return;
+        try { this._logoutChannel?.postMessage({ version: 1, type: 'logout', baseUrl: this.baseUrl, ownerId, issuedAt }); }
+        catch { /* Browser privacy settings can disable either messaging transport. */ }
+    }
 
     _connection(status) {
         if (this.connectionStatus === status) return;
@@ -413,6 +478,7 @@ export class AccountService {
 
     async _authenticate(path, credentials, { signal } = {}) {
         const intent = ++this._authIntent;
+        this._authStartedAt = this._now();
         const data = await this._send(path, { method: 'POST', body: credentials, auth: false, signal, sessionGuard: () => intent === this._authIntent });
         if (intent !== this._authIntent) throw new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
         if (!data?.user?.id) throw new AccountError('Máy chủ trả về tài khoản không hợp lệ.', 0, 'INVALID_RESPONSE');
@@ -444,9 +510,11 @@ export class AccountService {
 
     async signOut({ all = false } = {}) {
         ++this._authIntent;
+        const ownerId = this._user?.id || this._cachedUser?.id, issuedAt = this._now();
         const accessToken = this._accessToken, refreshToken = this._refreshToken;
         // Clear immediately. A later logout response must never clear a newer login.
         this._clear();
+        this._broadcastLogout(ownerId, issuedAt);
         if (!accessToken && !refreshToken) return { remoteRevoked: false };
         let token = accessToken;
         const path = all ? '/v1/auth/logout-all' : '/v1/auth/logout-current';
@@ -464,6 +532,7 @@ export class AccountService {
         }
         return { remoteRevoked: true };
     }
+    signOutEverywhere() { return this.signOut({ all: true }); }
 }
 
 export const accountService = new AccountService();

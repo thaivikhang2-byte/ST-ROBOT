@@ -411,7 +411,8 @@ def main():
                 stage = 'second device restoration'
                 second_device = context('198.51.100.30')
                 learner_again = page_for(second_device)
-                ui_login(learner_again, student_a)
+                login_a_second_device = ui_login(learner_again, student_a)
+                token_a_second_device = login_a_second_device['tokens']['accessToken']
                 expect(learner_again.locator('#account-student-content [data-course-id="arduino"] progress')).to_have_attribute('value', '1')
                 expect(learner_again.locator('#account-resume-study')).to_have_attribute('href',
                     'course.learning.html?course=arduino&lesson=timing')
@@ -426,6 +427,59 @@ def main():
                 expect(learner_again.locator('#labWorkCode')).to_have_value(lab_code)
                 expect(learner_again.locator('#labWorkNotes')).to_have_value(lab_notes)
                 passed('the same learner restores progress and lab work on another browser/device')
+
+                stage = 'same-browser logout clears prior lab tabs and preserves saved work'
+                account_tab = page_for(learner_session)
+                ui_login(account_tab, student_a)
+                guest_writes = []
+                guest_guard = {'active': False}
+
+                def track_guest_writes(request):
+                    if (guest_guard['active'] and request.method == 'PUT'
+                            and urllib.parse.urlsplit(request.url).path.endswith('/v1/learner-state')):
+                        guest_writes.append('unexpected guest snapshot write')
+
+                learner_session.on('request', track_guest_writes)
+                with account_tab.expect_response(lambda response: response.request.method == 'POST'
+                        and response.url == api_url + '/v1/auth/logout-current') as capture:
+                    account_tab.locator('#account-logout').click()
+                require(capture.value.status in (200, 201), 'Current-device logout failed')
+                expect(account_tab.locator('#account-signed-in')).to_be_hidden()
+                expect(learner.locator('#labWorkSignInNotice')).to_be_visible()
+                expect(learner.locator('#labWorkSignIn')).to_have_attribute('href', 'account.html')
+                expect(learner.locator('#labWorkSave')).to_be_hidden()
+                expect(learner.locator('#labWorkSave')).to_be_disabled()
+                expect(learner.locator('#labWorkCode')).to_have_value('')
+                expect(learner.locator('#labWorkNotes')).to_have_value('')
+                expect(learner.locator('#journal')).to_have_value('')
+                guest_guard['active'] = True
+                # Wait beyond workspace autosave debounce; no guest/background save may run.
+                learner.wait_for_timeout(900)
+                require(not guest_writes, 'A signed-out browser tab dispatched a late learner snapshot write')
+
+                # Ordinary logout clears this browser's tabs, not an independent device session.
+                expect(learner_again.locator('#labWorkSave')).to_be_enabled()
+                own_after_logout = api.call('/v1/learner-state', token=token_a_second_device)
+                after_state = json.loads(own_after_logout['values'].get('strobot.original.course.v3', '{}'))
+                after_record = after_state.get('arduino', {}).get('led', {})
+                require(after_record.get('note') == note_a and after_record.get('done') is True
+                        and after_record.get('labWork', {}).get('local', {}).get('code') == lab_code
+                        and after_record.get('labWork', {}).get('local', {}).get('notes') == lab_notes,
+                        'Ordinary logout changed account-owned server work')
+                learner_again.locator('#labWorkSave').click()
+                expect(learner_again.locator('#labWorkStatus')).to_contain_text('Đã đồng bộ')
+                require(not guest_writes, 'A guest tab wrote account-owned work before relogin')
+                guest_guard['active'] = False
+                learner_session.remove_listener('request', track_guest_writes)
+                ui_login(learner, student_a)
+                learner.goto(course_url, wait_until='domcontentloaded')
+                expect(learner.locator('#main')).to_have_attribute('aria-busy', 'false')
+                learner.locator('#tabBtnLab').click()
+                expect(learner.locator('#labWorkSave')).to_be_enabled()
+                expect(learner.locator('#labWorkCode')).to_have_value(lab_code)
+                expect(learner.locator('#labWorkNotes')).to_have_value(lab_notes)
+                expect(learner.locator('#journal')).to_have_value(note_a)
+                passed('same-browser logout clears lab tabs while another device and saved account work stay usable')
 
                 stage = 'separate student isolation'
                 second = api.call('/v1/users/students', method='POST', status=(200, 201), token=admin_token, body=student_b)

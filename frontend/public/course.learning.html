@@ -134,7 +134,7 @@
   <script type="module" src="../src/app.js?v=product-workspace-v1"></script>
   <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=account-sync-v1'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
 <script type="module">import { mountLessonBench } from '../src/modules/learning/LessonBench.js?v=guided-learning-v15'; import * as portfolio from '../src/modules/learning/PracticePortfolio.js?v=owned-lab-v1'; window.STROBOT_MOUNT_LESSON_BENCH=mountLessonBench; window.STROBOT_PRACTICE_PORTFOLIO=portfolio;</script>
-<script type="module">import { LabWorkspacePanel } from '../src/modules/learning/LabWorkspace.js?v=owned-lab-v1'; window.STROBOT_LAB_WORKSPACE=LabWorkspacePanel;</script>
+<script type="module">import { LabWorkspacePanel } from '../src/modules/learning/LabWorkspace.js?v=account-lab-v2'; window.STROBOT_LAB_WORKSPACE=LabWorkspacePanel;</script>
 <script type="module">import { getPlatformGuide } from '../src/modules/learning/PlatformGuides.js?v=workspace-v16'; window.STROBOT_PLATFORM_GUIDE=getPlatformGuide;</script>
 <script src="../src/data/curriculum.js?v=workspace-v16"></script>
 <script src="../src/data/lesson-pdfs.js?v=workspace-v16"></script>
@@ -277,7 +277,7 @@ let course=COURSES.find(c=>c.id===requested)||COURSES.find(c=>c.id===state.last)
 let microbitEditor=null,localBench=null,pendingImport=null,labNeedsStart=true,activePlatformGuide=null;
 let learnerSnapshotKeys=[];let learningLevel='beginner',workspaceReady=false,labWorkspace=null,navigationTouched=false;
 function writableWorkspace(){return workspaceReady&&learningStorage&&learningStorage.ownerId===learnerSyncService?.ownerId}
-function currentWorkspaceContext(){return {ownerId:learningStorage?.ownerId||null,courseId:course.id,lessonId:lesson().id,platformKey:frameKey||defaultLabKey(),platformName:labs[frameKey||defaultLabKey()]?.name||'Bài làm'}}
+function currentWorkspaceContext(){return {ownerId:learningStorage?.ownerId||null,accountLabel:learnerSyncService?.user?.email||'',courseId:course.id,lessonId:lesson().id,platformKey:frameKey||defaultLabKey(),platformName:labs[frameKey||defaultLabKey()]?.name||'Bài làm'}}
 function matchesWorkspace(context){const now=currentWorkspaceContext();return writableWorkspace()&&['ownerId','courseId','lessonId','platformKey'].every(key=>context?.[key]===now[key])}
 function flushWorkspace(){if(labWorkspace?.dirty&&!labWorkspace.corrupt)labWorkspace.persist()}
 function renderWorkspace(){labWorkspace?.setContext(currentWorkspaceContext(),record(),!!writableWorkspace())}
@@ -294,7 +294,7 @@ async function initPage(){
  labWorkspace=new window.STROBOT_LAB_WORKSPACE($('labWorkspace'),{
   isCurrent:matchesWorkspace,getSyncStatus:()=>learnerSyncService?.status,
   readEditorSource:()=>microbitEditor?.getSource(),
-  onSave:(context,work)=>{if(!matchesWorkspace(context))return false;const r=record(),previous=r.labWork;r.labWork={...(r.labWork||{}),[context.platformKey]:work};if(!save()){r.labWork=previous;return false}return true}
+  onSave:(context,work)=>{if(!context.ownerId||!matchesWorkspace(context))return false;const r=record(),previous=r.labWork;r.labWork={...(r.labWork||{}),[context.platformKey]:work};if(!save()){r.labWork=previous;return false}return true}
  });
  $('learningLevel').value=learningLevel;
  $('learningLevel').onchange=()=>{if(!writableWorkspace())return;learningLevel=$('learningLevel').value;try{learningStorage.setItem('strobot.learning.level.v1',learningLevel)}catch{}renderLearningExplanation();renderPlatformGuide(frameKey||defaultLabKey())};
