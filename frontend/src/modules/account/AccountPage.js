@@ -40,6 +40,14 @@ export class AccountPage {
         this.authOptions = { registrationEnabled: false, approvalRegistrationEnabled: false, emailDeliveryEnabled: false, managedAccountsEnabled: false };
         this.authOptionsLoaded = false;
         this.passwordTarget = null;
+        this.renderScope = '';
+        this.renderedProfile = undefined;
+        this.managementQuery = null;
+        this.managementResult = null;
+        this.managementFlight = null;
+        this.enrollmentLoaded = null;
+        this.enrollmentFlight = null;
+        this.viewFreshMs = 15000;
     }
     $(selector) { return this.root.querySelector(selector); }
     message(text, kind = 'success') {
@@ -213,22 +221,32 @@ export class AccountPage {
         accountService.subscribe(user => this.renderUser(user));
         for (const selector of ['#account-agent-details', '#account-ai-settings-details'])
             this.$(selector).addEventListener('toggle', () => this.renderOptionalPanels());
-        this.$('#account-enrollments').addEventListener('toggle', () => { if (this.$('#account-enrollments').open && accountService.user) this.renderEnrollments(accountService.user); });
+        this.$('#account-enrollments').addEventListener('toggle', () => { if (this.enrollmentsVisible(accountService.user)) this.renderEnrollments(accountService.user); });
         await learnerSync.ready();
-        this.renderUser(accountService.user);
+        // Session restoration already publishes its profile. Finishing the
+        // larger learner snapshot must not restart the visible account queries.
+        if (this.renderedProfile !== accountService.user || this.renderScope !== this.scopeKey(accountService.user)) this.renderUser(accountService.user);
+        else this.renderLearningDashboard();
         if (accountService.sessionError && accountService.configured) this.message(accountErrorMessage(accountService.sessionError), 'error');
     }
     async loadAuthOptions() {
         if (!accountService.configured) return;
-        try {
-            const options = await accountService.request('/v1/auth/options', { auth: false, timeoutMs: 5000 });
-            if (['registrationEnabled', 'emailDeliveryEnabled', 'managedAccountsEnabled'].every(key => typeof options[key] === 'boolean')) this.authOptions = options;
-        } catch (error) {
-            // Older compatible APIs have no options route and retain email registration.
-            if (error.status !== 404) this.authOptions = { registrationEnabled: false, emailDeliveryEnabled: false, managedAccountsEnabled: false };
-        }
-        this.authOptionsLoaded = true;
-        this.applyAuthOptions();
+        if (this.authOptionsFlight) return this.authOptionsFlight;
+        const load = async () => {
+            try {
+                const options = await accountService.request('/v1/auth/options', { auth: false, timeoutMs: 5000 });
+                if (['registrationEnabled', 'emailDeliveryEnabled', 'managedAccountsEnabled'].every(key => typeof options[key] === 'boolean')) this.authOptions = options;
+            } catch (error) {
+                // Older compatible APIs have no options route and retain email registration.
+                if (error.status !== 404) this.authOptions = { registrationEnabled: false, emailDeliveryEnabled: false, managedAccountsEnabled: false };
+            }
+            this.authOptionsLoaded = true;
+            this.applyAuthOptions();
+        };
+        const flight = load();
+        this.authOptionsFlight = flight;
+        try { return await flight; }
+        finally { if (this.authOptionsFlight === flight) this.authOptionsFlight = null; }
     }
     applyAuthOptions() {
         for (const button of this.root.querySelectorAll('[data-auth-mode]')) {
@@ -250,7 +268,14 @@ export class AccountPage {
             const active = [...this.root.querySelectorAll('[data-auth-mode]')].find(button => button.getAttribute('aria-pressed') === 'true');
             if (active?.hidden) this.mode('login');
         }
-        if (accountService.user && this.managementMode === 'users' && !this.$('#account-management').hidden) this.loadManagement('users');
+        const accepted = this.managementResult;
+        if (accountService.user && this.managementMode === 'users' && !this.$('#account-management').hidden
+            && accepted?.scope === this.renderScope && accepted.version === this.managementVersion
+            && accepted.optionsKey !== JSON.stringify(this.authOptions)) {
+            // Options change which controls are available, not the already
+            // authorized student rows. Reuse that response rather than fetch it again.
+            this.renderManagementData(accepted);
+        }
     }
     renderSync(detail) {
         this.$('#account-sync-status').textContent = detail.message || 'Chưa có trạng thái đồng bộ.';
@@ -282,15 +307,28 @@ export class AccountPage {
         if (connecting) this.connectionTimer = setTimeout(() => this.renderConnection(), 1000);
     }
     renderUser(user) {
-        this.managementVersion++;
-        this.managementLoadedKey = '';
-        this.enrollmentVersion++;
+        const scope = this.scopeKey(user);
+        if (scope !== this.renderScope) {
+            this.renderScope = scope;
+            this.managementVersion++;
+            this.managementLoadedKey = '';
+            this.managementResult = this.managementQuery = null;
+            this.managementFlight?.controller.abort();
+            this.managementFlight = null;
+            this.enrollmentVersion++;
+            this.enrollmentLoaded = null;
+            this.enrollmentFlight?.controller.abort();
+            this.enrollmentFlight = null;
+            this.$('#account-activity-content').replaceChildren();
+            this.$('#account-management-content').replaceChildren();
+            this.$('#account-enrollments-content').replaceChildren();
+        }
+        this.renderedProfile = user;
         this.$('#account-signed-in').hidden = !user;
         this.$('#account-page-title').textContent = user ? `Chào ${user.firstName || nameOf(user)}!` : 'Học tập, cùng một tài khoản';
         this.$('#account-page-description').textContent = user ? 'Tiến độ và bài làm của bạn được lưu theo tài khoản.' : 'Đăng nhập để tiếp tục bài học, lưu tiến độ và nhận hỗ trợ từ trợ lý AI.';
         this.$('#account-auth').hidden = !!user;
         this.$('.account-intro').hidden = !!user;
-        this.$('#account-activity-content').replaceChildren();
         if (this.passwordTarget && (this.passwordTarget.ownerId !== user?.id || !canUpdateStudentStatus(user, this.passwordTarget, { offline: accountService.sessionOffline }))) this.$('#account-student-password-dialog').close();
         this.renderConnection();
         for (const button of this.root.querySelectorAll('#account-auth button, #account-auth input')) button.disabled = !accountService.configured;
@@ -311,7 +349,6 @@ export class AccountPage {
         this.$('#profile-last').value = user.lastName || '';
         this.$('#account-sync-now').disabled = !user.isEmailVerified;
         this.renderSync(learnerSync.status);
-        if (this.$('#account-enrollments').open) this.renderEnrollments(user);
         const access = workspaceAccess(user, { offline: accountService.sessionOffline });
         this.$('#account-role-label').textContent = access.label;
         this.$('#account-workspace-switch').hidden = false;
@@ -320,7 +357,14 @@ export class AccountPage {
         if (this.workspaceOwner !== user.id) { this.workspaceView = access.management ? 'management' : 'learning'; this.managementMode = access.manager ? 'users' : 'courses'; this.managementLoadedKey = ''; }
         this.workspaceOwner = user.id;
         this.selectWorkspace(this.workspaceView);
-        this.renderLearningDashboard();
+    }
+    scopeKey(user) {
+        return JSON.stringify([user?.id || null, accountService.sessionVersion, Boolean(accountService.sessionOffline),
+            user?.isEmailVerified === true, user?.permissions || [], user?.roles || []]);
+    }
+    enrollmentsVisible(user) {
+        const section = this.$('#account-enrollments');
+        return Boolean(user && this.workspaceView === 'learning' && section.open && !section.hidden);
     }
     selectWorkspace(view) {
         const user = accountService.user;
@@ -336,6 +380,10 @@ export class AccountPage {
         for (const section of this.root.querySelectorAll('[data-workspace-section]')) section.hidden = section.dataset.workspaceSection !== this.workspaceView;
         this.$('#account-management').hidden = !user || !access.management || this.workspaceView !== 'management';
         if (user && access.management && this.workspaceView === 'management') this.renderManagement(user);
+        if (this.workspaceView === 'learning') {
+            this.renderLearningDashboard();
+            if (this.enrollmentsVisible(user)) this.renderEnrollments(user);
+        }
         this.renderOptionalPanels();
     }
     renderOptionalPanels() {
@@ -354,7 +402,7 @@ export class AccountPage {
     }
     renderLearningDashboard() {
         const output = this.$('#account-student-content'), user = accountService.user;
-        if (!output || !user) return;
+        if (!output || !user || this.workspaceView !== 'learning') return;
         if (learnerSync.ownerId !== user.id) { output.replaceChildren(node('p', 'Đang mở dữ liệu riêng của tài khoản…')); return; }
         try {
             const dashboard = readLearningDashboard(learnerSync.scopedStorage(user.id));
@@ -387,49 +435,66 @@ export class AccountPage {
             output.append(grid);
         } catch (error) { output.replaceChildren(node('p', error.message || 'Chưa đọc được dữ liệu học tập của tài khoản.')); }
     }
-    async renderEnrollments(user) {
-        const version = ++this.enrollmentVersion, output = this.$('#account-enrollments-content');
-        output.replaceChildren(node('p', user.isEmailVerified ? 'Đang tải khóa học…' : 'Xác minh email trước khi tham gia khóa học.'));
-        if (!user.isEmailVerified) return;
-        if (accountService.sessionOffline) { output.replaceChildren(node('p', 'Kết nối lại máy chủ để xem và thay đổi khóa đã tham gia.')); return; }
-        try {
-            const [published, enrolled] = await Promise.all([
-                accountService.request('/v1/courses?limit=100', { auth: false }),
-                accountService.request('/v1/enrollments?limit=100'),
-            ]);
-            if (version !== this.enrollmentVersion || accountService.user?.id !== user.id) return;
-            const courses = rowsOf(published), own = new Map(rowsOf(enrolled).map(item => [item.course.id, item]));
-            output.replaceChildren();
-            if (!courses.length) { output.append(node('p', 'Chưa có khóa được mở tham gia. Các bài tự học vẫn hoạt động bình thường.')); return; }
-            const list = node('ul', undefined, 'account-course-list');
-            for (const course of courses) {
-                const item = node('li'), active = own.get(course.id);
-                item.append(node('h3', course.title));
-                if (active) item.append(node('p', `Đã tham gia từ ${date(active.enrolledAt)}. Giảng viên phụ trách có thể xem tóm tắt tự học.`));
-                const button = node('button', active ? 'Rời khóa' : 'Tham gia khóa', active ? 'btn btn--ghost' : 'btn btn--primary'); button.type = 'button';
-                button.addEventListener('click', async () => {
-                    if (active && !confirm('Rời khóa này và dừng chia sẻ tóm tắt với giảng viên phụ trách? Tiến độ và nhật ký của bạn vẫn được giữ.')) return;
-                    button.disabled = true;
-                    try {
-                        const result = await accountService.request(`/v1/enrollments/${encodeURIComponent(course.id)}`, { method: active ? 'DELETE' : 'POST' });
-                        if (version !== this.enrollmentVersion) return;
-                        if (result.status === 'pending') {
-                            this.message('Đã gửi yêu cầu tham gia; đang chờ người phụ trách duyệt.'); button.textContent = 'Đang chờ duyệt';
-                        } else {
-                            this.message(active ? 'Đã rời khóa. Tiến độ tự học vẫn được giữ.' : 'Đã tham gia khóa học.');
-                            this.renderEnrollments(accountService.user);
-                        }
-                    } catch (error) { this.message(accountErrorMessage(error), 'error'); button.disabled = false; }
-                });
-                item.append(button); list.append(item);
+    renderEnrollments(user, { force = false } = {}) {
+        if (!this.enrollmentsVisible(user)) return Promise.resolve();
+        const output = this.$('#account-enrollments-content');
+        if (!user.isEmailVerified) { output.replaceChildren(node('p', 'Xác minh email trước khi tham gia khóa học.')); return Promise.resolve(); }
+        if (accountService.sessionOffline) { output.replaceChildren(node('p', 'Kết nối lại máy chủ để xem và thay đổi khóa đã tham gia.')); return Promise.resolve(); }
+        const key = this.scopeKey(user);
+        if (!force && this.enrollmentFlight?.key === key) return this.enrollmentFlight.promise;
+        if (!force && this.enrollmentLoaded?.key === key && Date.now() - this.enrollmentLoaded.loadedAt < this.viewFreshMs) return Promise.resolve();
+        const version = ++this.enrollmentVersion, controller = new AbortController();
+        this.enrollmentFlight?.controller.abort();
+        const current = () => version === this.enrollmentVersion && key === this.scopeKey(accountService.user);
+        output.replaceChildren(node('p', 'Đang tải khóa học…'));
+        const flight = { key, controller, promise: null };
+        const load = async () => {
+            try {
+                const [published, enrolled] = await Promise.all([
+                    accountService.request('/v1/courses?limit=100', { auth: false, signal: controller.signal }),
+                    accountService.request('/v1/enrollments?limit=100', { signal: controller.signal }),
+                ]);
+                if (!current()) return;
+                const courses = rowsOf(published), own = new Map(rowsOf(enrolled).map(item => [item.course.id, item]));
+                this.enrollmentLoaded = { key, loadedAt: Date.now() };
+                output.replaceChildren();
+                if (!courses.length) { output.append(node('p', 'Chưa có khóa được mở tham gia. Các bài tự học vẫn hoạt động bình thường.')); return; }
+                const list = node('ul', undefined, 'account-course-list');
+                for (const course of courses) {
+                    const item = node('li'), active = own.get(course.id);
+                    item.append(node('h3', course.title));
+                    if (active) item.append(node('p', `Đã tham gia từ ${date(active.enrolledAt)}. Giảng viên phụ trách có thể xem tóm tắt tự học.`));
+                    const button = node('button', active ? 'Rời khóa' : 'Tham gia khóa', active ? 'btn btn--ghost' : 'btn btn--primary'); button.type = 'button';
+                    button.addEventListener('click', async () => {
+                        if (!current()) return;
+                        if (active && !confirm('Rời khóa này và dừng chia sẻ tóm tắt với giảng viên phụ trách? Tiến độ và nhật ký của bạn vẫn được giữ.')) return;
+                        button.disabled = true;
+                        try {
+                            const result = await accountService.request(`/v1/enrollments/${encodeURIComponent(course.id)}`, { method: active ? 'DELETE' : 'POST' });
+                            if (!current()) return;
+                            this.enrollmentLoaded = null;
+                            if (result.status === 'pending') {
+                                this.message('Đã gửi yêu cầu tham gia; đang chờ người phụ trách duyệt.'); button.textContent = 'Đang chờ duyệt';
+                            } else {
+                                this.message(active ? 'Đã rời khóa. Tiến độ tự học vẫn được giữ.' : 'Đã tham gia khóa học.');
+                                this.renderEnrollments(accountService.user, { force: true });
+                            }
+                        } catch (error) { if (current()) { this.message(accountErrorMessage(error), 'error'); button.disabled = false; } }
+                    });
+                    item.append(button); list.append(item);
+                }
+                output.append(list);
+                if (courses.length === 100 || own.size === 100) output.append(node('p', 'Đang hiển thị tối đa 100 khóa học.'));
+            } catch (error) {
+                if (!current()) return;
+                this.enrollmentLoaded = null;
+                output.replaceChildren(node('p', accountErrorMessage(error)));
+                const retry = node('button', 'Tải lại khóa học', 'btn btn--ghost'); retry.type = 'button'; retry.addEventListener('click', () => this.renderEnrollments(accountService.user, { force: true })); output.append(retry);
             }
-            output.append(list);
-            if (courses.length === 100 || own.size === 100) output.append(node('p', 'Đang hiển thị tối đa 100 khóa học.'));
-        } catch (error) {
-            if (version !== this.enrollmentVersion) return;
-            output.replaceChildren(node('p', accountErrorMessage(error)));
-            const retry = node('button', 'Tải lại khóa học', 'btn btn--ghost'); retry.type = 'button'; retry.addEventListener('click', () => this.renderEnrollments(accountService.user)); output.append(retry);
-        }
+        };
+        flight.promise = load().finally(() => { if (this.enrollmentFlight === flight) this.enrollmentFlight = null; });
+        this.enrollmentFlight = flight;
+        return flight.promise;
     }
     async loadActivity() {
         const userId = accountService.user?.id, output = this.$('#account-activity-content'), button = this.$('#account-activity-load');
@@ -467,61 +532,100 @@ export class AccountPage {
         }
         if (extra.children.length > 1) tabs.append(extra);
         if (!available.some(([mode]) => mode === this.managementMode)) this.managementMode = available[0][0];
-        const key = `${user.id}:${accountService.sessionVersion}:${this.managementMode}`;
-        if (key !== this.managementLoadedKey) this.loadManagement(this.managementMode);
-        else for (const button of this.root.querySelectorAll('[data-management-mode]')) button.setAttribute('aria-pressed', String(button.dataset.managementMode === this.managementMode));
+        const query = this.managementQuery?.mode === this.managementMode ? this.managementQuery : {};
+        this.loadManagement(this.managementMode, { ...query, force: false });
     }
-    async loadManagement(mode, { page = 1, search = '', status = this.studentFilter } = {}) {
+    loadManagement(mode, { page = 1, search = '', status = this.studentFilter, force = true } = {}) {
         const actor = accountService.user;
-        if (!actor || !workspaceAccess(actor, { offline: accountService.sessionOffline }).management) return;
+        if (!actor || !workspaceAccess(actor, { offline: accountService.sessionOffline }).management) return Promise.resolve();
+        const scope = this.scopeKey(actor), filter = ['all', 'pending', 'active', 'locked'].includes(status) ? status : 'all';
+        const key = JSON.stringify([scope, mode, page, search, filter]);
+        if (!force && this.managementFlight?.key === key) return this.managementFlight.promise;
+        if (!force && this.managementResult?.key === key && Date.now() - this.managementResult.loadedAt < this.viewFreshMs) {
+            for (const button of this.root.querySelectorAll('[data-management-mode]')) button.setAttribute('aria-pressed', String(button.dataset.managementMode === mode));
+            return Promise.resolve();
+        }
         this.managementMode = mode;
-        this.studentFilter = ['all', 'pending', 'active', 'locked'].includes(status) ? status : 'all';
-        this.managementLoadedKey = `${actor.id}:${accountService.sessionVersion}:${mode}`;
-        const version = ++this.managementVersion, output = this.$('#account-management-content');
+        this.studentFilter = filter;
+        this.managementQuery = { mode, page, search, status: filter };
+        this.managementLoadedKey = key;
+        const version = ++this.managementVersion, output = this.$('#account-management-content'), controller = new AbortController();
+        this.managementFlight?.controller.abort();
         output.replaceChildren(node('p', 'Đang tải dữ liệu…'));
         for (const button of this.root.querySelectorAll('[data-management-mode]')) button.setAttribute('aria-pressed', String(button.dataset.managementMode === mode));
-        try {
-            const students = mode === 'users' && actor.permissions?.includes('analytics:read');
-            const limit = students ? 20 : 10;
-            const query = `?limit=${limit}&page=${page}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
-            const path = { overview: '/v1/admin/dashboard', users: students ? '/v1/users/student-overview' + query + `&status=${this.studentFilter}` : '/v1/users' + query,
-                courses: '/v1/teacher/courses' + query, audit: '/v1/admin/audit' + query, learning: '/v1/learner-state/management' + query }[mode];
-            if (!path) return;
-            const data = await accountService.request(path);
-            if (version !== this.managementVersion || accountService.user?.id !== actor.id) return;
-            output.replaceChildren();
-            if (mode === 'overview') { this.overview(output, data); return; }
-            if (mode === 'users' || mode === 'courses') this.search(output, mode, search);
-            if (mode === 'users') {
-                const toolbar = node('div', undefined, 'account-student-toolbar');
-                if (students) {
-                    const filters = node('div', undefined, 'account-filter-tabs'); filters.setAttribute('aria-label', 'Lọc học viên');
-                    for (const [value, label] of [['all', 'Tất cả'], ['pending', 'Chờ duyệt'], ['active', 'Đang học'], ['locked', 'Đã khóa']]) {
-                        const button = node('button', label, 'btn btn--ghost btn--sm'); button.type = 'button'; button.dataset.studentFilter = value;
-                        button.setAttribute('aria-pressed', String(value === this.studentFilter));
-                        button.addEventListener('click', () => this.loadManagement('users', { search, status: value })); filters.append(button);
-                    }
-                    toolbar.append(filters);
-                }
-                const refresh = node('button', 'Làm mới danh sách', 'btn btn--ghost btn--sm'); refresh.type = 'button'; refresh.dataset.studentRefresh = '';
-                refresh.addEventListener('click', () => this.loadManagement('users', { page, search })); toolbar.append(refresh); output.append(toolbar);
-                this.createStudentForm(output, version);
-                output.append(node('p', 'Tiến độ cập nhật từ tài khoản trên các thiết bị. Nhật ký và mã riêng của học sinh không xuất hiện trong danh sách này.', 'account-role-note'));
+        const current = () => version === this.managementVersion && scope === this.scopeKey(accountService.user);
+        const flight = { key, controller, promise: null };
+        const load = async () => {
+            try {
+                const students = mode === 'users' && actor.permissions?.includes('analytics:read');
+                const limit = students ? 20 : 10;
+                const query = `?limit=${limit}&page=${page}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
+                const path = { overview: '/v1/admin/dashboard', users: students ? '/v1/users/student-overview' + query + `&status=${filter}` : '/v1/users' + query,
+                    courses: '/v1/teacher/courses' + query, audit: '/v1/admin/audit' + query, learning: '/v1/learner-state/management' + query }[mode];
+                if (!path) return;
+                const data = await accountService.request(path, { signal: controller.signal });
+                if (!current()) return;
+                const accepted = { key, scope, version, mode, page, search, status: filter, students, limit, data, loadedAt: Date.now() };
+                this.managementResult = accepted;
+                this.renderManagementData(accepted);
+            } catch (error) {
+                if (!current()) return;
+                this.managementResult = null;
+                output.replaceChildren(node('p', accountErrorMessage(error)));
+                const retry = node('button', 'Thử lại', 'btn btn--ghost'); retry.type = 'button';
+                retry.addEventListener('click', () => this.loadManagement(mode, { page, search, status: filter })); output.append(retry);
             }
-            const rows = rowsOf(data);
-            if (!rows.length) output.append(node('p', mode === 'users' && this.studentFilter === 'pending' ? 'Không có đăng ký đang chờ duyệt.' : 'Chưa có dữ liệu phù hợp.', 'account-empty'));
-            else if (mode === 'users') this.users(output, rows, version, { page, search });
-            else if (mode === 'audit') this.table(output, ['Thời gian', 'Thao tác', 'Tài nguyên', 'Người thực hiện'], rows.map(row => [date(row.created_at), row.action, row.resource || '—', row.user_id || 'Hệ thống']));
-            else if (mode === 'learning') this.learningSummaries(output, rows);
-            else this.courses(output, rows, version);
-            const metadata = data?.meta || data?.pagination || {};
-            this.pagination(output, mode, page, search, Number.isFinite(metadata.totalPages) ? page < metadata.totalPages : rows.length === limit);
-        } catch (error) {
-            if (version !== this.managementVersion || accountService.user?.id !== actor.id) return;
-            output.replaceChildren(node('p', accountErrorMessage(error)));
-            const retry = node('button', 'Thử lại', 'btn btn--ghost'); retry.type = 'button';
-            retry.addEventListener('click', () => this.loadManagement(mode, { page, search })); output.append(retry);
+        };
+        flight.promise = load().finally(() => { if (this.managementFlight === flight) this.managementFlight = null; });
+        this.managementFlight = flight;
+        return flight.promise;
+    }
+    refreshManagementAfterWrite(scope) {
+        if (scope !== this.scopeKey(accountService.user)) return;
+        this.managementLoadedKey = '';
+        this.managementResult = null;
+        if (this.workspaceView === 'management') {
+            const query = this.managementQuery?.mode === this.managementMode ? this.managementQuery : {};
+            return this.loadManagement(this.managementMode, { ...query, force: true });
         }
+        // A read begun before the write must not install an obsolete cache
+        // merely because the user moved to another workspace while saving.
+        this.managementVersion++;
+        this.managementFlight?.controller.abort();
+        this.managementFlight = null;
+    }
+    renderManagementData(accepted) {
+        const { mode, data, version, page, search, status, students, limit } = accepted;
+        if (accepted.scope !== this.scopeKey(accountService.user) || version !== this.managementVersion) return;
+        const output = this.$('#account-management-content');
+        accepted.optionsKey = JSON.stringify(this.authOptions);
+        output.replaceChildren();
+        if (mode === 'overview') { this.overview(output, data); return; }
+        if (mode === 'users' || mode === 'courses') this.search(output, mode, search);
+        if (mode === 'users') {
+            const toolbar = node('div', undefined, 'account-student-toolbar');
+            if (students) {
+                const filters = node('div', undefined, 'account-filter-tabs'); filters.setAttribute('aria-label', 'Lọc học viên');
+                for (const [value, label] of [['all', 'Tất cả'], ['pending', 'Chờ duyệt'], ['active', 'Đang học'], ['locked', 'Đã khóa']]) {
+                    const button = node('button', label, 'btn btn--ghost btn--sm'); button.type = 'button'; button.dataset.studentFilter = value;
+                    button.setAttribute('aria-pressed', String(value === status));
+                    button.addEventListener('click', () => this.loadManagement('users', { search, status: value })); filters.append(button);
+                }
+                toolbar.append(filters);
+            }
+            const refresh = node('button', 'Làm mới danh sách', 'btn btn--ghost btn--sm'); refresh.type = 'button'; refresh.dataset.studentRefresh = '';
+            refresh.addEventListener('click', () => this.loadManagement('users', { page, search, status })); toolbar.append(refresh); output.append(toolbar);
+            this.createStudentForm(output, version);
+            output.append(node('p', 'Tiến độ cập nhật từ tài khoản trên các thiết bị. Nhật ký và mã riêng của học sinh không xuất hiện trong danh sách này.', 'account-role-note'));
+        }
+        const rows = rowsOf(data);
+        if (!rows.length) output.append(node('p', mode === 'users' && status === 'pending' ? 'Không có đăng ký đang chờ duyệt.' : 'Chưa có dữ liệu phù hợp.', 'account-empty'));
+        else if (mode === 'users') this.users(output, rows, version, { page, search, status });
+        else if (mode === 'audit') this.table(output, ['Thời gian', 'Thao tác', 'Tài nguyên', 'Người thực hiện'], rows.map(row => [date(row.created_at), row.action, row.resource || '—', row.user_id || 'Hệ thống']));
+        else if (mode === 'learning') this.learningSummaries(output, rows);
+        else this.courses(output, rows, version);
+        const metadata = data?.meta || data?.pagination || {};
+        this.pagination(output, mode, page, search, Number.isFinite(metadata.totalPages) ? page < metadata.totalPages : rows.length === limit);
     }
     overview(output, data) {
         const metrics = [['users', 'Tài khoản'], ['activeStudents', 'Học viên đang hoạt động'], ['teachers', 'Giáo viên'], ['publishedCourses', 'Khóa học đã xuất bản'], ['learningActivityLast7Days', 'Bài có hoạt động trong 7 ngày'], ['pendingApprovals', 'Yêu cầu chờ duyệt']];
@@ -557,6 +661,7 @@ export class AccountPage {
     }
     users(output, rows, version, query) {
         const actor = accountService.user;
+        const scope = this.scopeKey(actor);
         const tableRows = rows.map(user => {
             const action = node('div', undefined, 'account-student-actions');
             if (user.approvalPending) {
@@ -568,9 +673,9 @@ export class AccountPage {
                         approve.disabled = true;
                         try {
                             await accountService.request(`/v1/users/${encodeURIComponent(user.id)}/approve-student`, { method: 'POST' });
-                            if (version !== this.managementVersion || accountService.user?.id !== actor.id) return;
+                            if (scope !== this.scopeKey(accountService.user)) return;
                             this.message('Đã duyệt tài khoản. Học sinh có thể đăng nhập và học ngay.');
-                            this.loadManagement('users', query);
+                            this.refreshManagementAfterWrite(scope);
                         } catch (error) { if (version === this.managementVersion) { this.message(accountErrorMessage(error), 'error'); approve.disabled = false; } }
                     }); action.append(approve);
                 } else action.append(node('span', 'Chờ quản trị viên duyệt'));
@@ -582,7 +687,7 @@ export class AccountPage {
                     button.disabled = true;
                     try {
                         await accountService.request(`/v1/users/${encodeURIComponent(user.id)}/status`, { method: 'PATCH', body: { isActive: !user.isActive } });
-                        if (version === this.managementVersion && accountService.user?.id === actor.id) this.loadManagement('users', query);
+                        this.refreshManagementAfterWrite(scope);
                     } catch (error) { if (version === this.managementVersion) { this.message(accountErrorMessage(error), 'error'); button.disabled = false; } }
                 }); action.append(button);
                 if (this.authOptions.managedAccountsEnabled && user.isActive && actor.permissions?.includes('users:update')) {
@@ -614,6 +719,7 @@ export class AccountPage {
     }
     createStudentForm(output, version) {
         const actor = accountService.user, access = workspaceAccess(actor, { offline: accountService.sessionOffline });
+        const scope = this.scopeKey(actor);
         if (!this.authOptions.managedAccountsEnabled || !access.manager || !actor?.isEmailVerified || !actor.permissions?.includes('users:create')) return;
         const details = node('details', undefined, 'account-create-student'), summary = node('summary', 'Tạo tài khoản học sinh');
         details.append(summary, node('p', 'Tài khoản này chỉ có quyền học sinh. Bạn xác nhận danh tính học sinh thay cho email và cung cấp thông tin đăng nhập qua kênh riêng.'));
@@ -632,9 +738,9 @@ export class AccountPage {
         this.bindForm('#account-create-student', async (data, { isCurrent }) => {
             if (version !== this.managementVersion) return;
             await accountService.request('/v1/users/students', { method: 'POST', body: { email: data.email, password: data.password, firstName: data.firstName, lastName: data.lastName } });
-            if (!isCurrent() || version !== this.managementVersion) return;
+            if (!isCurrent() || scope !== this.scopeKey(accountService.user)) return;
             this.message('Đã tạo tài khoản học sinh. Học sinh có thể đăng nhập và học ngay.');
-            this.loadManagement('users');
+            this.refreshManagementAfterWrite(scope);
         });
     }
     courses(output, rows, version) {
