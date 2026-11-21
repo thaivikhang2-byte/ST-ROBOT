@@ -1,7 +1,8 @@
 // Local learning records are learner reports, including when the fields are complete.
 // These helpers never read storage, mutate an existing record, or verify a claim.
+import { normalizeLabWorkMap } from './LabWorkspace.js';
 export const limits = Object.freeze({
-    backupBytes: 1024 * 1024,
+    backupBytes: 5 * 1024 * 1024,
     lessons: 100,
     note: 15000,
     prediction: 2000,
@@ -76,7 +77,7 @@ function projectUrl(value) {
     return bounded;
 }
 
-function normalizeRecord(value, lesson, imported) {
+function normalizeRecord(value, lesson, imported, courseId) {
     if (!isObject(value)) fail(`Nhật ký bài ${lesson.id} không hợp lệ.`);
     for (const key of Object.keys(value)) if (UNSAFE_KEYS.has(key)) fail('Bản sao chứa khóa dữ liệu không an toàn.');
     const result = { note: '', choice: null, done: false };
@@ -96,6 +97,7 @@ function normalizeRecord(value, lesson, imported) {
         result.source = value.source;
     }
     if (hasOwn(value, 'projectUrl')) result.projectUrl = projectUrl(value.projectUrl);
+    if (hasOwn(value, 'labWork')) result.labWork = normalizeLabWorkMap(value.labWork, courseId);
     if (hasOwn(value, 'completedAt')) result.completedAt = exportedAt(value.completedAt);
     if (hasOwn(value, 'modelEvidence') && value.modelEvidence !== null) result.modelEvidence = modelEvidence(value.modelEvidence, lesson.id);
     // Importing a checked box must never turn it into independently verified learning.
@@ -103,14 +105,14 @@ function normalizeRecord(value, lesson, imported) {
     return result;
 }
 
-function normalizeRecords(records, lessons, imported) {
+function normalizeRecords(records, lessons, imported, courseId) {
     if (!isObject(records)) fail('Bản sao cần có danh sách nhật ký bài học.');
     const keys = Object.keys(records);
     if (keys.length > lessons.size) fail('Bản sao chứa quá nhiều bài học.');
     const result = {};
     for (const lessonId of keys) {
         if (!safeId(lessonId) || !lessons.has(lessonId)) fail(`Bài học trong bản sao không thuộc khóa học: ${lessonId}.`);
-        result[lessonId] = normalizeRecord(records[lessonId], lessons.get(lessonId), imported);
+        result[lessonId] = normalizeRecord(records[lessonId], lessons.get(lessonId), imported, courseId);
     }
     return result;
 }
@@ -125,7 +127,7 @@ function exportedAt(value) {
 export function parseCourseBackup(json, course) {
     const lessons = courseLessons(course);
     if (typeof json !== 'string' || json.length > limits.backupBytes
-        || new TextEncoder().encode(json).length > limits.backupBytes) fail('Tệp nhật ký cần là JSON không quá 1 MiB.');
+        || new TextEncoder().encode(json).length > limits.backupBytes) fail('Tệp nhật ký cần là JSON không quá 5 MiB.');
     let backup;
     try {
         backup = JSON.parse(json, (key, value) => {
@@ -137,7 +139,7 @@ export function parseCourseBackup(json, course) {
     if (hasOwn(backup, 'schemaVersion') && backup.schemaVersion !== 1 && backup.schemaVersion !== 2) {
         fail('Phiên bản bản sao nhật ký chưa được hỗ trợ.');
     }
-    const result = { schemaVersion: 2, course: course.id, records: normalizeRecords(backup.records, lessons, true) };
+    const result = { schemaVersion: 2, course: course.id, records: normalizeRecords(backup.records, lessons, true, course.id) };
     if (hasOwn(backup, 'exportedAt')) result.exportedAt = exportedAt(backup.exportedAt);
     return result;
 }
@@ -148,10 +150,10 @@ export function createCourseBackup(course, records, options = {}) {
     const result = {
         schemaVersion: 2,
         course: course.id,
-        records: normalizeRecords(records, lessons, false),
+        records: normalizeRecords(records, lessons, false, course.id),
         exportedAt: exportedAt(options.exportedAt ?? new Date().toISOString()),
     };
-    if (new TextEncoder().encode(JSON.stringify(result)).length > limits.backupBytes) fail('Nhật ký vượt quá giới hạn 1 MiB.');
+    if (new TextEncoder().encode(JSON.stringify(result)).length > limits.backupBytes) fail('Nhật ký vượt quá giới hạn 5 MiB.');
     return result;
 }
 

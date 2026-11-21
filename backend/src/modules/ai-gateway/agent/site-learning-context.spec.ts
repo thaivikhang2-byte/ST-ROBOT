@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { BadRequestException } from '@nestjs/common';
 import { resolve } from 'node:path';
 import type { PrismaService } from '../../../database/prisma.service';
 import type { RequestUser } from '../../../shared/sdk';
@@ -58,6 +59,19 @@ describe('Authoritative site labs and owner learning context', () => {
     expect(JSON.stringify(result)).not.toMatch(/OTHER-PERSON|Unrelated private|NEVER FETCH|must never leave|refreshToken/);
   });
 
+  it('reads only the selected saved lab copy and redacts source secrets within its tool budget', async () => {
+    const work = { version: 1, savedAt: '2026-11-19T00:00:00Z', code: 'api_key="never-forward-key"\nprint("selected-work")', notes: 'work in progress', projectUrl: 'https://example.com/project?secret=hidden', fileName: 'main.py' };
+    const db = database({ 'strobot.original.course.v3': JSON.stringify({ arduino: { led: { labWork: { avr: work, local: { ...work, code: 'other-platform-private' } } }, timing: { labWork: { avr: { ...work, code: 'other-lesson-private' } } } } }) });
+    const result = await ownLearningData(db as unknown as PrismaService, 'request-owner', 'arduino', 'led', 'avr');
+    expect(JSON.stringify(result)).toContain('selected-work');
+    expect(JSON.stringify(result)).not.toMatch(/never-forward-key|other-platform-private|other-lesson-private|secret=hidden/);
+    expect(Buffer.byteLength(JSON.stringify(result))).toBeLessThanOrEqual(8500);
+    const overview = await ownLearningData(db as unknown as PrismaService, 'request-owner');
+    expect(JSON.stringify(overview)).not.toMatch(/selected-work|other-platform-private/);
+    const noPlatform = await ownLearningData(db as unknown as PrismaService, 'request-owner', 'arduino', 'led');
+    expect(JSON.stringify(noPlatform)).not.toContain('selected-work');
+    await expect(ownLearningData(db as unknown as PrismaService, 'request-owner', 'arduino', 'led', 'python')).rejects.toThrow(BadRequestException);
+  });
   it('reads saved Microbit main.py for its owner and redacts credential-like content', async () => {
     const db = database({
       'strobot.microbit.editor.v1.matrix': JSON.stringify({ savedAt: 123, project: { projectName: 'My matrix', files: { 'main.py': Buffer.from('from microbit import *\napi_key="very-secret-key"\ndisplay.show(Image.HEART)').toString('base64') } } }),

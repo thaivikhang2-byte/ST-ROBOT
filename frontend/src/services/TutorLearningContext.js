@@ -1,11 +1,16 @@
 // Only learning records from the current page's account-scoped storage may be
 // sent to the vision/guest tutor. Never enumerate localStorage or sessionStorage.
+import { LAB_COURSE_PLATFORMS, normalizeLabWork } from '../modules/learning/LabWorkspace.js';
 const COURSE_IDS = new Set(['arduino', 'microbit', 'vex-iq', 'lego-spike', 'vex-vr']);
 const SOURCES = new Set(['local-model', 'external', 'hardware']);
 const plain = value => value && typeof value === 'object' && !Array.isArray(value)
     && [Object.prototype, null].includes(Object.getPrototypeOf(value));
 const text = (value, max) => typeof value === 'string' ? value.slice(0, max) : '';
 const lessonId = value => typeof value === 'string' && /^[a-z0-9-]{1,40}$/.test(value);
+const scrub = value => value.replace(/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g, '[REDACTED PRIVATE KEY]')
+    .replace(/\b(?:sk-proj-|sk-ant-|sk-or-v1-|AIzaSy)[A-Za-z0-9_-]{16,}/g, '[REDACTED KEY]')
+    .replace(/\beyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}/g, '[REDACTED TOKEN]')
+    .replace(/((?:password|passphrase|mật\s*khẩu|api[_ -]?key|access[_ -]?token|refresh[_ -]?token|secret)\s*(?:[:=]|\blà\b)\s*)(?:"[^"]*"|'[^']*'|[^\s;,]+)/gi, '$1[REDACTED]');
 
 function read(storage, key, maximum) {
     try {
@@ -15,7 +20,7 @@ function read(storage, key, maximum) {
 }
 
 export function buildTutorLearningContext({ courses = [], courseId, lessonId: currentLessonId,
-    storage, currentRecord } = {}) {
+    storage, currentRecord, platformKey } = {}) {
     if (!COURSE_IDS.has(courseId) || !lessonId(currentLessonId)) return undefined;
     const catalog = courses.filter(course => COURSE_IDS.has(course?.id) && Array.isArray(course.lessons)).slice(0, 5);
     const saved = read(storage, 'strobot.original.course.v3', 8 * 1024 * 1024);
@@ -26,10 +31,19 @@ export function buildTutorLearningContext({ courses = [], courseId, lessonId: cu
         : (plain(records[courseId]?.[currentLessonId]) ? records[courseId][currentLessonId] : {});
     const journal = {};
     for (const [key, max] of [['note', 1600], ['prediction', 600], ['observation', 600], ['explanation', 600], ['transfer', 600]]) {
-        const value = text(record[key], max);
+        const value = text(typeof record[key] === 'string' ? scrub(record[key]) : '', max);
         if (value) journal[key] = value;
     }
     if (SOURCES.has(record.source)) journal.practiceSource = record.source;
+    // Keep the existing bounded browser-report schema; the selected saved copy
+    // is reference text in its journal, not authority or live iframe contents.
+    if (LAB_COURSE_PLATFORMS[courseId].includes(platformKey) && plain(record.labWork)) {
+        try {
+            const work = normalizeLabWork(record.labWork[platformKey]);
+            const savedCopy = scrub(`Bản sao bài làm đã lưu (${platformKey}, ${work.savedAt}):\n${work.notes}\n${work.code}`);
+            journal.note = [text(journal.note, 600), savedCopy.slice(0, 990)].filter(Boolean).join('\n').slice(0, 1600);
+        } catch { /* Invalid or absent saved work is never forwarded. */ }
+    }
     const history = read(storage, 'strobot.quiz.history.v1', 512 * 1024);
     const quizHistory = (Array.isArray(history) ? history : []).filter(result =>
         plain(result) && COURSE_IDS.has(result.courseId) && Number.isInteger(result.correct)

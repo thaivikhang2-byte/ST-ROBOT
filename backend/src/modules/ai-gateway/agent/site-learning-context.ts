@@ -82,8 +82,9 @@ function recordedDate(value: unknown) {
 }
 
 /** Data owner always comes from the verified request actor, never from tool arguments. */
-export async function ownLearningData(db: PrismaService, ownerId: string, courseSlug?: string, lessonSlug?: string) {
+export async function ownLearningData(db: PrismaService, ownerId: string, courseSlug?: string, lessonSlug?: string, platformKey?: string) {
   assertSiteScope(courseSlug, lessonSlug);
+  if (platformKey && (!courseSlug || !siteCourseLabs[courseSlug]?.includes(platformKey))) throw new BadRequestException('Selected lab is not offered for this course');
   const row = await db.learnerState.findUnique({ where: { user_id: ownerId }, select: { values: true, summary: true, revision: true, updated_at: true } });
   const values = object(row?.values) ? row.values : {};
   const state = parseValue(values, 'strobot.original.course.v3');
@@ -119,7 +120,7 @@ export async function ownLearningData(db: PrismaService, ownerId: string, course
     const saved = object(records[id]) ? records[id] : {};
     const lessons = courseLessons[id].filter(key => !lessonSlug || key === lessonSlug).map(key => {
       const raw = object(saved[key]) ? saved[key] : {};
-      const output: JsonRecord = { lessonSlug: key, saved: Object.hasOwn(saved, key), done: raw.done === true, hasJournal: typeof raw.note === 'string' && !!raw.note, hasProject: !!raw.projectUrl || Object.hasOwn(values, `strobot.microbit.editor.v1.${key}`) && id === 'microbit' };
+      const output: JsonRecord = { lessonSlug: key, saved: Object.hasOwn(saved, key), done: raw.done === true, hasJournal: typeof raw.note === 'string' && !!raw.note, hasProject: !!raw.projectUrl || Object.hasOwn(values, `strobot.microbit.editor.v1.${key}`) && id === 'microbit', hasSavedLabWork: object(raw.labWork) && siteCourseLabs[id].some(platform => Object.hasOwn(raw.labWork as JsonRecord, platform)) };
       if (recordedDate(raw.completedAt)) output.completedAt = raw.completedAt;
       if (courseSlug) detailed.push({ output, source: raw });
       return output;
@@ -175,6 +176,17 @@ export async function ownLearningData(db: PrismaService, ownerId: string, course
     if (['local-model', 'external', 'hardware'].includes(String(source.source))) output.practiceSource = source.source;
     addText(output, 'projectUrl', publicProjectUrl(source.projectUrl), 350);
     if (object(source.modelEvidence)) addText(output, 'modelEvidence', source.modelEvidence.summary, 600);
+    // Source is included only for one explicitly selected lesson and platform.
+    // The account overview and management summaries never contain this work.
+    const work = lessonSlug && platformKey && object(source.labWork) ? source.labWork[platformKey] : undefined;
+    if (object(work) && work.version === 1) {
+      const selected: JsonRecord = { source: 'saved-learner-lab-copy', platformKey };
+      output.labWork = selected;
+      if (recordedDate(work.savedAt)) selected.savedAt = work.savedAt;
+      addText(selected, 'notes', work.notes, 600);
+      addText(selected, 'code', work.code, 2200);
+      addText(selected, 'projectUrl', publicProjectUrl(work.projectUrl), 350);
+    }
   }
   if (courseSlug === 'microbit' && lessonSlug) {
     const saved = parseValue(values, `strobot.microbit.editor.v1.${lessonSlug}`, 750000);

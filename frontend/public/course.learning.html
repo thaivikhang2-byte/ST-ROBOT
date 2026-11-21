@@ -21,7 +21,7 @@
   <header id="navbar-container"></header>
   <div class="learning-workspace">
     <div id="enrollmentBanner" class="ws-banner" role="region" aria-label="Thông báo khóa học">
-      <span><strong>Học STEM Robotics theo từng bước.</strong> Chọn khóa ở thanh bên để bắt đầu. Tiến độ và nhật ký được lưu trên trình duyệt này.</span>
+      <span><strong>Học STEM Robotics theo từng bước.</strong> Chọn khóa ở thanh bên để bắt đầu. Đăng nhập một lần để tiếp tục bài làm và tiến độ trên các thiết bị.</span>
       <button type="button" onclick="document.getElementById('enrollmentBanner').style.display='none'">Đã hiểu</button>
     </div>
     <div id="notice" role="status" aria-live="polite">Đang mở bài học…</div>
@@ -32,7 +32,7 @@
       </div>
       <button type="button" class="btn btn--primary btn--sm" onclick="openPdfModal()">Xem &amp; lưu PDF bài giảng</button>
     </div>
-    <main id="main" class="ws" tabindex="-1" inert aria-busy="true">
+    <main id="main" class="ws" tabindex="-1" aria-busy="false">
       <aside class="ws-side glass-panel" aria-label="Lộ trình bài học">
         <div class="ws-side-head"><h2>Lộ trình &amp; tài liệu</h2><span id="progressText">0/6 bài tự học</span></div>
         <div class="ws-side-scroll">
@@ -74,7 +74,7 @@
             <p class="small">Dự đoán trước khi chạy → quan sát kết quả → giải thích → đổi một đầu vào và thử lại.</p>
             <label for="prediction">1. Bạn dự đoán điều gì? Ghi cả đầu vào sẽ thử.</label>
             <textarea id="prediction" rows="2" maxlength="2000" placeholder="Tôi chọn… Tôi nghĩ kết quả sẽ… vì…"></textarea>
-            <div class="lab-actions practice-navigation"><button type="button" onclick="focusPracticePart(frameKey==='local'?'localLab':'frameHost')">Đến bàn thực hành ↓</button><button type="button" onclick="focusPracticePart('observation')">Ghi kết quả ↓</button></div><details id="practiceHelp" open><summary>Các bước thực hành</summary><h3>Chuẩn bị trong nền tảng này</h3><ol id="platformSetupSteps"></ol><h3>Làm lần lượt</h3><ol id="practiceSteps"></ol><p id="labGuide"></p><h3>Bạn sẽ quan sát được gì?</h3><ul id="platformExpected"></ul><details><summary>Gặp lỗi ở bước này?</summary><ul id="platformTroubleshooting"></ul></details><details><summary>Liên hệ hoạt động này với bài học</summary><p id="platformComparisonMission"></p><ul id="platformComparisonMeasures"></ul><p id="platformComparisonLimit" class="small"></p></details></details>
+            <div class="lab-actions practice-navigation"><button type="button" onclick="focusPracticePart(frameKey==='local'?'localLab':'frameHost')">Đến bàn thực hành ↓</button><button type="button" onclick="focusPracticePart('observation')">Ghi kết quả ↓</button></div><details id="practiceHelp"><summary>Các bước thực hành</summary><h3>Chuẩn bị trong nền tảng này</h3><ol id="platformSetupSteps"></ol><h3>Làm lần lượt</h3><ol id="practiceSteps"></ol><p id="labGuide"></p><h3>Bạn sẽ quan sát được gì?</h3><ul id="platformExpected"></ul><details><summary>Gặp lỗi ở bước này?</summary><ul id="platformTroubleshooting"></ul></details><details><summary>Liên hệ hoạt động này với bài học</summary><p id="platformComparisonMission"></p><ul id="platformComparisonMeasures"></ul><p id="platformComparisonLimit" class="small"></p></details></details>
             <details id="sampleCodeDetails"><summary>Mã mẫu và môi trường sử dụng</summary><p class="small" id="codeEnvironmentNote"></p><div class="code-box"><div class="code-box-head"><span id="codeLangLabel">Mã nguồn mẫu</span><select id="codeVariantSelect" aria-label="Môi trường của mã mẫu" hidden></select><button type="button" onclick="copySampleCode()">Sao chép</button><button type="button" onclick="downloadSampleCode()">Tải mã mẫu</button></div><pre id="sampleCodeBox" class="notranslate" translate="no" lang="en"></pre></div></details>
           </section>
           <div class="lab-heading">
@@ -88,11 +88,12 @@
           </div>
           <div id="microbitEditorTools" class="ws-card" hidden>
             <p id="microbitEditorStatus" role="status" aria-live="polite"></p>
-            <p class="small">Sửa mã và chạy mô phỏng ngay trong khung. Chờ thông báo “Đã lưu” trước khi đổi bài; mỗi bài giữ một dự án riêng trên trình duyệt này.</p>
+            <p class="small">Sửa mã và chạy mô phỏng ngay trong khung. Chờ thông báo “Đã lưu” trước khi đổi bài; mỗi bài giữ một dự án riêng theo tài khoản khi đã đăng nhập.</p>
             <div class="lab-actions"><button id="microbitDownloadBtn" type="button" disabled onclick="downloadMicrobitSource()">Tải mã đã lưu (.py)</button><button id="microbitResetBtn" type="button" onclick="document.getElementById('microbitResetDialog').showModal()">Nạp lại mã bài học</button></div>
           </div>
           <p id="platformHelp" class="lab-platform-help" role="status" aria-live="polite"></p>
           <div id="frameHost"></div><div id="localLab" hidden></div>
+          <section id="labWorkspace" class="ws-card glass-panel" aria-label="Bài thực hành của tôi"></section>
           <section class="ws-card glass-panel" id="assessment">
             <h2>Ghi nhận điều bạn đã làm</h2>
             <label for="practiceSource">Bạn thực hành bằng</label><select id="practiceSource"><option value="">Chọn nơi bạn vừa thực hành</option><option value="local-model">Bàn mô hình trong web</option><option value="external">Editor / lab nhúng hoặc mở riêng</option><option value="hardware">Bộ kit thật</option></select>
@@ -130,9 +131,10 @@
   </div>
   <dialog id="portfolioImportDialog" class="dialog" aria-labelledby="portfolioImportTitle"><div class="dialog-body"><h2 id="portfolioImportTitle">Khôi phục hồ sơ thực hành</h2><p id="portfolioImportPreview"></p><p>Các bài có trong tệp sẽ thay thế bản trên trình duyệt. Các bài khác và các khóa khác được giữ lại. Bạn có thể tải hồ sơ hiện tại trước khi khôi phục.</p></div><div class="dialog-foot"><button type="button" class="btn" onclick="document.getElementById('portfolioImportDialog').close()">Giữ bản hiện tại</button><button id="confirmImportNotes" type="button" class="btn btn--primary">Khôi phục các bài trong tệp</button></div></dialog>
   <dialog id="microbitResetDialog" class="dialog" aria-labelledby="microbitResetTitle"><div class="dialog-body"><h2 id="microbitResetTitle">Nạp lại mã mẫu của bài này?</h2><p>Mã đã chỉnh sửa của bài đang mở sẽ được thay bằng mã mẫu. Hãy tải bản cần giữ trước khi tiếp tục. Dự án của các bài khác được giữ nguyên.</p></div><div class="dialog-foot"><button id="microbitCancelReset" type="button" class="btn" onclick="document.getElementById('microbitResetDialog').close()">Giữ mã hiện tại</button><button id="microbitConfirmReset" type="button" class="btn btn--primary" onclick="resetMicrobitSource()">Nạp mã mẫu</button></div></dialog>
-  <script type="module" src="../src/app.js?v=account-agent-v2"></script>
+  <script type="module" src="../src/app.js?v=product-workspace-v1"></script>
   <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=account-sync-v1'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
-<script type="module">import { mountLessonBench } from '../src/modules/learning/LessonBench.js?v=guided-learning-v15'; import * as portfolio from '../src/modules/learning/PracticePortfolio.js?v=guided-learning-v15'; window.STROBOT_MOUNT_LESSON_BENCH=mountLessonBench; window.STROBOT_PRACTICE_PORTFOLIO=portfolio;</script>
+<script type="module">import { mountLessonBench } from '../src/modules/learning/LessonBench.js?v=guided-learning-v15'; import * as portfolio from '../src/modules/learning/PracticePortfolio.js?v=owned-lab-v1'; window.STROBOT_MOUNT_LESSON_BENCH=mountLessonBench; window.STROBOT_PRACTICE_PORTFOLIO=portfolio;</script>
+<script type="module">import { LabWorkspacePanel } from '../src/modules/learning/LabWorkspace.js?v=owned-lab-v1'; window.STROBOT_LAB_WORKSPACE=LabWorkspacePanel;</script>
 <script type="module">import { getPlatformGuide } from '../src/modules/learning/PlatformGuides.js?v=workspace-v16'; window.STROBOT_PLATFORM_GUIDE=getPlatformGuide;</script>
 <script src="../src/data/curriculum.js?v=workspace-v16"></script>
 <script src="../src/data/lesson-pdfs.js?v=workspace-v16"></script>
@@ -273,49 +275,63 @@ const qs=new URLSearchParams(location.search),aliases={vex:'vex-iq',vexiq:'vex-i
 let requested=(qs.get('course')||qs.get('courseId')||qs.get('khoa')||location.hash.slice(1)||'').toLowerCase();requested=aliases[requested]||requested;
 let course=COURSES.find(c=>c.id===requested)||COURSES.find(c=>c.id===state.last)||COURSES[0],currentLessonIndex=0,pdfURL=null,frameKey='',busy=false;
 let microbitEditor=null,localBench=null,pendingImport=null,labNeedsStart=true,activePlatformGuide=null;
-let learningLevel='beginner';
+let learnerSnapshotKeys=[];let learningLevel='beginner',workspaceReady=false,labWorkspace=null,navigationTouched=false;
+function writableWorkspace(){return workspaceReady&&learningStorage&&learningStorage.ownerId===learnerSyncService?.ownerId}
+function currentWorkspaceContext(){return {ownerId:learningStorage?.ownerId||null,courseId:course.id,lessonId:lesson().id,platformKey:frameKey||defaultLabKey(),platformName:labs[frameKey||defaultLabKey()]?.name||'Bài làm'}}
+function matchesWorkspace(context){const now=currentWorkspaceContext();return writableWorkspace()&&['ownerId','courseId','lessonId','platformKey'].every(key=>context?.[key]===now[key])}
+function flushWorkspace(){if(labWorkspace?.dirty&&!labWorkspace.corrupt)labWorkspace.persist()}
+function renderWorkspace(){labWorkspace?.setContext(currentWorkspaceContext(),record(),!!writableWorkspace())}
+function setPrivateControls(){const disabled=!writableWorkspace();document.querySelectorAll('#assessment input,#assessment textarea,#assessment select,#assessment button,#prediction,#learningLevel,button[onclick="markLessonComplete()"],#confirmImportNotes').forEach(node=>node.disabled=disabled);$('localLab').inert=disabled;$('localLab').setAttribute('aria-busy',String(disabled));}
+function refreshOwnedView(){const index=currentLessonIndex,tab=$('labView').hidden?'theory':'lab',platform=frameKey;loadLesson(index);if(tab==='lab'){if(courseLabKeys().includes(platform))selectLabPlatform(platform);switchMainTab('lab')}}
 const labs=window.STROBOT_LAB_PLATFORMS;
 function lesson(){return course.lessons[currentLessonIndex]}function record(){state[course.id]??={};const id=lesson().id;state[course.id][id]??={note:'',choice:null,done:false};return state[course.id][id]}
-function save(){try{state.last=course.id;learningStorage.setItem(STORAGE,JSON.stringify(state));tabEditConflict=learnerSyncService?.hasTabDrafts(learningStorage?.ownerId)||false;$('tabConflictRecovery').hidden=!tabEditConflict;$('saveNotice').textContent=learnerSyncService?.status.message||'Đã lưu trên trình duyệt này.';return true}catch(error){if(error?.code==='TAB_EDIT_CONFLICT'){tabEditConflict=true;$('tabConflictRecovery').hidden=false;$('saveNotice').textContent=error.message;toast(error.message)}else $('saveNotice').textContent='Không lưu được: hãy tải nhật ký để tránh mất dữ liệu.';return false}}
+function save(){if(!writableWorkspace())return false;try{state.last=course.id;const raw=JSON.stringify(state);if(new TextEncoder().encode(raw).length>5*1024*1024)throw Error('Hồ sơ khóa học vượt 5 MiB; tải mã hoặc hồ sơ để giữ bản nháp.');const snapshotBytes=learnerSnapshotKeys.filter(key=>key!==STORAGE).reduce((sum,key)=>sum+new TextEncoder().encode(learningStorage.getItem(key)||'').length,new TextEncoder().encode(raw).length);if(snapshotBytes>8*1024*1024)throw Error('Hồ sơ đồng bộ vượt 8 MiB. Bản nháp được giữ; hãy tải mã hoặc hồ sơ trước khi thu gọn.');learningStorage.setItem(STORAGE,raw);tabEditConflict=learnerSyncService?.hasTabDrafts(learningStorage?.ownerId)||false;$('tabConflictRecovery').hidden=!tabEditConflict;$('saveNotice').textContent=learnerSyncService?.status.message||'Đã lưu trên trình duyệt này.';return true}catch(error){if(error?.code==='TAB_EDIT_CONFLICT'){tabEditConflict=true;$('tabConflictRecovery').hidden=false;$('saveNotice').textContent=error.message;toast(error.message)}else $('saveNotice').textContent=error?.message||'Không lưu được: hãy tải nhật ký để tránh mất dữ liệu.';return false}}
 function useLatestTabCopy(){if(!tabEditConflict||!confirm('Bỏ bản nháp chưa lưu của tab này và dùng bản đang lưu? Hãy tải hồ sơ bản nháp trước nếu cần giữ lại.'))return;try{const latest=JSON.parse(learningStorage?.getItem(STORAGE)||'{}');if(!latest||typeof latest!=='object'||Array.isArray(latest))throw Error();state=latest;learnerSyncService?.discardTabDraft(STORAGE,learningStorage?.ownerId);tabEditConflict=false;$('tabConflictRecovery').hidden=true;loadLesson(currentLessonIndex);$('saveNotice').textContent='Đã nạp bản đang lưu theo lựa chọn của bạn.'}catch{toast('Chưa đọc được bản đang lưu. Bản nháp trong tab vẫn được giữ.')}}
-window.addEventListener('beforeunload',event=>{if(tabEditConflict){event.preventDefault();event.returnValue=''}});
+window.addEventListener('beforeunload',event=>{if(tabEditConflict||labWorkspace?.hasDraft()){event.preventDefault();event.returnValue=''}});
 function toast(t){$('notice').textContent=t}
 async function initPage(){
- const sync=await import('../src/services/LearnerSyncService.js');await sync.learnerSync.ready();learnerSyncService=sync.learnerSync;learningStorage=sync.getLearnerStorage();
- try{state=JSON.parse(learningStorage?.getItem(STORAGE)||'{}')}catch{}if(!state||typeof state!=='object'||Array.isArray(state))state={};
- course=COURSES.find(c=>c.id===requested)||COURSES.find(c=>c.id===state.last)||COURSES[0];
- try{const level=learningStorage?.getItem('strobot.learning.level.v1');if(['beginner','intermediate','advanced'].includes(level))learningLevel=level}catch{}
- document.addEventListener('strobot:sync-status',event=>{$('saveNotice').textContent=event.detail.message});
- document.addEventListener('strobot:learner-scope-changed',()=>{location.reload()});
- document.addEventListener('strobot:learner-data-updated',()=>{if(tabEditConflict)return;try{const fresh=JSON.parse(learningStorage?.getItem(STORAGE)||'{}');if(fresh&&typeof fresh==='object'&&!Array.isArray(fresh)){state=fresh;loadLesson(currentLessonIndex)}}catch{}});
- $('saveNotice').textContent=learnerSyncService.status.message;
+ // Public lessons render immediately; owner-scoped records remain locked until identity resolves.
+ labWorkspace=new window.STROBOT_LAB_WORKSPACE($('labWorkspace'),{
+  isCurrent:matchesWorkspace,getSyncStatus:()=>learnerSyncService?.status,
+  readEditorSource:()=>microbitEditor?.getSource(),
+  onSave:(context,work)=>{if(!matchesWorkspace(context))return false;const r=record(),previous=r.labWork;r.labWork={...(r.labWork||{}),[context.platformKey]:work};if(!save()){r.labWork=previous;return false}return true}
+ });
  $('learningLevel').value=learningLevel;
- $('learningLevel').onchange=()=>{learningLevel=$('learningLevel').value;try{learningStorage.setItem('strobot.learning.level.v1',learningLevel)}catch{}renderLearningExplanation();renderPlatformGuide(frameKey||defaultLabKey())};
+ $('learningLevel').onchange=()=>{if(!writableWorkspace())return;learningLevel=$('learningLevel').value;try{learningStorage.setItem('strobot.learning.level.v1',learningLevel)}catch{}renderLearningExplanation();renderPlatformGuide(frameKey||defaultLabKey())};
  $('courseSelect').innerHTML=COURSES.map(c=>'<option value="'+c.id+'">'+esc(c.name)+' · 6 bài</option>').join('');$('courseSelect').value=course.id;
- $('courseSelect').onchange=e=>{course=COURSES.find(c=>c.id===e.target.value);currentLessonIndex=0;state.last=course.id;save();updateURL();loadLesson(0)};
- let li=course.lessons.findIndex(l=>l.id===qs.get('lesson'));loadLesson(li>=0?li:0);
+ $('courseSelect').onchange=e=>{flushWorkspace();navigationTouched=true;course=COURSES.find(c=>c.id===e.target.value);currentLessonIndex=0;if(writableWorkspace()){state.last=course.id;save()}updateURL();loadLesson(0)};
  const evidenceFields=['prediction','observation','explanation','transfer','projectUrl'];
- for(const id of evidenceFields)$(id).oninput=()=>{record()[id]=$(id).value;record().done=false;save();renderEvidenceStatus();renderLessons()};
- $('practiceSource').onchange=()=>{record().source=$('practiceSource').value;record().done=false;save();renderEvidenceStatus();renderLessons()};
- $('journal').oninput=()=>{record().note=$('journal').value;save()};
+ for(const id of evidenceFields)$(id).oninput=()=>{if(!writableWorkspace())return;record()[id]=$(id).value;record().done=false;save();renderEvidenceStatus();renderLessons()};
+ $('practiceSource').onchange=()=>{if(!writableWorkspace())return;record().source=$('practiceSource').value;record().done=false;save();renderEvidenceStatus();renderLessons()};
+ $('journal').oninput=()=>{if(!writableWorkspace())return;record().note=$('journal').value;save()};
  $('importNotes').onchange=previewPortfolioImport;
- $('confirmImportNotes').onclick=()=>{if(!pendingImport||pendingImport.course!==course.id)return;Object.assign(state[course.id],pendingImport.records);pendingImport=null;save();$('portfolioImportDialog').close();loadLesson(currentLessonIndex);toast('Đã khôi phục hồ sơ khóa '+course.name+'.')};
- $('quizForm').onsubmit=e=>{e.preventDefault();const v=document.querySelector('[name=answer]:checked');if(!v){toast('Chọn một đáp án trước.');return}const r=record();r.choice=Number(v.value);r.done=false;save();$('quizFeedback').textContent=(r.choice===lesson().answer?'Đúng. ':'Chưa đúng. ')+lesson().why;renderEvidenceStatus();renderLessons()};
- $('downloadPdf').onclick=downloadPdf;$('exportNotes').onclick=()=>{try{const backup=window.STROBOT_PRACTICE_PORTFOLIO.createCourseBackup(course,state[course.id]||{});downloadBlob(new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}),course.id+'-nhat-ky.json')}catch(e){toast(e.message)}};
+ $('confirmImportNotes').onclick=()=>{if(!writableWorkspace()||!pendingImport||pendingImport.course!==course.id||pendingImport.ownerId!==learningStorage.ownerId)return;Object.assign(state[course.id],pendingImport.records);pendingImport=null;save();$('portfolioImportDialog').close();refreshOwnedView();toast('Đã khôi phục hồ sơ khóa '+course.name+'.')};
+ $('quizForm').onsubmit=e=>{e.preventDefault();if(!writableWorkspace())return;const v=document.querySelector('[name=answer]:checked');if(!v){toast('Chọn một đáp án trước.');return}const r=record();r.choice=Number(v.value);r.done=false;save();$('quizFeedback').textContent=(r.choice===lesson().answer?'Đúng. ':'Chưa đúng. ')+lesson().why;renderEvidenceStatus();renderLessons()};
+ $('downloadPdf').onclick=downloadPdf;$('exportNotes').onclick=()=>{if(!writableWorkspace())return;try{const backup=window.STROBOT_PRACTICE_PORTFOLIO.createCourseBackup(course,state[course.id]||{});downloadBlob(new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}),course.id+'-nhat-ky.json')}catch(e){toast(e.message)}};
  $('copyLink').onclick=async()=>{try{await navigator.clipboard.writeText(new URL('course.learning.html?course='+course.id,location.href).href);toast('Đã sao chép đường dẫn khóa học.')}catch{toast('Đường dẫn khóa: course.learning.html?course='+course.id)}};
  document.addEventListener('keydown',e=>{if(e.key==='Escape')closePdfModal()});
- if(qs.get('view')==='lab'||qs.has('lab')) {
-  const requestedLab=qs.get('lab');
-  if(courseLabKeys().includes(requestedLab))selectLabPlatform(requestedLab);
-  switchMainTab('lab');
- }
- $('main').inert=false;$('main').setAttribute('aria-busy','false');toast('');
+ let li=course.lessons.findIndex(l=>l.id===qs.get('lesson'));loadLesson(li>=0?li:0);
+ if(qs.get('view')==='lab'||qs.has('lab')) {const requestedLab=qs.get('lab');if(courseLabKeys().includes(requestedLab))selectLabPlatform(requestedLab);switchMainTab('lab')}
+ navigationTouched=false;setPrivateControls();toast('Bạn có thể đọc bài ngay. Đang mở tiến độ và bài làm của bạn…');
+ try{
+  const sync=await import('../src/services/LearnerSyncService.js');await sync.learnerSync.ready();learnerSyncService=sync.learnerSync;learningStorage=sync.getLearnerStorage();learnerSnapshotKeys=sync.LEARNER_KEYS;
+  try{state=JSON.parse(learningStorage?.getItem(STORAGE)||'{}')}catch{}if(!state||typeof state!=='object'||Array.isArray(state))state={};
+  if(!navigationTouched&&!requested&&!qs.get('lesson'))course=COURSES.find(c=>c.id===state.last)||course;
+  try{const level=learningStorage?.getItem('strobot.learning.level.v1');if(['beginner','intermediate','advanced'].includes(level))learningLevel=level}catch{}
+  workspaceReady=true;$('learningLevel').value=learningLevel;$('courseSelect').value=course.id;refreshOwnedView();
+  document.addEventListener('strobot:sync-status',event=>{$('saveNotice').textContent=event.detail.message;labWorkspace?.updateStatus()});
+  document.addEventListener('strobot:learner-scope-changed',()=>{workspaceReady=false;microbitEditor?.destroy();microbitEditor=null;localBench?.destroy();localBench=null;labWorkspace?.destroy();$('labWorkspace').replaceChildren();$('frameHost').replaceChildren();$('localLab').replaceChildren();state={};pendingImport=null;for(const id of ['journal','prediction','observation','explanation','transfer','projectUrl'])$(id).value='';$('portfolioImportDialog').close();$('microbitResetDialog').close();setPrivateControls();renderLessons();location.reload()});
+  document.addEventListener('strobot:learner-data-updated',()=>{if(!writableWorkspace()||tabEditConflict)return;try{const fresh=JSON.parse(learningStorage?.getItem(STORAGE)||'{}');if(fresh&&typeof fresh==='object'&&!Array.isArray(fresh)){state=fresh;refreshOwnedView()}}catch{}});
+  $('saveNotice').textContent=learnerSyncService.status.message;toast('');
+ }catch{setPrivateControls();toast('Chưa mở được hồ sơ học tập. Bạn vẫn có thể đọc bài; tải lại trang để thử kết nối.')}
 }
+
 function updateURL(){try{const u=new URL(location.href);u.searchParams.set('course',course.id);u.searchParams.set('lesson',lesson().id);history.replaceState(null,'',u)}catch{}}
 function renderLessons(){const records=state[course.id]||{};let n=course.lessons.filter(l=>records[l.id]?.done).length;$('progressText').textContent=n+'/6 bài tự học';$('lessonList').innerHTML=course.lessons.map((l,i)=>'<button class="lesson-item '+(i===currentLessonIndex?'selected':'')+'" aria-current="'+(i===currentLessonIndex?'step':'false')+'" onclick="loadLesson('+i+')"><span class="lesson-number">'+(records[l.id]?.done?'✓':i+1)+'</span><span>'+esc(l.title)+'<small>50 phút · Lý thuyết + thực hành</small></span></button>').join('')}
 function loadLesson(i) {
+ flushWorkspace();
  microbitEditor?.destroy();microbitEditor=null;localBench?.destroy();localBench=null;
- currentLessonIndex=Number.isInteger(i)&&course.lessons[i]?i:0;labNeedsStart=true;
+ currentLessonIndex=Number.isInteger(i)&&course.lessons[i]?i:0;labNeedsStart=true;navigationTouched=true;
  const l=lesson(),r=record();
  void learnerSyncService?.recordActivity('lesson_opened',course.id,l.id,learningStorage?.ownerId);
  $('courseName').textContent='Khóa học: '+course.name;
@@ -344,7 +360,7 @@ function loadLesson(i) {
  frameKey='';
  $('frameHost').replaceChildren();
  $('localLab').hidden=true;
- renderLocal();renderLessons();updateURL();switchMainTab('theory');
+ renderLocal();renderLessons();updateURL();switchMainTab('theory');setPrivateControls();renderWorkspace();
  $('theoryView').scrollTop=0;
 }
 function renderLearningExplanation(){window.STROBOT_LESSON_VIEW.renderLearningGuide($('learningGuideContent'),lesson(),{level:learningLevel})}
@@ -392,10 +408,11 @@ function canEmbedPlatform(cfg) {
   && /^https:\/\//.test(cfg.embedUrl||cfg.url||'');
 }
 function selectLabPlatform(key) {
+ flushWorkspace();navigationTouched=true;
  microbitEditor?.destroy();microbitEditor=null;
  $('microbitEditorTools').hidden=true;
  if(!courseLabKeys().includes(key)||!labs[key])key='local';
- frameKey=key;
+ frameKey=key;renderWorkspace();
  const cfg=labs[key];renderPlatformGuide(key);
  $('frameHost').replaceChildren();
  $('localLab').hidden=key!=='local';
@@ -411,8 +428,9 @@ function selectLabPlatform(key) {
  external.setAttribute('aria-label','Mở '+cfg.name+' ở tab ngoài');
  $('labReloadBtn').hidden=!canEmbedPlatform(cfg);
  $('labFullscreenBtn').hidden=!canEmbedPlatform(cfg);
- $('platformHelp').textContent=key==='local'?'Bàn mô hình hoạt động ngay trong web: thay đầu vào để kiểm tra quy tắc của bài. Mã Python/C++ được chạy ở editor tương ứng.':'Lưu hoặc tải dự án trong editor của nền tảng này. Hồ sơ bên dưới giữ dự đoán, kết quả và đường dẫn bạn nhập trên trình duyệt. Nếu khung tải chậm, dùng “Tải lại khung”, “Mở riêng” hoặc chọn bàn mô hình để tiếp tục kiểm tra kiến thức.';
+ $('platformHelp').textContent=key==='local'?'Bàn mô hình hoạt động ngay trong web: thay đầu vào để kiểm tra quy tắc của bài. Mã Python/C++ được chạy ở editor tương ứng.':'Lưu hoặc tải dự án trong editor của nền tảng này. Bài thực hành và ghi chép bên dưới gắn với tài khoản khi bạn đã đăng nhập. Nếu khung tải chậm, dùng “Tải lại khung”, “Mở riêng” hoặc chọn bàn mô hình để tiếp tục kiểm tra kiến thức.';
  if(cfg.mode==='local')return;
+ if(cfg.controller==='microbit-python'&&!writableWorkspace()){$('platformHelp').textContent='Đang mở đúng hồ sơ của bạn trước khi nạp mã Python. Bạn có thể đọc bài và xem nhiệm vụ trong lúc chờ.';return;}
  if(!canEmbedPlatform(cfg))return;
  const f=document.createElement('iframe');
  f.title=cfg.name;f.src=cfg.embedUrl||cfg.url;
@@ -426,7 +444,7 @@ function selectLabPlatform(key) {
   $('microbitDownloadBtn').disabled=true;
   const starter=/MicroPython/i.test(lesson().lang)?lesson().code:lesson().codeVariants?.find(v=>/MicroPython/i.test(v.lang))?.code;
   if(starter && window.STROBOT_MICROBIT_BRIDGE) {
-   microbitEditor=new window.STROBOT_MICROBIT_BRIDGE().attach(f,{courseId:course.id,lessonId:lesson().id,code:starter,title:lesson().title,onStatus:(message,status)=>{
+   microbitEditor=new window.STROBOT_MICROBIT_BRIDGE({storage:learningStorage}).attach(f,{courseId:course.id,lessonId:lesson().id,code:starter,title:lesson().title,onStatus:(message,status)=>{
     $('microbitEditorStatus').textContent=message;$('microbitEditorStatus').dataset.state=status;
     $('microbitDownloadBtn').disabled=typeof microbitEditor?.getSource()!=='string';
     $('microbitResetBtn').disabled=typeof microbitEditor?.getSource()!=='string';
@@ -435,7 +453,7 @@ function selectLabPlatform(key) {
  }
 }
 function downloadMicrobitSource(){const code=microbitEditor?.getSource();if(typeof code==='string')downloadBlob(new Blob([code],{type:'text/x-python;charset=utf-8'}),'microbit-'+lesson().id+'.py')}
-function resetMicrobitSource(){if(microbitEditor?.clearSavedProject()){document.getElementById('microbitResetDialog').close();selectLabPlatform('python')}}
+function resetMicrobitSource(){if(!writableWorkspace())return;if(microbitEditor?.clearSavedProject()){document.getElementById('microbitResetDialog').close();selectLabPlatform('python')}}
 function reloadLabFrame() { if(canEmbedPlatform(labs[frameKey]))selectLabPlatform(frameKey); }
 function fullscreenLabFrame() {
  const frame=$('practiceFrame');
@@ -444,6 +462,7 @@ function fullscreenLabFrame() {
 }
 
 function markLessonComplete(){
+ if(!writableWorkspace())return;
  const r=record(),check=window.STROBOT_PRACTICE_PORTFOLIO.assessPracticeRecord(r,{lesson:lesson(),course});
  if(!check.ready){switchMainTab('lab');toast(check.missing.join(' · '));if(r.choice!==lesson().answer)$('quizForm').parentElement.open=true;return}
  r.done=true;r.completionSource='self-report';r.completedAt=new Date().toISOString();const persisted=save();if(persisted)void learnerSyncService?.recordActivity('lesson_completed',course.id,lesson().id,learningStorage?.ownerId);renderEvidenceStatus();renderLessons();toast(persisted?'Đã ghi nhận bạn tự xác nhận hoàn thành. Tiếp tục bài kế tiếp khi sẵn sàng.':'Đã ghi nhận trong phiên này. Hãy tải hồ sơ để giữ kết quả.');
@@ -454,8 +473,8 @@ function renderEvidenceStatus(){
  $('completionStatus').textContent=r.done?'Bạn đã tự xác nhận hoàn thành bài này.':'Hoàn thành phần dự đoán, kết quả, giải thích, thử lại và câu kiểm tra để tự xác nhận.';
 }
 async function previewPortfolioImport(){
- const file=$('importNotes').files[0];$('importNotes').value='';if(!file)return;
- try{if(file.size>window.STROBOT_PRACTICE_PORTFOLIO.limits.backupBytes)throw Error('Tệp vượt dung lượng cho phép.');pendingImport=window.STROBOT_PRACTICE_PORTFOLIO.parseCourseBackup(await file.text(),course);$('portfolioImportPreview').textContent=course.name+' · '+Object.keys(pendingImport.records).length+' bài có trong tệp.';$('portfolioImportDialog').showModal()}catch(e){pendingImport=null;toast('Tệp chưa được khôi phục: '+e.message)}
+ const file=$('importNotes').files[0];$('importNotes').value='';if(!file||!writableWorkspace())return;const ownerId=learningStorage.ownerId,selectedCourse=course;
+ try{if(file.size>window.STROBOT_PRACTICE_PORTFOLIO.limits.backupBytes)throw Error('Tệp vượt dung lượng cho phép.');const parsed=window.STROBOT_PRACTICE_PORTFOLIO.parseCourseBackup(await file.text(),selectedCourse);if(!writableWorkspace()||ownerId!==learningStorage.ownerId||course!==selectedCourse)return;pendingImport={...parsed,ownerId};$('portfolioImportPreview').textContent=course.name+' · '+Object.keys(pendingImport.records).length+' bài có trong tệp.';$('portfolioImportDialog').showModal()}catch(e){pendingImport=null;toast('Tệp chưa được khôi phục: '+e.message)}
 }
 function downloadSampleCode(){const selected=activePlatformGuide?.codeExamples.find(e=>e.id===$('codeVariantSelect').value);if(selected)downloadBlob(new Blob([selected.code],{type:'text/plain;charset=utf-8'}),course.id+'-'+lesson().id+'-'+activePlatformGuide.platformKey+'.'+selected.extension)}
 function focusPracticePart(id){const target=$(id);target.tabIndex=-1;target.scrollIntoView({block:'start'});target.focus({preventScroll:true})}
@@ -472,9 +491,9 @@ function closePdfModal(){$('pdfModal').style.display='none';$('pdfModal').setAtt
 async function copySampleCode(){try{await navigator.clipboard.writeText($('sampleCodeBox').textContent);toast('Đã sao chép mã mẫu đang chọn.')}catch{toast('Hãy chọn mã và nhấn Ctrl+C để sao chép.')}}
 // Local models expose lesson-specific controls; student code runs in the editor.
 function renderLocal(){
- localBench?.destroy();
- localBench=window.STROBOT_MOUNT_LESSON_BENCH($('localLab'),{course,lesson:lesson(),onEvidence:e=>{
-  const r=record();r.modelEvidence={...e,prediction:r.prediction||''};r.done=false;
+ localBench?.destroy();localBench=null;if(!writableWorkspace()){$('localLab').textContent='Đang mở hồ sơ của bạn trước khi ghi thao tác thực hành.';return}
+ $('localLab').replaceChildren();localBench=window.STROBOT_MOUNT_LESSON_BENCH($('localLab'),{course,lesson:lesson(),onEvidence:e=>{
+  if(!writableWorkspace())return;const r=record();r.modelEvidence={...e,prediction:r.prediction||''};r.done=false;
   if(!r.source){r.source='local-model';$('practiceSource').value=r.source}save();renderEvidenceStatus();renderLessons();
  }});
 }
@@ -484,7 +503,7 @@ window.addEventListener('DOMContentLoaded',initPage);
 
 <script type="module">
 import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES, AI_ACCOUNT_CODES } from '../src/services/AiService.js?v=provider-auth-v4';
-import { buildTutorLearningContext } from '../src/services/TutorLearningContext.js?v=account-tutor-v1';
+import { buildTutorLearningContext } from '../src/services/TutorLearningContext.js?v=owned-lab-v1';
 import { createFloatingTutor } from '../src/modules/learning/FloatingTutor.js?v=workspace-v16';
 import { createTutorAttachments } from '../src/modules/learning/TutorAttachments.js?v=screen-region-v2';
 import { renderAiMessage } from '../src/services/AiMessageRenderer.js?v=ai-render-v14';
@@ -572,7 +591,7 @@ window.addEventListener('DOMContentLoaded', () => {
     status.textContent = 'Đang kết nối trợ lý…';
     try {
       let sourceNotice = '';
-      const educationalContext = buildTutorLearningContext({ courses:COURSES, courseId:course.id, lessonId:lesson().id, storage:learningStorage, currentRecord:record() });
+      const educationalContext = buildTutorLearningContext({ courses:COURSES, courseId:course.id, lessonId:lesson().id, storage:learningStorage, currentRecord:record(),platformKey:frameKey||defaultLabKey() });
       const reply = await aiClient.requestReply('/api/tutor', { course:course.id, lesson:lesson().id, question, history, platformKey:frameKey||defaultLabKey(), learningLevel, educationalContext,...(images.length?{images}:{}) }, {
         signal: controller.signal,
         beforeAccountRequest: () => learnerSyncService?.sync(),

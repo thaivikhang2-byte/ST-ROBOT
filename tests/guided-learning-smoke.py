@@ -39,6 +39,8 @@ with sync_playwright() as pw:
             # Entering/reopening a lesson must not manufacture a model interaction.
             assert page.evaluate('record().modelEvidence || null') is None
             page.locator('#tabBtnLab').click()
+            # Guidance stays available behind its compact disclosure.
+            page.locator('#practiceHelp').evaluate('(node) => node.open = true')
             expect(page.locator('#practiceSteps')).to_be_visible()
             expect(page.locator('#labGuide')).to_be_visible()
             expect(page.locator('#exercise')).to_be_visible()

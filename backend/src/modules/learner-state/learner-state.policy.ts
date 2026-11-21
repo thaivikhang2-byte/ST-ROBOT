@@ -1,5 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 
+const coursePlatforms: Readonly<Record<string, readonly string[]>> = {
+  arduino: ['circuit', 'avr', 'wokwi', 'phet', 'local'], microbit: ['python', 'scratch', 'arcade', 'local'],
+  'vex-iq': ['gears', 'scratch', 'arcade', 'local'], 'lego-spike': ['gears', 'scratch', 'arcade', 'local'], 'vex-vr': ['gears', 'scratch', 'arcade', 'local'],
+};
+
 export const courseLessons: Readonly<Record<string, readonly string[]>> = Object.freeze({
   arduino: ['led', 'timing', 'distance', 'alarm', 'calibration', 'project'],
   'vex-iq': ['drive', 'turn', 'detect', 'mission', 'odometry', 'control'],
@@ -30,6 +35,22 @@ function projectUrl(value: string) {
   if (parsed.protocol !== 'https:' || !parsed.hostname || parsed.username || parsed.password) fail('Project URLs must use HTTPS without credentials');
 }
 
+function validateLabWork(value: unknown, courseId: string) {
+  if (!object(value)) fail('Invalid lab work map');
+  const fields = ['version', 'savedAt', 'code', 'notes', 'projectUrl', 'fileName'];
+  for (const [platform, work] of Object.entries(value)) {
+    if (!coursePlatforms[courseId]?.includes(platform) || !object(work)
+      || Object.keys(work).some(key => !fields.includes(key)) || work.version !== 1
+      || !time(work.savedAt) || !/^\d{4}-\d{2}-\d{2}T/.test(String(work.savedAt))
+      || !short(work.code, 32768) || Buffer.byteLength(work.code as string, 'utf8') > 32768
+      || !short(work.notes, 2000) || !short(work.projectUrl, 2048) || !short(work.fileName, 120)) fail('Invalid saved lab work');
+    projectUrl(work.projectUrl as string);
+    const name = work.fileName as string;
+    if (/[\/\\\u0000-\u001f\u007f]/.test(name) || name.includes('..')
+      || ['__proto__', 'prototype', 'constructor'].includes(name)) fail('Invalid lab work filename');
+  }
+}
+
 function safeTree(value: unknown, budget: { count: number }, depth = 0): void {
   if (++budget.count > 100000 || depth > 24) fail('Learner data structure exceeds limits');
   if (typeof value === 'number' && !Number.isFinite(value)) fail('Learner data contains an invalid number');
@@ -58,6 +79,7 @@ function validateCourseState(value: unknown) {
         else if (field === 'source') { if (typeof item !== 'string' || !['', 'local-model', 'external', 'hardware'].includes(item)) fail('Invalid practice source'); }
         else if (field === 'completionSource') { if (typeof item !== 'string' || !['self-report', 'imported-self-report'].includes(item)) fail('Invalid completion source'); }
         else if (field === 'completedAt') { if (!time(item)) fail('Invalid completion time'); }
+        else if (field === 'labWork') validateLabWork(item, courseId);
         else if (field === 'modelEvidence') {
           if (item === null) continue;
           if (!object(item) || item.kind !== 'local-model' || item.lessonId !== lessonId || !short(item.summary, 2000) || !Array.isArray(item.actions) || item.actions.length > 40 || item.actions.some(action => !short(action, 200)) || (item.prediction !== undefined && !short(item.prediction, 2000))) fail('Invalid model evidence');

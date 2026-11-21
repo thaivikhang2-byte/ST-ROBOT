@@ -47,6 +47,15 @@ describe('Learner snapshot boundary', () => {
     }
     expect(() => validateValues({ 'strobot.original.course.v3': JSON.stringify({ arduino: { led: { projectUrl: 'https://example.com/project' } } }) })).not.toThrow();
   });
+  it('accepts only bounded course-platform lab copies and keeps their contents out of summaries', () => {
+    const work = { version: 1, savedAt: '2026-11-19T00:00:00.000Z', code: 'private lab source', notes: 'private lab notes', projectUrl: 'https://example.com/my-project', fileName: 'main.py' };
+    const values = (saved: unknown, platform = 'avr') => ({ 'strobot.original.course.v3': JSON.stringify({ arduino: { led: { labWork: { [platform]: saved } } } }) });
+    expect(validateValues(values(work))).toEqual(values(work));
+    expect(JSON.stringify(summarizeValues(values(work)))).not.toMatch(/private lab|my-project|main.py/);
+    expect(() => validateValues(values(work, 'python'))).toThrow(BadRequestException);
+    for (const saved of [{ ...work, ownerId: 'spoofed' }, { ...work, code: 'ệ'.repeat(11000) }, { ...work, notes: 'a'.repeat(2001) }, { ...work, fileName: '../main.py' }, { ...work, projectUrl: 'https://user:password@example.com' }, { ...work, savedAt: 'yesterday' }]) expect(() => validateValues(values(saved))).toThrow(BadRequestException);
+    expect(() => validateValues({ 'strobot.original.course.v3': '{"arduino":{"led":{"labWork":{"__proto__":{}}}}}' })).toThrow(BadRequestException);
+  });
   it('requires activity lesson to belong to its canonical course', () => {
     expect(() => validateActivityCourse('microbit', 'matrix')).not.toThrow();
     expect(() => validateActivityCourse('arduino', 'matrix')).toThrow(BadRequestException);

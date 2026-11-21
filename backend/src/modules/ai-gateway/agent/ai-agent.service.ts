@@ -115,7 +115,7 @@ export class AiAgentService {
       assertSiteScope(dto.courseSlug, dto.lessonSlug);
       return {
         ...(dto.courseSlug && dto.lessonSlug ? siteLessonContext(dto.courseSlug, dto.lessonSlug, dto.selectedPlatformKey) : { labs: siteLabResources() }),
-        ownLearning: await ownLearningData(this.db, user.id, dto.courseSlug, dto.lessonSlug),
+        ownLearning: await ownLearningData(this.db, user.id, dto.courseSlug, dto.lessonSlug, dto.selectedPlatformKey),
         learningLevel: dto.learningLevel,
         deviceDraftPending: dto.learningSnapshotPending === true,
         draftNotice: dto.learningSnapshotPending ? 'The browser reports a pending/conflicting device draft. Only the last synchronized database snapshot below is visible, not that draft.' : undefined,
@@ -768,7 +768,7 @@ export class AiAgentService {
           notice: 'Self-reported browser activity and server lesson records are separate sources; neither alone certifies skills.',
         };
       } else if (name === 'learning_get_own_learning_data') {
-        output = await ownLearningData(this.db, actor.id, args.courseSlug || undefined, args.lessonSlug || undefined);
+        output = await ownLearningData(this.db, actor.id, args.courseSlug || undefined, args.lessonSlug || undefined, args.platformKey || undefined);
       } else if (name === 'learning_get_lab_platforms') {
         output = siteLabResources(args.courseSlug || undefined);
       } else if (name === 'admin_get_system_overview') {
@@ -860,9 +860,18 @@ export class AiAgentService {
       Object.keys(args).every((key) => keys.includes(key)) && keys.every((key) => key in args);
     const uuidPattern =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (name === 'learning_get_own_learning_data' && exactKeys(['courseSlug', 'lessonSlug']) && typeof args.courseSlug === 'string' && typeof args.lessonSlug === 'string' && args.courseSlug.length <= 40 && args.lessonSlug.length <= 40) {
+    if (name === 'learning_get_own_learning_data'
+      && Object.keys(args).every(key => ['courseSlug', 'lessonSlug', 'platformKey'].includes(key))
+      && typeof args.courseSlug === 'string' && typeof args.lessonSlug === 'string'
+      && args.courseSlug.length <= 40 && args.lessonSlug.length <= 40
+      && (args.platformKey === undefined || (typeof args.platformKey === 'string' && args.platformKey.length <= 40))) {
       assertSiteScope(args.courseSlug || undefined, args.lessonSlug || undefined);
-      return { courseSlug: args.courseSlug, lessonSlug: args.lessonSlug };
+      if (args.platformKey) {
+        if (!args.courseSlug || !args.lessonSlug) throw new ForbiddenException('Select a course and lesson before reading saved lab work');
+        siteLabResources(args.courseSlug, args.platformKey);
+      }
+      return { courseSlug: args.courseSlug, lessonSlug: args.lessonSlug,
+        ...(typeof args.platformKey === 'string' ? { platformKey: args.platformKey } : {}) };
     }
     if (name === 'learning_get_lab_platforms' && exactKeys(['courseSlug']) && typeof args.courseSlug === 'string' && args.courseSlug.length <= 40) {
       assertSiteScope(args.courseSlug || undefined);
