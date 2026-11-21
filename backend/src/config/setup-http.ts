@@ -109,6 +109,8 @@ export function setupHttp(app: INestApplication): void {
     origin: origins === '*' ? '*' : origins.split(',').map((s) => s.trim()),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: false,
+    // Cache only browser preflight policy; bearer/session checks still run on every API request.
+    maxAge: 600,
   });
   const trusted = config.get<string>('app.trustProxy', '');
   if (trusted) {
