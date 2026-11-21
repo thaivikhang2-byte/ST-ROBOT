@@ -217,8 +217,11 @@ def main():
                 {**owned_env, 'INITIAL_ADMIN_ENABLED': 'true', 'INITIAL_ADMIN_EMAIL': admin_email,
                  'INITIAL_ADMIN_PASSWORD': admin_password})
             processes.append(OwnedProcess(['node', 'dist/main.js'], backend, owned_env, directory / 'api.private.log'))
-            processes.append(OwnedProcess(['python3', '-m', 'http.server', str(args.web_port), '--bind', '127.0.0.1'],
-                                         repo, env, directory / 'frontend.private.log'))
+            # Reuse the audited frontend-only server: backend files, environment
+            # files and repository metadata must never be served by this fixture.
+            processes.append(OwnedProcess(['node', '-e',
+                "require('./start-web.cjs').createFrontendServer().listen(Number(process.argv[1]), '127.0.0.1')",
+                str(args.web_port)], repo, env, directory / 'frontend.private.log'))
             eventually(lambda: api.call('/system/health/ready', timeout=2).get('status') == 'ok',
                        'Owned backend did not become ready', timeout=60)
             options = api.call('/v1/auth/options')

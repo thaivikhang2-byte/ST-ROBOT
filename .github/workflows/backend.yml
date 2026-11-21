@@ -66,6 +66,8 @@ jobs:
         run: >-
           node tests/account-service.mjs &&
           node tests/account-connection.mjs &&
+          node tests/account-connection-warmup.mjs &&
+          node tests/router-loading.mjs &&
           node tests/account-dashboard.mjs &&
           node tests/ai-admin-setup.mjs &&
           node tests/tutor-learning-context.mjs &&
@@ -81,6 +83,28 @@ jobs:
         run: |
           python3 -m pip install playwright
           python3 -m playwright install --with-deps chromium
+      - name: Check account request performance
+        shell: bash
+        run: |
+          node -e 'require("./start-web.cjs").createFrontendServer().listen(5519, "127.0.0.1")' &
+          strobot_frontend_pid=$!
+          trap 'kill "$strobot_frontend_pid" 2>/dev/null || true' EXIT
+          python3 - <<'PY'
+          import time
+          import urllib.request
+          opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+          for attempt in range(30):
+              try:
+                  with opener.open('http://127.0.0.1:5519/frontend/public/account.html', timeout=1) as response:
+                      assert response.status == 200
+                  break
+              except OSError:
+                  time.sleep(0.1)
+          else:
+              raise SystemExit('Frontend test server did not start')
+          PY
+          python3 tests/account-performance-smoke.py --base http://127.0.0.1:5519
+          python3 tests/route-loading-smoke.py --base http://127.0.0.1:5519
       - name: Verify student approval and cross-device learning journey
         shell: bash
         run: |

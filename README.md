@@ -39,6 +39,8 @@ Mã nguồn ở `backend/`; cấu hình chạy local bằng Docker ở `docker-c
 
 **GitHub Pages chỉ chạy frontend.** Tài khoản/database dùng backend HTTPS, PostgreSQL và Redis; SMTP chỉ cần cho luồng xác minh/khôi phục qua email, không cần cho chế độ admin duyệt. API công khai được đặt trong `frontend/src/config/backend.config.js`. Khi chưa kết nối, giao diện báo rõ tình trạng và nội dung học công khai vẫn hiển thị. Render Free có thể mất thời gian khởi động sau khi ngủ; bộ nhớ kết nối ngắn hạn và khởi tạo database theo phiên bản giảm các yêu cầu lặp nhưng không loại bỏ giới hạn hạ tầng đó.
 
+Web chuẩn bị kết nối ở nền sau khi trang hiển thị, chỉ tải controller cần dùng, gộp yêu cầu trùng và tránh tải lại toàn bộ tiến độ trước câu hỏi AI khi không có thay đổi. Xem [phạm vi tối ưu và giới hạn Render Free](docs/performance.md).
+
 Xem [hướng dẫn chạy, quản trị viên và triển khai](docs/backend-deployment.md) và [cấu hình agent](docs/backend-agent.md). Không có tài khoản quản trị mặc định; các tệp `.env`, khóa và dữ liệu riêng không được đưa lên GitHub.
 
 ## AI server
