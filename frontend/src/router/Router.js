@@ -3,7 +3,7 @@ export class Router {
         this.routes = routes;
     }
 
-    init() {
+    async init() {
         let currentPath = window.location.pathname;
         
         // Chuẩn hóa trailing slash để khớp URL chính xác hơn (ví dụ /frontend/public/ -> /frontend/public/index.html)
@@ -25,9 +25,14 @@ export class Router {
             matchedRoute = this.routes.find(r => r.path.endsWith('index.html'));
         }
 
-        if (matchedRoute && matchedRoute.controller) {
-            const controller = new matchedRoute.controller();
-            controller.init();
+        if (matchedRoute) {
+            // Resolve only the selected page; shared navigation and account UI
+            // can render without downloading every practice and assessment module.
+            const Controller = matchedRoute.controller || await matchedRoute.loadController?.();
+            if (Controller) {
+                const controller = new Controller();
+                return controller.init();
+            }
         }
     }
 }

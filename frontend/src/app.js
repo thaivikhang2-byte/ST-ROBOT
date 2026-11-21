@@ -5,17 +5,8 @@ import { Footer } from './components/footer/index.js?v=copy-v4';
 import { Chatbox } from './components/chatbox/index.js?v=account-agent-v2';
 import { BackToTop } from './components/backtotop/index.js';
 import { ThemeService } from './services/ThemeService.js';
-import { Router } from './router/Router.js';
+import { Router } from './router/Router.js?v=page-perf-v1';
 import { ROUTES } from './constants/routes.js?v=account-sync-v1';
-
-// Module Controllers
-import { HomeController } from './modules/home/HomeController.js?v=lesson-code-v5';
-import { KitController } from './modules/kit/KitController.js?v=copy-v4';
-import { QuizController } from './modules/quiz/QuizController.js?v=account-sync-v1';
-import { AssessmentController } from './modules/assessment/AssessmentController.js?v=copy-v4';
-import { GioiThieuController } from './modules/gioithieu/GioiThieuController.js';
-import { DangKyController } from './modules/dangky/DangKyController.js?v=guided-learning-v15';
-import { CatalogController } from './modules/hoclieu/CatalogController.js?v=lesson-code-v5';
 
 class App {
     constructor() {
@@ -27,13 +18,13 @@ class App {
         this.backToTop = new BackToTop('#backtotop-container');
         
         this.router = new Router([
-            { path: ROUTES.HOME, controller: HomeController },
-            { path: ROUTES.KIT, controller: KitController },
-            { path: ROUTES.GIOI_THIEU, controller: GioiThieuController },
-            { path: ROUTES.QUIZ, controller: QuizController },
-            { path: ROUTES.ASSESSMENT, controller: AssessmentController },
-            { path: ROUTES.DANG_KY, controller: DangKyController },
-            { path: ROUTES.HOC_LIEU, controller: CatalogController }
+            { path: ROUTES.HOME, loadController: () => import('./modules/home/HomeController.js?v=lesson-code-v5').then(module => module.HomeController) },
+            { path: ROUTES.KIT, loadController: () => import('./modules/kit/KitController.js?v=copy-v4').then(module => module.KitController) },
+            { path: ROUTES.GIOI_THIEU, loadController: () => import('./modules/gioithieu/GioiThieuController.js').then(module => module.GioiThieuController) },
+            { path: ROUTES.QUIZ, loadController: () => import('./modules/quiz/QuizController.js?v=account-sync-v1').then(module => module.QuizController) },
+            { path: ROUTES.ASSESSMENT, loadController: () => import('./modules/assessment/AssessmentController.js?v=copy-v4').then(module => module.AssessmentController) },
+            { path: ROUTES.DANG_KY, loadController: () => import('./modules/dangky/DangKyController.js?v=guided-learning-v15').then(module => module.DangKyController) },
+            { path: ROUTES.HOC_LIEU, loadController: () => import('./modules/hoclieu/CatalogController.js?v=lesson-code-v5').then(module => module.CatalogController) }
         ]);
     }
 
