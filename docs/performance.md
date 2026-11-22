@@ -22,3 +22,11 @@ Muốn tránh hẳn thời gian thức máy cần backend luôn hoạt động. 
 `node tests/account-connection-warmup.mjs`, `node tests/router-loading.mjs`, `node tests/learner-sync.mjs` và các kiểm tra tài khoản hiện có xác minh lịch kết nối, hủy chờ, phiên, không gửi lặp POST, cách ly tài khoản, giới hạn dung lượng và đồng bộ.
 
 `tests/account-performance-smoke.py` kiểm tra yêu cầu lặp với API giả lập có độ trễ, đọc cũ trong lúc ghi, làm mới bắt buộc và đổi phiên. `tests/route-loading-smoke.py` kiểm tra các trang cùng việc khôi phục đúng tài khoản trước khi chạy quiz. `tests/product-journey-smoke.py` dùng PostgreSQL/Redis riêng để kiểm tra lại đăng ký, duyệt, lưu bài, đổi thiết bị và đăng xuất nhiều tab. Các kiểm thử không gọi nhà cung cấp AI thật hoặc dùng dữ liệu production.
+
+## Khi đăng nhập vẫn mất nhiều giây
+
+Từ bản `timing-v1`, trang tài khoản giữ số đo của lần đăng nhập trong bộ nhớ tab. Mục **Chi tiết thời gian đăng nhập** xuất hiện khi chờ ít nhất tám giây hoặc gặp lỗi kết nối/máy chủ. Đường dẫn `account.html?diagnostics=login` cho phép chủ động xem số đo kể cả khi đăng nhập nhanh. Mở mục đó rồi bấm **Sao chép chi tiết** để lấy báo cáo.
+
+`connectionMs` là thời gian lần đăng nhập chờ kết nối sẵn sàng; `authenticationMs` là thời gian yêu cầu xác thực và đọc JSON; `clientMs` là phần xử lý trình duyệt còn lại; `totalMs` là tổng thời gian. Báo cáo chỉ chứa các thời lượng, trạng thái, mã lỗi giới hạn và mã yêu cầu UUID hợp lệ nếu server trả về. Không chứa email, mật khẩu, ID người dùng, token, header, nội dung bài học hay thông báo lỗi thô. Đây là số đo chờ ở trình duyệt, không phải các pha SQL/bcrypt của server.
+
+Kết nối chậm và xác thực chậm cần được phân biệt bằng số đo thực tế. Không thể suy ra nguyên nhân của mọi lần đăng nhập từ các kiểm thử local. Khi có `requestId`, quản trị viên có thể mở **strobot-backend → Logs** trên Render và tìm đúng mã đó. Backend giữ log HTTP thành công từ một giây trở lên thay vì bỏ qua do lấy mẫu; các trường vẫn giới hạn ở method, mẫu route, trạng thái, thời gian và mã đối chiếu. Thay đổi này không rút ngắn timeout, bỏ xác thực, đổi phí hay khẳng định đã giải quyết độ trễ production.

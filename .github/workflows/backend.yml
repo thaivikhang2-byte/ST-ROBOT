@@ -65,6 +65,7 @@ jobs:
       - name: Account and learning storage regression checks
         run: >-
           node tests/account-service.mjs &&
+          node tests/login-timing.mjs &&
           node tests/account-connection.mjs &&
           node tests/account-connection-warmup.mjs &&
           node tests/router-loading.mjs &&
@@ -104,6 +105,7 @@ jobs:
               raise SystemExit('Frontend test server did not start')
           PY
           python3 tests/account-performance-smoke.py --base http://127.0.0.1:5519
+          python3 tests/login-timing-smoke.py --base http://127.0.0.1:5519
           python3 tests/route-loading-smoke.py --base http://127.0.0.1:5519
       - name: Verify student approval and cross-device learning journey
         shell: bash

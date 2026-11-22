@@ -46,6 +46,20 @@ const abortedRequest = () => new AccountError('Kết nối đã bị hủy. Vui 
 const changedSession = () => new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
 const connectionFailure = () => new AccountError('Chưa kết nối được máy chủ. Vui lòng thử lại sau.', 0, 'NETWORK_ERROR');
 const duration = (value, fallback, maximum) => Number.isFinite(value) && value > 0 ? Math.min(value, maximum) : fallback;
+const timingMs = value => Number.isFinite(value) ? Math.min(86400000, Math.max(0, Math.round(value))) : 0;
+const timingStatus = value => Number.isInteger(value) && value >= 100 && value <= 599 ? value : null;
+const timingRequestId = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value) ? value : null;
+const timingError = (error, cancelled) => {
+    if (cancelled) return 'CANCELLED';
+    if (error?.code === 'REQUEST_ABORTED') return 'TIMEOUT';
+    if (['NETWORK_ERROR', 'BACKEND_UNAVAILABLE', 'BACKEND_NOT_CONFIGURED', 'INVALID_RESPONSE', 'SESSION_CHANGED'].includes(error?.code)) return error.code;
+    if (error?.status === 400) return 'INVALID_REQUEST';
+    if (error?.status === 401) return 'UNAUTHORIZED';
+    if (error?.status === 403) return 'FORBIDDEN';
+    if (error?.status === 409) return 'CONFLICT';
+    if (error?.status === 429) return 'RATE_LIMITED';
+    return error?.status >= 500 ? 'SERVER_ERROR' : 'REQUEST_FAILED';
+};
 
 export class AccountError extends Error {
     constructor(message, status = 0, code = 'ACCOUNT_ERROR') {
@@ -75,6 +89,8 @@ export class AccountService {
         this._now = now;
         this._authStartedAt = 0;
         this._listeners = new Set();
+        this._loginTiming = null;
+        this._loginTimingListeners = new Set();
         // Browser requests wait for a sleeping server before starting their normal API timeout.
         // Injected clients can opt in with `warmup: true` or provide shorter durations for tests.
         const timing = warmup && typeof warmup === 'object' ? warmup : {};
@@ -127,6 +143,60 @@ export class AccountService {
         return this.connectionStatus === 'connecting' ? Math.max(0, Date.now() - this._connectionStartedAt) : 0;
     }
     get connectionTimeoutMs() { return this._warmup?.timeoutMs ?? 0; }
+    get loginTiming() {
+        const trace = this._loginTiming;
+        if (!trace) return null;
+        const now = trace.endedAt ?? this._timingNow();
+        const totalMs = timingMs(now - trace.startedAt);
+        const connectionMs = timingMs((trace.authenticationAt ?? now) - trace.startedAt);
+        const authenticationMs = trace.authenticationMs ?? (trace.authenticationAt === null ? 0 : timingMs(now - trace.authenticationAt));
+        return Object.freeze({ clientBuild: 'timing-v1', operation: 'login', outcome: trace.outcome,
+            stage: trace.outcome === 'pending' ? trace.authenticationAt === null ? 'connection' : 'authentication' : 'complete',
+            connectionMs, authenticationMs, clientMs: Math.max(0, totalMs - connectionMs - authenticationMs), totalMs,
+            httpStatus: trace.httpStatus, errorCode: trace.errorCode,
+            ...(trace.requestId ? { requestId: trace.requestId } : {}) });
+    }
+    getLoginTimingReport() { return this.loginTiming; }
+    subscribeLoginTiming(listener) {
+        if (typeof listener !== 'function') return () => {};
+        this._loginTimingListeners.add(listener);
+        return () => this._loginTimingListeners.delete(listener);
+    }
+    _timingNow() {
+        try { const value = this._now(); if (Number.isFinite(value)) return value; } catch { /* Diagnostics cannot break authentication. */ }
+        return Date.now();
+    }
+    _publishLoginTiming() {
+        const report = this.getLoginTimingReport();
+        for (const listener of this._loginTimingListeners) {
+            try { listener(report); } catch { /* A diagnostic listener has no authority over login. */ }
+        }
+    }
+    _beginLoginTiming(intent) {
+        const trace = { intent, startedAt: this._timingNow(), authenticationAt: null, authenticationMs: null,
+            endedAt: null, outcome: 'pending', httpStatus: null, errorCode: null, requestId: null };
+        this._loginTiming = trace;
+        this._publishLoginTiming();
+        return trace;
+    }
+    _updateLoginTiming(trace, event) {
+        if (this._loginTiming !== trace || trace.intent !== this._authIntent || trace.outcome !== 'pending') return;
+        if (event.type === 'start') trace.authenticationAt = this._timingNow();
+        else {
+            trace.authenticationMs = timingMs(event.durationMs);
+            trace.httpStatus = timingStatus(event.httpStatus);
+            trace.requestId = timingRequestId(event.requestId);
+            trace.timedOut = event.timedOut === true;
+        }
+        this._publishLoginTiming();
+    }
+    _finishLoginTiming(trace, error, cancelled = false, superseded = false) {
+        if (!trace || this._loginTiming !== trace || trace.outcome !== 'pending' || (!superseded && trace.intent !== this._authIntent)) return;
+        trace.endedAt = this._timingNow();
+        trace.outcome = error ? cancelled ? 'cancelled' : 'failed' : 'succeeded';
+        trace.errorCode = error ? cancelled ? 'CANCELLED' : trace.timedOut ? 'TIMEOUT' : timingError(error, false) : null;
+        this._publishLoginTiming();
+    }
 
     subscribe(listener) {
         this._listeners.add(listener);
@@ -309,6 +379,8 @@ export class AccountService {
     }
 
     _clear() {
+        if (this._loginTiming?.outcome === 'pending' && this._loginTiming.intent !== this._authIntent)
+            this._finishLoginTiming(this._loginTiming, { code: 'SESSION_CHANGED' }, true, true);
         this._generation++;
         this._accessToken = '';
         this._refreshToken = '';
@@ -362,7 +434,7 @@ export class AccountService {
         if (!this.fetchImpl) throw new AccountError('Trình duyệt không hỗ trợ kết nối máy chủ.', 0, 'NETWORK_ERROR');
     }
 
-    async _send(path, { method = 'GET', body, auth = true, headers = {}, timeoutMs = 20000, signal, sessionGuard } = {}) {
+    async _send(path, { method = 'GET', body, auth = true, headers = {}, timeoutMs = 20000, signal, sessionGuard, onTiming } = {}) {
         this._checkPath(path);
         if (sessionGuard && !sessionGuard()) throw changedSession();
         await this._ensureConnection(signal);
@@ -374,7 +446,12 @@ export class AccountService {
         const abort = () => controller.abort();
         if (signal?.aborted) controller.abort();
         else signal?.addEventListener('abort', abort, { once: true });
-        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        let watchdogFired = false;
+        const timer = setTimeout(() => { watchdogFired = true; controller.abort(); }, timeoutMs);
+        const timingStartedAt = this._timingNow();
+        let httpStatus = null, requestId = null;
+        const emitTiming = event => { try { onTiming?.(event); } catch { /* Timing cannot change a request result. */ } };
+        emitTiming({ type: 'start' });
         try {
             const response = await this.fetchImpl(this.baseUrl + path, {
                 method, credentials: 'omit', cache: 'no-store', redirect: 'error', signal: controller.signal,
@@ -383,6 +460,8 @@ export class AccountService {
                 ...(body === undefined ? {} : { body: JSON.stringify(body) }),
             });
             const payload = await response.json().catch(() => null);
+            httpStatus = timingStatus(response.status);
+            requestId = timingRequestId(payload?.meta?.requestId);
             if (controller.signal.aborted) throw abortedRequest();
             if (!response.ok || payload?.success === false) {
                 if (response.status >= 500) this._forgetConnection(readinessRevision);
@@ -406,6 +485,7 @@ export class AccountService {
         } finally {
             clearTimeout(timer);
             signal?.removeEventListener('abort', abort);
+            emitTiming({ type: 'end', durationMs: this._timingNow() - timingStartedAt, httpStatus, requestId, timedOut: watchdogFired });
         }
     }
 
@@ -479,18 +559,27 @@ export class AccountService {
     async _authenticate(path, credentials, { signal } = {}) {
         const intent = ++this._authIntent;
         this._authStartedAt = this._now();
-        const data = await this._send(path, { method: 'POST', body: credentials, auth: false, signal, sessionGuard: () => intent === this._authIntent });
-        if (intent !== this._authIntent) throw new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
-        if (!data?.user?.id) throw new AccountError('Máy chủ trả về tài khoản không hợp lệ.', 0, 'INVALID_RESPONSE');
-        this._generation++;
-        this._tokens(data.tokens);
-        this._user = data.user;
-        this.sessionError = null;
-        this.sessionOffline = false;
-        this._persist();
-        this._readyPromise = Promise.resolve(data.user);
-        this._notify();
-        return data.user;
+        const trace = path === '/v1/auth/login' ? this._beginLoginTiming(intent) : null;
+        if (!trace && this._loginTiming?.outcome === 'pending') this._finishLoginTiming(this._loginTiming, { code: 'SESSION_CHANGED' }, true, true);
+        try {
+            const data = await this._send(path, { method: 'POST', body: credentials, auth: false, signal, sessionGuard: () => intent === this._authIntent,
+                ...(trace ? { onTiming: event => this._updateLoginTiming(trace, event) } : {}) });
+            if (intent !== this._authIntent) throw new AccountError('Phiên đăng nhập đã thay đổi.', 401, 'SESSION_CHANGED');
+            if (!data?.user?.id) throw new AccountError('Máy chủ trả về tài khoản không hợp lệ.', 0, 'INVALID_RESPONSE');
+            this._generation++;
+            this._tokens(data.tokens);
+            this._user = data.user;
+            this.sessionError = null;
+            this.sessionOffline = false;
+            this._persist();
+            this._readyPromise = Promise.resolve(data.user);
+            this._notify();
+            this._finishLoginTiming(trace);
+            return data.user;
+        } catch (error) {
+            this._finishLoginTiming(trace, error, Boolean(signal?.aborted));
+            throw error;
+        }
     }
     signIn(credentials, options) { return this._authenticate('/v1/auth/login', credentials, options); }
     login(credentials, options) { return this.signIn(credentials, options); }

@@ -4,8 +4,8 @@ Kiểm tra ngày 21/11/2026 trên database PostgreSQL 16 và Redis 7 dùng riên
 
 ## Kết quả
 
-- Backend build, typecheck và 41 bộ Jest / 299 kiểm thử: đạt.
-- 15 bộ Node cho tài khoản, kết nối, tải trang, cài đặt AI, đồng bộ, quiz, ôn tập, editor, portfolio và lab: đạt.
+- Backend build, typecheck và 41 bộ Jest / 302 kiểm thử: đạt.
+- 16 bộ Node cho tài khoản, đo thời gian đăng nhập, kết nối, tải trang, cài đặt AI, đồng bộ, quiz, ôn tập, editor, portfolio và lab: đạt.
 - Giao diện tài khoản trên máy tính/điện thoại: đạt; danh sách quản trị chuyển sang thẻ trên màn hình hẹp, cấu hình AI chỉ tải khi admin chủ động mở.
 - Lab browser: nội dung công khai không chờ đăng nhập, giữ bài/tab/nền tảng khi khôi phục phiên, không nhập tệp sang tài khoản khác, kiểm tra giới hạn và đủ 30 bài: đạt.
 - Hành trình thực tế `tests/product-journey-smoke.py`: 9 nhóm đạt. Đăng ký trên điện thoại nhận trạng thái chờ; admin duyệt; học sinh đăng nhập, hoàn thành thực hành và đồng bộ nhật ký/mã/ghi chú; trình duyệt thứ hai thấy tiến độ và bài đã lưu. Học sinh khác thấy dữ liệu riêng của mình. Admin thấy 1/30 bài và thời điểm hoạt động, không nhận nội dung nhật ký/mã. Đăng xuất tại tab tài khoản làm tab lab cùng trình duyệt xóa các ô riêng, khóa/ẩn lưu và hiện nút đăng nhập; không có yêu cầu ghi muộn vào dữ liệu học. Bài trên server và phiên thiết bị độc lập được giữ lại, đăng nhập lại khôi phục được bài đã lưu.
@@ -14,6 +14,8 @@ Kiểm tra ngày 21/11/2026 trên database PostgreSQL 16 và Redis 7 dùng riên
 Hành trình dùng metadata của kết nối AI giả lập đã mã hóa để kiểm tra agent dùng chung và quyền truy cập. Không coi kết quả đó là kiểm chứng khả năng trả lời của nhà cung cấp AI thật. Kết nối AI thật đã cấu hình được giữ nguyên khi cập nhật.
 
 Bản tối ưu tốc độ giữ nguyên các luồng trên. Fixture trình duyệt có độ trễ xác nhận danh sách học sinh không còn tải lặp, thao tác ghi nhận kết quả mới sau khi lưu và các trang chỉ tải controller tương ứng. Chi tiết số đo và giới hạn của Render Free ở [hướng dẫn hiệu năng](performance.md).
+
+Ngày 22/11/2026 bổ sung chẩn đoán riêng cho đăng nhập vẫn chậm trên website thực: kiểm thử clocked xác nhận thời gian kết nối/xác thực được tách đúng, báo cáo sao chép không chứa thông tin đăng nhập, phiên cũ không ghi đè báo cáo mới và UI vẫn hoạt động với service đã cache từ trước. Hành trình PostgreSQL chín nhóm cũng chạy lại thành công. Đây là công cụ lấy số đo production, không phải kết luận rằng độ trễ thực tế đã được sửa.
 
 ## Triển khai và sử dụng
 
