@@ -39,7 +39,7 @@ export function setupHttp(app: INestApplication): void {
         const status = res.writableFinished ? res.statusCode : 499;
         const duration = (performance.now() - start) / 1000;
         metrics.record(req.method, path, status, duration, ids.requestId, ids.traceId);
-        if (status >= 400 || Math.random() < settings.get<number>('logging.httpSampleRate', 0.1))
+        if (status >= 400 || duration >= 1 || Math.random() < settings.get<number>('logging.httpSampleRate', 0.1))
           withContext(ids, () =>
             logger.event(
               status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info',
