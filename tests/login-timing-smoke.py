@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Clocked login diagnosis UI checks. All account APIs are local fixtures."""
+"""Login UX stays unchanged without public timing controls. APIs are local fixtures."""
 import argparse
 import json
 import os
@@ -36,15 +36,6 @@ def main():
             }
         });
     '''
-    fields = {'clientBuild', 'operation', 'outcome', 'stage', 'connectionMs', 'authenticationMs', 'clientMs', 'totalMs', 'httpStatus', 'errorCode', 'requestId'}
-
-    def private_report(report):
-        assert report['clientBuild'] == 'timing-v1' and report['operation'] == 'login'
-        assert set(report) <= fields
-        text = json.dumps(report)
-        for value in secret_values + ['password', 'accessToken', 'refreshToken', 'Authorization', 'profile']:
-            assert value not in text, value
-
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(executable_path=args.chromium, headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'])
 
@@ -103,7 +94,6 @@ def main():
 
             context.route('**/*', handle)
             page.goto(base + '/frontend/public/account.html' + ('?diagnostics=login' if debug else ''), wait_until='domcontentloaded')
-            page.evaluate("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.copiedLoginTiming=text;}}})")
             return context, page, errors, requests, health, logins, state, respond
 
         def submit(page):
@@ -111,35 +101,48 @@ def main():
             page.locator('#login-password').fill(secret_values[1])
             page.locator('#account-login button[type="submit"]').click()
 
-        # No diagnostic controls appear for a normal fast login or password error.
-        for mode in ['fast', 'bad-password']:
-            context, page, errors, requests, *_ = fixture(mode)
+        def no_diagnostics(page):
+            expect(page.locator('[id^="account-login-diagnostics"]')).to_have_count(0)
+            expect(page.get_by_text('Chi tiết thời gian đăng nhập', exact=True)).to_have_count(0)
+            expect(page.get_by_text('Sao chép chi tiết', exact=True)).to_have_count(0)
+            text = page.locator('body').inner_text()
+            for field in ['clientBuild', 'authenticationMs', 'connectionMs', 'totalMs', 'timing-v1']:
+                assert field not in text, field
+
+        def close_fixture(context):
+            context.unroute_all(behavior='wait')
+            context.close()
+
+        # Normal controls and feedback remain identical, including a stale debug URL.
+        for mode, debug in [('fast', False), ('bad-password', False), ('error', False), ('fast', True), ('bad-password', True)]:
+            context, page, errors, requests, *_ = fixture(mode, debug=debug)
+            no_diagnostics(page)
             submit(page)
             if mode == 'fast':
                 expect(page.locator('#account-signed-in')).to_be_visible()
             else:
                 expect(page.locator('#account-message')).to_have_attribute('data-kind', 'error')
-            expect(page.locator('#account-login-diagnostics')).to_be_hidden()
+                expect(page.locator('#account-login button[type="submit"]')).to_have_text('Đăng nhập')
+                expect(page.locator('#account-login button[type="submit"]')).to_be_enabled()
+                expect(page.locator('[data-cancel-login]')).to_be_hidden()
+            no_diagnostics(page)
             assert len([item for item in requests if item[1] == '/v1/auth/login']) == 1
             assert not errors, errors
-            context.close()
-        print('PASS ordinary fast login and bad-password UX remain unchanged', flush=True)
+            close_fixture(context)
+        print('PASS fast login, password/server errors and stale debug URLs have no diagnostic UI', flush=True)
 
         for mode in ['slow-auth', 'slow-connection']:
-            context, page, errors, requests, health, logins, state, respond = fixture(mode)
+            context, page, errors, requests, health, logins, state, respond = fixture(mode, debug=True)
             submit(page)
-            if mode == 'slow-auth':
-                expect(page.locator('#account-server-status')).to_contain_text('Đang xác thực')
-            else:
+            expect(page.locator('#account-login button[type="submit"]')).to_have_text('Đang đăng nhập…')
+            expect(page.locator('#account-login button[type="submit"]')).to_be_disabled()
+            expect(page.locator('[data-cancel-login]')).to_be_visible()
+            expect(page.locator('[data-cancel-login]')).to_be_enabled()
+            if mode == 'slow-connection':
                 expect(page.locator('#account-server-status')).to_contain_text('Đang kết nối')
             page.clock.fast_forward(8100)
-            details = page.locator('#account-login-diagnostics')
-            expect(details).to_be_visible()
-            assert details.get_attribute('open') is None
-            details.locator(':scope > summary').click()
-            active = json.loads(page.locator('#account-login-diagnostics-data').inner_text())
-            private_report(active)
-            assert active['stage'] == ('authentication' if mode == 'slow-auth' else 'connection')
+            no_diagnostics(page)
+            expect(page.locator('#account-login button[type="submit"]')).to_have_text('Đang đăng nhập…')
             if mode == 'slow-auth':
                 assert logins
                 respond(logins.pop(), auth)
@@ -148,44 +151,39 @@ def main():
                 state['mode'] = 'fast'
                 respond(health.pop(), {'status': 'ok'})
             expect(page.locator('#account-signed-in')).to_be_visible()
-            expect(page.locator('#account-login-diagnostics-data')).to_contain_text('succeeded')
-            before_copy = len(requests)
-            page.locator('#account-login-diagnostics-copy').click()
-            expect(page.locator('#account-login-diagnostics-status')).to_contain_text('Đã sao chép')
-            copied = json.loads(page.evaluate('window.copiedLoginTiming'))
-            private_report(copied)
-            assert copied['requestId'] == request_id and copied['totalMs'] >= 8000
-            assert copied['connectionMs' if mode == 'slow-connection' else 'authenticationMs'] >= 8000
-            assert len(requests) == before_copy, 'copying timing must not make another request'
+            no_diagnostics(page)
+            assert len([item for item in requests if item[1] == '/v1/auth/login']) == 1
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
             assert not errors, errors
-            context.close()
-        print('PASS clocked slow connection/authentication remain distinct and copy only safe totals', flush=True)
+            close_fixture(context)
+        print('PASS clocked slow connection/authentication preserve existing form controls without reports', flush=True)
 
-        for mode in ['error', 'fast']:
-            context, page, errors, requests, *_ = fixture(mode, debug=(mode == 'fast'))
-            submit(page)
-            expect(page.locator('#account-login-diagnostics')).to_be_visible()
-            page.locator('#account-login-diagnostics > summary').click()
-            page.locator('#account-login-diagnostics-copy').click()
-            expect(page.locator('#account-login-diagnostics-status')).to_contain_text('Đã sao chép')
-            copied = json.loads(page.evaluate('window.copiedLoginTiming'))
-            private_report(copied)
-            assert copied['outcome'] == ('failed' if mode == 'error' else 'succeeded')
-            assert copied['errorCode'] == ('SERVER_ERROR' if mode == 'error' else None)
-            if mode == 'error':
-                assert 'requestId' not in copied
-            assert not errors, errors
-            context.close()
-        print('PASS infrastructure failure and explicit diagnostics query enable safe reports', flush=True)
+        context, page, errors, requests, health, logins, state, respond = fixture('slow-auth', debug=True)
+        submit(page)
+        expect(page.locator('[data-cancel-login]')).to_be_visible()
+        page.clock.fast_forward(8100)
+        no_diagnostics(page)
+        page.locator('[data-cancel-login]').click()
+        expect(page.locator('#account-message')).to_contain_text('Đã hủy chờ đăng nhập')
+        expect(page.locator('#account-login button[type="submit"]')).to_have_text('Đăng nhập')
+        expect(page.locator('#account-login button[type="submit"]')).to_be_enabled()
+        expect(page.locator('[data-cancel-login]')).to_be_hidden()
+        no_diagnostics(page)
+        assert len([item for item in requests if item[1] == '/v1/auth/login']) == 1
+        assert not errors, errors
+        # Finish the intentionally held fixture route after browser cancellation.
+        assert len(logins) == 1
+        logins.pop().abort()
+        close_fixture(context)
+        print('PASS cancelling slow login restores the same controls and never reveals diagnostics', flush=True)
 
         context, page, errors, requests, *_ = fixture('fast', debug=True, legacy=True)
         submit(page)
         expect(page.locator('#account-signed-in')).to_be_visible()
-        expect(page.locator('#account-login-diagnostics')).to_be_hidden()
+        no_diagnostics(page)
         assert not errors, errors
-        context.close()
-        print('PASS cached older AccountService still logs in with diagnostics disabled', flush=True)
+        close_fixture(context)
+        print('PASS cached older AccountService still logs in without diagnostic dependencies', flush=True)
         browser.close()
 
 

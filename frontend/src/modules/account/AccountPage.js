@@ -48,8 +48,6 @@ export class AccountPage {
         this.enrollmentLoaded = null;
         this.enrollmentFlight = null;
         this.viewFreshMs = 15000;
-        this.loginTimingRevision = 0;
-        this.loginDiagnosticsRequested = new URLSearchParams(globalThis.location?.search || '').get('diagnostics') === 'login';
     }
     $(selector) { return this.root.querySelector(selector); }
     message(text, kind = 'success') {
@@ -112,14 +110,6 @@ export class AccountPage {
     }
     async init() {
         globalThis.window?.addEventListener(ACCOUNT_CONNECTION_EVENT, () => this.renderConnection());
-        // Optional API: older cached AccountService versions still log in normally.
-        accountService.subscribeLoginTiming?.(() => {
-            this.loginTimingRevision++;
-            const status = this.$('#account-login-diagnostics-status');
-            if (status) status.textContent = '';
-            this.renderConnection();
-        });
-        this.$('#account-login-diagnostics-copy')?.addEventListener('click', () => { void this.copyLoginDiagnostics(); });
         this.renderConnection();
         this.authOptionsPromise = this.loadAuthOptions();
         for (const button of this.root.querySelectorAll('[data-auth-mode]')) button.addEventListener('click', () => this.mode(button.dataset.authMode));
@@ -298,18 +288,13 @@ export class AccountPage {
     renderConnection() {
         const output = this.$('#account-server-status');
         if (!output) return;
-        clearTimeout(this.connectionTimer);
         const connecting = accountService.connectionStatus === 'connecting';
-        const timing = accountService.getLoginTimingReport?.();
-        const authenticating = timing?.outcome === 'pending' && timing.stage === 'authentication';
         const offline = accountService.user && accountService.sessionOffline;
         const failed = accountService.connectionStatus === 'error';
-        output.hidden = Boolean(accountService.configured && !connecting && !authenticating && !offline && !failed);
-        const elapsed = Math.floor((accountService.connectionElapsedMs || 0) / 1000);
+        output.hidden = Boolean(accountService.configured && !connecting && !offline && !failed);
         const text = !accountService.configured
             ? 'Tài khoản chưa được mở trên máy chủ này. Bạn vẫn có thể học và lưu trên thiết bị.'
-            : connecting ? `Đang kết nối tài khoản${elapsed > 2 ? ` · ${elapsed} giây` : ''}… Máy chủ miễn phí có thể cần thức dậy; bạn vẫn có thể xem khóa học.`
-                : authenticating ? `Đang xác thực tài khoản${timing.authenticationMs >= 3000 ? ` · ${Math.floor(timing.authenticationMs / 1000)} giây` : ''}…`
+            : connecting ? 'Đang kết nối tài khoản… Bạn vẫn có thể xem khóa học.'
                 : offline ? 'Bạn đang học bằng bản lưu trên thiết bị. Tiến độ sẽ đồng bộ khi kết nối trở lại.'
                     : 'Chưa kết nối được tài khoản. Tiến độ trên thiết bị vẫn được giữ.';
         output.replaceChildren(node('span', text));
@@ -317,37 +302,6 @@ export class AccountPage {
             const retry = node('button', 'Kết nối lại', 'btn btn--ghost btn--sm'); retry.type = 'button';
             retry.addEventListener('click', () => { this.authOptionsPromise = this.loadAuthOptions(); }); output.append(retry);
         }
-        this.renderLoginDiagnostics(timing);
-        if (connecting || authenticating) this.connectionTimer = setTimeout(() => this.renderConnection(), 1000);
-    }
-    renderLoginDiagnostics(timing = accountService.getLoginTimingReport?.()) {
-        const details = this.$('#account-login-diagnostics');
-        if (!details) return;
-        const infrastructure = ['NETWORK_ERROR', 'BACKEND_UNAVAILABLE', 'BACKEND_NOT_CONFIGURED', 'INVALID_RESPONSE', 'SERVER_ERROR', 'TIMEOUT'];
-        const visible = timing && (this.loginDiagnosticsRequested || timing.totalMs >= 8000 || infrastructure.includes(timing.errorCode));
-        details.hidden = !visible;
-        if (!visible) { details.open = false; return; }
-        this.$('#account-login-diagnostics-data').textContent = JSON.stringify(timing, null, 2);
-    }
-    async copyLoginDiagnostics() {
-        const report = accountService.getLoginTimingReport?.();
-        if (!report || this.$('#account-login-diagnostics')?.hidden) return;
-        const text = JSON.stringify(report, null, 2), revision = this.loginTimingRevision;
-        let copied = false;
-        try {
-            if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); copied = true; }
-        } catch { /* A browser can reject clipboard permission; use a local selection. */ }
-        if (!copied) {
-            const input = node('textarea'), previous = document.activeElement;
-            input.value = text; input.readOnly = true;
-            input.setAttribute('aria-hidden', 'true'); input.style.cssText = 'position:fixed;left:-10000px;top:0';
-            document.body.append(input); input.select();
-            try { copied = document.execCommand('copy'); } catch { /* Manual selection remains available in the details. */ }
-            finally { input.remove(); previous?.focus?.({ preventScroll: true }); }
-        }
-        if (revision === this.loginTimingRevision) this.$('#account-login-diagnostics-status').textContent = copied
-            ? 'Đã sao chép thời gian và mã trạng thái; không có thông tin đăng nhập.'
-            : 'Chưa sao chép được. Bạn có thể chọn và chép phần chi tiết bên trên.';
     }
     renderUser(user) {
         const scope = this.scopeKey(user);

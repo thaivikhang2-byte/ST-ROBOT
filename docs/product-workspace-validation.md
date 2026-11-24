@@ -15,7 +15,7 @@ Hành trình dùng metadata của kết nối AI giả lập đã mã hóa để
 
 Bản tối ưu tốc độ giữ nguyên các luồng trên. Fixture trình duyệt có độ trễ xác nhận danh sách học sinh không còn tải lặp, thao tác ghi nhận kết quả mới sau khi lưu và các trang chỉ tải controller tương ứng. Chi tiết số đo và giới hạn của Render Free ở [hướng dẫn hiệu năng](performance.md).
 
-Ngày 22/11/2026 bổ sung chẩn đoán riêng cho đăng nhập vẫn chậm trên website thực: kiểm thử clocked xác nhận thời gian kết nối/xác thực được tách đúng, báo cáo sao chép không chứa thông tin đăng nhập, phiên cũ không ghi đè báo cáo mới và UI vẫn hoạt động với service đã cache từ trước. Hành trình PostgreSQL chín nhóm cũng chạy lại thành công. Đây là công cụ lấy số đo production, không phải kết luận rằng độ trễ thực tế đã được sửa.
+Ngày 24/11/2026 bỏ hoàn toàn mục chi tiết thời gian đăng nhập, nút sao chép và bộ đếm giây theo yêu cầu. Kiểm thử clocked xác nhận giao diện vẫn gọn khi chờ lâu, gặp lỗi, hủy đăng nhập hoặc mở đường dẫn chẩn đoán cũ; đăng nhập vẫn hoạt động với service đã cache từ trước. Các phép đo nội bộ được giữ riêng cho kiểm thử và bảo trì.
 
 ## Triển khai và sử dụng
 
