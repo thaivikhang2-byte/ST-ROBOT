@@ -15,7 +15,15 @@ import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { TokenService, TokenPair } from './services/token.service';
 import { UserRegisteredEvent, UserLoggedInEvent, UserLoggedOutEvent } from './events/auth.events';
-import { hashPassword, comparePassword, sha256 } from '../../shared/utils/hash.util';
+import {
+  hashPassword,
+  comparePassword,
+  needsPasswordRehash,
+  isArgon2PasswordHash,
+  consumeFailedPasswordBudget,
+  consumeMissingPasswordBudget,
+  sha256,
+} from '../../shared/utils/hash.util';
 import {
   assertActive,
   Identity,
@@ -69,29 +77,69 @@ export class AuthService {
       select: { id: true, password_hash: true, auth_version: true },
     });
     if (!found) {
-      await hashPassword(dto.password); // Match bcrypt cost for nonexistent accounts.
+      await consumeMissingPasswordBudget(dto.password);
       await AuditService.record(this.prisma, 'auth.login_failed');
       throw new UnauthorizedException('Invalid email or password');
     }
-    // Expensive bcrypt work must not hold the identity row lock. Recheck the
-    // password snapshot under that lock so a concurrent reset cannot log in.
-    const valid = await comparePassword(dto.password, found.password_hash);
-    const result = await this.prisma.$transaction(async (tx) => {
-      const user = await lockIdentity(tx, found.id);
-      if (!valid || found.password_hash !== user.password_hash || found.auth_version !== user.auth_version ||
-          !user.is_active || user.student_approval_pending || user.deleted_at || !profile(user).roles.length) {
-        await AuditService.record(tx, 'auth.login_failed', user.id);
-        return null;
+    let snapshot = found;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      // Native verification and optional migration never hold a database row lock.
+      const valid = await comparePassword(dto.password, snapshot.password_hash);
+      if (!valid) await consumeFailedPasswordBudget(dto.password, snapshot.password_hash);
+      // bcrypt truncates at 72 UTF-8 bytes. Migrating a longer accepted candidate
+      // would silently change which password the existing account recognizes.
+      const upgradedHash = valid && needsPasswordRehash(snapshot.password_hash) &&
+        Buffer.byteLength(dto.password, 'utf8') <= 72
+        ? await hashPassword(dto.password)
+        : undefined;
+
+      const result = await this.prisma.$transaction(async (tx) => {
+        const user = await lockIdentity(tx, found.id);
+        const currentProfile = profile(user);
+        if (!valid || snapshot.auth_version !== user.auth_version ||
+            !user.is_active || user.student_approval_pending || user.deleted_at || !currentProfile.roles.length) {
+          await AuditService.record(tx, 'auth.login_failed', user.id);
+          return { status: 'denied' as const };
+        }
+        if (snapshot.password_hash !== user.password_hash) {
+          // Another successful login may have migrated precisely this credential.
+          // A real reset/version change, an arbitrary replacement, or a second
+          // mismatch must never turn into a retry that accepts a stale password.
+          if (attempt === 0 && snapshot.auth_version === found.auth_version &&
+              needsPasswordRehash(snapshot.password_hash) && isArgon2PasswordHash(user.password_hash))
+            return { status: 'retry-upgrade' as const };
+          await AuditService.record(tx, 'auth.login_failed', user.id);
+          return { status: 'denied' as const };
+        }
+        const tokens = await this.issue(tx, user, randomUUID(), ip, userAgent);
+        const last_login_at = new Date();
+        await tx.user.update({
+          where: { id: user.id },
+          data: { last_login_at, ...(upgradedHash ? { password_hash: upgradedHash } : {}) },
+        });
+        await AuditService.record(tx, 'auth.login', user.id);
+        return { status: 'success' as const, value: { user: { ...currentProfile, lastLoginAt: last_login_at }, tokens } };
+      });
+      if (result.status === 'success') {
+        this.eventBus.emit(new UserLoggedInEvent(result.value.user.id, ip));
+        return result.value;
       }
-      const tokens = await this.issue(tx, user, randomUUID(), ip, userAgent);
-      const last_login_at = new Date();
-      await tx.user.update({ where: { id: user.id }, data: { last_login_at } });
-      await AuditService.record(tx, 'auth.login', user.id);
-      return { user: profile({ ...user, last_login_at }), tokens };
-    });
-    if (!result) throw new UnauthorizedException('Invalid email or password');
-    this.eventBus.emit(new UserLoggedInEvent(result.user.id, ip));
-    return result;
+      if (result.status === 'denied') throw new UnauthorizedException('Invalid email or password');
+
+      // Re-read outside the transaction, then perform the next native verification
+      // outside its lock too. The second transaction checks this new snapshot again.
+      const latest = await this.prisma.user.findUnique({
+        where: { id: found.id },
+        select: { id: true, password_hash: true, auth_version: true },
+      });
+      if (!latest || latest.auth_version !== found.auth_version ||
+          !isArgon2PasswordHash(latest.password_hash)) {
+        await AuditService.record(this.prisma, 'auth.login_failed', latest?.id);
+        throw new UnauthorizedException('Invalid email or password');
+      }
+      snapshot = latest;
+    }
+    throw new UnauthorizedException('Invalid email or password');
   }
 
   async register(dto: RegisterDto) {

@@ -107,7 +107,7 @@ jobs:
           python3 tests/account-performance-smoke.py --base http://127.0.0.1:5519
           python3 tests/login-timing-smoke.py --base http://127.0.0.1:5519
           python3 tests/route-loading-smoke.py --base http://127.0.0.1:5519
-      - name: Verify student approval and cross-device learning journey
+      - name: Verify password upgrades, student approval and cross-device learning
         shell: bash
         run: |
           strobot_fixture="$(mktemp)"
@@ -123,4 +123,5 @@ jobs:
             AI_CREDENTIALS_MASTER_KEY: randomBytes(32).toString('hex'),
           }), { mode: 0o600 });
           NODE
+          node tests/auth-upgrade-pg.cjs --env-file "$strobot_fixture"
           python3 tests/product-journey-smoke.py --env-file "$strobot_fixture"

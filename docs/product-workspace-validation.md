@@ -17,6 +17,10 @@ Bản tối ưu tốc độ giữ nguyên các luồng trên. Fixture trình duy
 
 Ngày 24/11/2026 bỏ hoàn toàn mục chi tiết thời gian đăng nhập, nút sao chép và bộ đếm giây theo yêu cầu. Kiểm thử clocked xác nhận giao diện vẫn gọn khi chờ lâu, gặp lỗi, hủy đăng nhập hoặc mở đường dẫn chẩn đoán cũ; đăng nhập vẫn hoạt động với service đã cache từ trước. Các phép đo nội bộ được giữ riêng cho kiểm thử và bảo trì.
 
+Kiểm chứng bản xác thực ngày 24/11/2026: build/typecheck đạt; 43 bộ Jest / 329 kiểm thử đạt (sáu kiểm thử HTTP chạy lại với quyền mở cổng loopback sau khi sandbox chặn `listen`). Hành trình PostgreSQL/Chromium chín nhóm chạy lại đạt với bản Argon và truy vấn gộp. Bộ hash native bảy kiểm thử cũng đạt trên Node 22.23.5. Toàn ứng dụng chạy trong Docker 0,1 CPU/512 MiB cho đăng nhập Argon khoảng 0,8–1,1 giây sau khi máy chủ đã chạy, so với bcrypt 2,8–3 giây; RSS cao nhất 290,9 MiB khi có hai tác vụ Argon. Đây là kiểm thử cục bộ, không gồm mạng production hoặc thời gian thức máy Render. Chi tiết phương pháp và lần chuyển hash đầu ở [hướng dẫn hiệu năng](performance.md).
+
+Fixture native/PostgreSQL `tests/auth-upgrade-pg.cjs` đạt tám nhóm; hai lần đăng nhập bcrypt đồng thời cùng thành công với đúng một lần thử lại, reset đồng thời không cấp phiên từ mật khẩu cũ, phiên đã có vẫn hợp lệ sau chuyển thuật toán và ứng viên hơn 72 byte UTF-8 giữ hash cũ. So sánh driver xác nhận đăng nhập 15→8 câu lệnh, JWT 9→1 và quyền/giới hạn scope vẫn tương đương. Database thử riêng được xóa sau kiểm tra; workflow GitHub chạy lại fixture này trên Node 22.
+
 ## Triển khai và sử dụng
 
 Backend Render giữ Root Directory `backend`, build `npm ci --include=dev && npm run prisma:generate && npm run build`, start `npm run start:production`. Startup tự áp dụng migration bổ sung cờ chờ duyệt, giữ dữ liệu tài khoản cũ. Với `MANAGED_ACCOUNTS_ENABLED=true`, luồng học sinh chờ duyệt mặc định được bật; không cần nhập lại khóa AI hay tạo lại admin. GitHub Pages phục vụ frontend mới từ cùng nhánh chính. Nếu Auto-Deploy bị tắt, chọn **strobot-backend → Manual Deploy → Deploy latest commit** rồi chờ Live. Backend và frontend phải cùng cập nhật trước khi kiểm tra đăng ký mới.

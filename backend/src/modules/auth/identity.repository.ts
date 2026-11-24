@@ -16,6 +16,7 @@ export async function lockIdentity(tx: Prisma.TransactionClient, id: string): Pr
     return await tx.user.update({
       where: { id },
       data: { auth_version: { increment: 0 } },
+      relationLoadStrategy: 'join',
       include: identityInclude,
     });
   } catch (error) {

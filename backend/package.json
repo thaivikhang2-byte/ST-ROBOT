@@ -36,6 +36,7 @@
     "@nestjs/swagger": "^7.4.2",
     "@nestjs/terminus": "^10.3.0",
     "@nestjs/throttler": "^6.4.0",
+    "@node-rs/argon2": "2.2.2",
     "@prisma/adapter-pg": "^6.19.0",
     "@prisma/client": "6.19.0",
     "bcrypt": "^6.0.0",
