@@ -465,7 +465,9 @@ export class AccountService {
             if (controller.signal.aborted) throw abortedRequest();
             if (!response.ok || payload?.success === false) {
                 if (response.status >= 500) this._forgetConnection(readinessRevision);
-                throw new AccountError(typeof payload?.message === 'string' ? payload.message : 'Không thể thực hiện yêu cầu. Vui lòng thử lại.', response.status, payload?.error?.code || 'HTTP_ERROR');
+                const failure = new AccountError(typeof payload?.message === 'string' ? payload.message : 'Không thể thực hiện yêu cầu. Vui lòng thử lại.', response.status, payload?.error?.code || 'HTTP_ERROR');
+                if (requestId) failure.requestId = requestId;
+                throw failure;
             }
             if (!payload || payload.success !== true || !Object.hasOwn(payload, 'data')) {
                 this._forgetConnection(readinessRevision);

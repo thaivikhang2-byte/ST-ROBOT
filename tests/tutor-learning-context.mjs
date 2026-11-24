@@ -47,6 +47,7 @@ for (const invalid of [
 
 const OWNER = '801c1c06-4236-4d99-9b02-234371f35755';
 const CONVERSATION = '6ff63b39-e413-40fb-ab4e-f27fb722381d';
+const REQUEST_ID = '056698db-55eb-415f-9d09-cb9b6590af44';
 const payload = {course: 'arduino', lesson: 'led', question: 'Nên chọn nền tảng nào?',
   platformKey: 'avr', learningLevel: 'beginner', history: [], educationalContext: report};
 const json = value => new Response(JSON.stringify(value), {headers: {'Content-Type': 'application/json'}});
@@ -107,7 +108,7 @@ for (const path of ['/api/tutor', '/api/home-chat']) {
     { backendCode: 'FEATURE_DISABLED', code: 'AI_UNAVAILABLE', retryable: false, message: /bật agent/i },
     { backendCode: 'AI_MODEL_UNAVAILABLE', code: 'AI_MODEL', retryable: false, message: /mô hình|model/i },
     { backendCode: 'AI_PROVIDER_UNAVAILABLE', code: 'AI_UNAVAILABLE', retryable: true },
-    { backendCode: 'AI_PROVIDER_AUTH_FAILED', code: 'AI_AUTH', retryable: false, stage: 'provider', message: /key Woku.*Woku.*key Gemini.*Google Gemini/i },
+    { backendCode: 'AI_PROVIDER_AUTH_FAILED', code: 'AI_AUTH', retryable: false, stage: 'provider', message: /báo quản trị viên.*vẫn được giữ/i },
   ]) {
     let legacyCalls = 0;
     const calls = [];
@@ -115,7 +116,7 @@ for (const path of ['/api/tutor', '/api/home-chat']) {
       account: { ...account, async request(api, options) {
         calls.push({ api, options });
         throw Object.assign(new Error('Untrusted provider detail: ' + forbidden), {
-          status: 503, code: scenario.backendCode,
+          status: 503, code: scenario.backendCode, requestId: REQUEST_ID,
         });
       } },
       fetchImpl: async () => { legacyCalls++; throw new Error('Account failures cannot invoke legacy AI'); },
@@ -126,10 +127,14 @@ for (const path of ['/api/tutor', '/api/home-chat']) {
       assert.equal(error.backendCode, scenario.backendCode);
       assert.ok(AI_ACCOUNT_CODES.includes(error.backendCode));
       assert.equal(error.httpStatus, 503);
+      assert.equal(error.requestId, REQUEST_ID);
       assert.equal(error.stage, scenario.stage || 'reply');
       assert.equal(error.api, account.baseUrl + '/v1/ai/agent/chat');
       assert.equal(error.retryable, scenario.retryable);
       if (scenario.message) assert.match(error.message, scenario.message);
+      if (scenario.backendCode === 'AI_PROVIDER_AUTH_FAILED')
+        assert.doesNotMatch(error.message, /Woku|Gemini|API key|Cấu hình AI/,
+          'Students should report the shared connection issue, not configure provider credentials');
       assert.ok(!error.message.includes(forbidden));
       assert.ok(!JSON.stringify(error).includes(forbidden));
       return true;
@@ -155,6 +160,53 @@ for (const path of ['/api/tutor', '/api/home-chat']) {
     assert.ok(!JSON.stringify(error).includes(forbidden));
     return true;
   });
+}
+
+// Admin guidance distinguishes a rejected key from missing account/model access;
+// it must not present either possibility as a proven bad key. A cached/offline
+// profile cannot unlock provider setup instructions.
+for (const path of ['/api/tutor', '/api/home-chat']) {
+  for (const offline of [false, true]) {
+    const failing = createAiClient({
+      account: { ...account, sessionOffline: offline,
+        user: {id: OWNER, isEmailVerified: true, permissions: ['ai:manage'],
+          roles: [{group: 'MANAGER', scopeType: 'SYSTEM'}]},
+        async request() { throw Object.assign(new Error(forbidden), {
+          status: 503, code: 'AI_PROVIDER_AUTH_FAILED', requestId: REQUEST_ID,
+        }); } },
+      fetchImpl: async () => { throw new Error('Auth diagnostics cannot use another AI service'); },
+    });
+    await assert.rejects(failing.requestReply(path, path === '/api/tutor' ? payload : {question:'Xin chào'}), error => {
+      assert.equal(error.code, 'AI_AUTH');
+      assert.equal(error.retryable, false);
+      assert.equal(error.requestId, REQUEST_ID);
+      if (offline) assert.doesNotMatch(error.message, /Woku|Gemini|API key|Cấu hình AI/);
+      else {
+        assert.match(error.message, /khóa kết nối hoặc quyền của tài khoản\/model/);
+        assert.match(error.message, /key Woku.*Woku.*key Gemini.*Google Gemini/);
+      }
+      assert.ok(!JSON.stringify(error).includes(forbidden));
+      return true;
+    });
+  }
+
+  // These are separate deliberate submissions. Auth quarantine remains an
+  // auth diagnosis when the backend preserves that code; a later generic
+  // unavailable response must not inherit an old diagnosis from browser cache.
+  const sequence = ['AI_PROVIDER_AUTH_FAILED', 'AI_PROVIDER_AUTH_FAILED', 'AI_PROVIDER_UNAVAILABLE'];
+  let requests = 0;
+  const sequenced = createAiClient({ account: { ...account, async request() {
+    throw Object.assign(new Error(forbidden), {status:503, code:sequence[requests++], requestId:forbidden});
+  } }, fetchImpl: async () => { throw new Error('No automatic fallback'); } });
+  for (const backendCode of sequence) await assert.rejects(
+    sequenced.requestReply(path, path === '/api/tutor' ? payload : {question:'Câu hỏi được giữ'}), error => {
+      assert.equal(error.backendCode, backendCode);
+      assert.equal(error.retryable, backendCode !== 'AI_PROVIDER_AUTH_FAILED');
+      assert.equal(error.requestId, undefined, 'Only safe UUID request IDs enter diagnostics');
+      assert.ok(!JSON.stringify(error).includes(forbidden));
+      return true;
+    });
+  assert.equal(requests, 3, 'No provider error may replay a paid chat automatically');
 }
 for (const path of ['/api/tutor', '/api/home-chat']) {
   for (const [backendCode, code, guidance] of [

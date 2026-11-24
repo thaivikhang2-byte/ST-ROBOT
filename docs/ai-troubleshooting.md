@@ -2,6 +2,26 @@
 
 Thông báo cũ “Kết nối trả lời bị gián đoạn. Vui lòng gửi lại câu hỏi sau.” xuất hiện khi máy chủ nhận HTTP không thành công từ nhà cung cấp. Chỉ thông báo này chưa phân biệt được khóa không hợp lệ, model không được hỗ trợ, hết hạn mức hay quá tải. Nó cũng không chứng minh câu hỏi của học sinh sai.
 
+## Agent tài khoản: xác thực nhà cung cấp và lỗi 503
+
+Nếu báo cáo ghi `https://strobot-backend.onrender.com/api/v1/ai/agent/chat`, trợ lý tư vấn và tutor chữ khi đã đăng nhập dùng cùng kết nối được quản trị trong website. Các biến Woku của dịch vụ AI cũ bên dưới không thiết lập lại kết nối này. Người học không phải nhập API key.
+
+`AI_PROVIDER_AUTH_FAILED` nghĩa là nhà cung cấp từ chối xác thực hoặc quyền sử dụng. Khóa sai, hết hiệu lực, gói hoặc model chưa được cấp quyền đều cần được kiểm tra; mã này không phải lỗi mật khẩu tài khoản ST-Robot. HTTP 503 ở website là mã đã được backend chuyển đổi, không chứng minh Woku cũng trả 503.
+
+Ngày 24/11/2026 đã tái hiện và sửa việc mất nguyên nhân: sau khi nhận lỗi xác thực, đúng khóa đó được tạm ngưng 300 giây. Trước đây lượt kế tiếp báo chung `AI_PROVIDER_UNAVAILABLE`. Nay nếu mọi kết nối đủ điều kiện đều bị ngưng vì xác thực, backend tiếp tục trả `AI_PROVIDER_AUTH_FAILED`, không gửi lại câu hỏi tới nhà cung cấp. Hạn mức tài khoản, ngưng do quá tải, lỗi Redis và lỗi cấu hình khác vẫn giữ phân loại riêng. Không tự xóa khóa, đổi provider, xóa hạn mức hoặc gửi hội thoại sang dịch vụ khác.
+
+Quản trị viên mở **Tài khoản → mục Tài khoản → Cấu hình AI của hệ thống**, chọn kết nối Woku và bấm **Tra ID mô hình từ nhà cung cấp**. Nút này đọc metadata; không sinh câu trả lời. “Đã lưu” chỉ xác nhận lưu cấu hình. Có danh sách model chỉ xác nhận truy cập catalog; chưa chứng minh gói được gọi chat hoặc tools của model đã chọn.
+
+- Nếu Tra ID cũng báo lỗi xác thực: kiểm tra đúng khóa và Base URL do Woku cấp, gói còn hiệu lực, số dư và quyền API. Nếu khóa đúng mà vẫn bị từ chối, Woku cần kiểm tra phía tài khoản/cổng API của họ.
+- Nếu Tra ID thành công nhưng chat vẫn báo xác thực: đối chiếu ID model, quyền gọi chat và tools của gói Woku; không đổi master key hoặc mật khẩu học sinh để xử lý lỗi này.
+- Nếu chỉ báo `AI_PROVIDER_UNAVAILABLE`: còn có thể là nhà cung cấp gián đoạn, endpoint đang tạm ngưng, Redis hoặc kho cấu hình không sẵn sàng. Cần đối chiếu mã lỗi và log an toàn; không mặc định kết luận khóa sai.
+
+Có thể gửi Woku nội dung: “Ứng dụng gọi POST `https://llm.wokushop.com/v1/chat/completions`, backend báo `AI_PROVIDER_AUTH_FAILED`. Nhờ kiểm tra hiệu lực gói/API key và quyền dùng model, chat, tools. Mình sẽ cung cấp thời điểm gặp lỗi và ID model.” Không đưa giá trị API key vào báo cáo công khai. Bản sửa mã không thể khôi phục khóa đã bị nhà cung cấp thu hồi hoặc bảo đảm dịch vụ ngoài luôn sẵn sàng.
+
+Kiểm chứng bản sửa: backend build/typecheck và 43 bộ Jest / 340 kiểm thử đạt, gồm sáu ca chạy Lua trên Redis loopback được bật bằng `STROBOT_TEST_REDIS_URL`. Các ca kiểm tra từ chối lần đầu rồi hỏi lại, khóa cũ/khóa còn dùng được, marker phiên bản cũ, giới hạn tài khoản, ngưng endpoint và lỗi hạ tầng. Chỉ tạo/xóa các khóa Redis ngẫu nhiên thuộc fixture, không xóa database Redis. Bốn bộ Node cho tài khoản, timing nội bộ, ngữ cảnh tutor và cấu hình AI đạt. Request ID UUID hợp lệ được giữ để đối chiếu log ứng dụng; không đưa metadata tùy ý, câu hỏi, khóa hoặc token vào báo cáo lỗi.
+
+Chromium `tests/account-tutor-smoke.py` và `tests/ai-admin-setup-smoke.py` đạt: kiểm tra tutor và trợ lý trang Kiểm tra (`quiz.html`) khi lỗi xác thực lặp lại hoặc kết nối chưa sẵn sàng, giữ câu hỏi, không gửi lặp/tự đổi dịch vụ và không hướng học sinh nhập API key. Luồng ảnh, cách ly token và quyền cấu hình của admin được giữ. Các kiểm tra dùng API giả lập và Redis riêng; không xác nhận khóa Woku thật hoặc dịch vụ Render đã phục hồi.
+
 ## Kiểm tra bản đang chạy
 
 Frontend gọi `https://st-robot-1.onrender.com/api/home-chat`; AI Tutor gọi `/api/tutor` và bộ gợi ý dạng câu gọi `/api/practice-plan` trên cùng dịch vụ. GitHub Pages chỉ phục vụ frontend. Khi sửa mã API, dịch vụ AI trên Render cần triển khai commit mới để áp dụng bản sửa máy chủ.

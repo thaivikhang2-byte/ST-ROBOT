@@ -268,8 +268,19 @@ for (const [providerId, credentialId] of [['../gemini', 'saved'], ['gemini', '..
 }
 {
     const message = aiSetupErrorMessage({ code: 'AI_PROVIDER_AUTH_FAILED', status: 503, message: key });
-    assert.match(message, /từ chối API key/);
-    assert.match(message, /Woku/);
+    assert.match(message, /API key hoặc quyền của tài khoản\/model/);
+    assert.match(message, /key Woku.*Woku.*key Gemini.*Google Gemini/);
+    assert(!message.includes(key));
+}
+for (const error of [
+    {code:'AI_PROVIDER_UNAVAILABLE',status:503,message:key},
+    {code:'SERVICE_UNAVAILABLE',status:503,message:key},
+    {status:503,message:key},
+]) {
+    const message = aiSetupErrorMessage(error);
+    assert.match(message, /chưa sẵn sàng/);
+    assert.doesNotMatch(message, /master key|đường dẫn kho|xóa khóa|thay khóa|API key/,
+        'A generic outage must not tell the operator to rotate credentials or replace the vault master key');
     assert(!message.includes(key));
 }
 console.log('PASS AI setup permissions, model limits, autofill rejection, encrypted keys, scoped credential deletion with CAS, session guards and explicit activation');

@@ -54,6 +54,8 @@ export class ProviderLeases {
       maxConcurrent: Math.min(...shared.map((p) => p.limits.maxConcurrent)),
     };
     const credentials = provider.credentials.filter((c) => c.enabled);
+    let eligiblePairs = 0;
+    let authenticationBlockedPairs = 0;
     try {
       if (provider.selection === 'round-robin' && credentials.length) {
         const offset = await this.redis.getClient().incr(`ai-route:${provider.id}`);
@@ -62,6 +64,7 @@ export class ProviderLeases {
       for (const endpoint of endpoints)
         for (const credential of credentials) {
           if (!credential.endpointIds.includes(endpoint.id)) continue;
+          eligiblePairs++;
           const now = Date.now(),
             day = new Date(now).toISOString().slice(0, 10),
             minute = Math.floor(now / 60000),
@@ -80,10 +83,10 @@ export class ProviderLeases {
             `ai-cooldown:endpoint:${provider.id}:${endpoint.id}`,
             `ai-lease:${id}`,
           ];
-          // Check both scopes before any write; changing keys never bypasses shared account limits.
+          // Check both quota scopes before reserving usage. Cooldown -2 preserves
+          // an authentication failure; -1 remains the shared account limit.
           const script = `
           if redis.call('EXISTS',KEYS[7])==1 then return -1 end
-          if redis.call('EXISTS',KEYS[8])==1 or redis.call('EXISTS',KEYS[9])==1 then return 0 end
           for i=0,1 do
             local b=i*3; local a=i*3
             redis.call('ZREMRANGEBYSCORE',KEYS[b+3],'-inf',ARGV[1])
@@ -93,6 +96,10 @@ export class ProviderLeases {
               if i==0 then return -1 else return 0 end
             end
           end
+          if redis.call('EXISTS',KEYS[9])==1 then return 0 end
+          local credentialCooldown=redis.call('GET',KEYS[8])
+          if credentialCooldown=='auth' or credentialCooldown=='1' then return -2 end
+          if credentialCooldown then return 0 end
           for i=0,1 do
             local b=i*3
             redis.call('INCR',KEYS[b+1]);redis.call('EXPIRE',KEYS[b+1],120)
@@ -120,6 +127,10 @@ export class ProviderLeases {
                 id,
               ),
           );
+          if (admitted === -2) {
+            authenticationBlockedPairs++;
+            continue;
+          }
           if (admitted < 0)
             throw new AiError(
               ErrorCode.AI_QUOTA_EXCEEDED,
@@ -137,6 +148,12 @@ export class ProviderLeases {
         'AI credential admission unavailable',
       );
     }
+    if (eligiblePairs > 0 && authenticationBlockedPairs === eligiblePairs)
+      throw new AiError(
+        ErrorCode.AI_PROVIDER_AUTH_FAILED,
+        503,
+        'AI provider credentials were rejected',
+      );
     throw new AiError(
       ErrorCode.AI_PROVIDER_UNAVAILABLE,
       503,
@@ -161,7 +178,7 @@ export class ProviderLeases {
       typeof error === 'object' && error !== null && 'status' in error ? Number(error.status) : 0;
     if ([401, 403].includes(status) ||
         (error instanceof AiError && error.code === ErrorCode.AI_PROVIDER_AUTH_FAILED))
-      await this.redis.getClient().set(lease.keys[7], '1', 'EX', 300);
+      await this.redis.getClient().set(lease.keys[7], 'auth', 'EX', 300);
     else if (status === 429) await this.redis.getClient().set(lease.keys[6], '1', 'EX', 60);
     else if (status >= 500) await this.redis.getClient().set(lease.keys[8], '1', 'EX', 30);
     if (!error)

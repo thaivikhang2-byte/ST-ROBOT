@@ -2,7 +2,7 @@ import { accountService, ACCOUNT_CONNECTION_EVENT } from '../../services/Account
 import { learnerSync } from '../../services/LearnerSyncService.js';
 import { attachAgentPanel } from './AgentPanel.js';
 import { workspaceAccess, canUpdateStudentStatus, canApproveStudent, readLearningDashboard } from './LearningDashboard.js?v=product-account-v3';
-import { attachAiAdminSetup, canConfigureAi } from './AiAdminSetup.js';
+import { attachAiAdminSetup, canConfigureAi } from './AiAdminSetup.js?v=provider-auth-v5';
 
 const node = (tag, text, className) => {
     const element = document.createElement(tag);

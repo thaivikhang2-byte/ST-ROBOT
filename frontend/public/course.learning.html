@@ -131,7 +131,7 @@
   </div>
   <dialog id="portfolioImportDialog" class="dialog" aria-labelledby="portfolioImportTitle"><div class="dialog-body"><h2 id="portfolioImportTitle">Khôi phục hồ sơ thực hành</h2><p id="portfolioImportPreview"></p><p>Các bài có trong tệp sẽ thay thế bản trên trình duyệt. Các bài khác và các khóa khác được giữ lại. Bạn có thể tải hồ sơ hiện tại trước khi khôi phục.</p></div><div class="dialog-foot"><button type="button" class="btn" onclick="document.getElementById('portfolioImportDialog').close()">Giữ bản hiện tại</button><button id="confirmImportNotes" type="button" class="btn btn--primary">Khôi phục các bài trong tệp</button></div></dialog>
   <dialog id="microbitResetDialog" class="dialog" aria-labelledby="microbitResetTitle"><div class="dialog-body"><h2 id="microbitResetTitle">Nạp lại mã mẫu của bài này?</h2><p>Mã đã chỉnh sửa của bài đang mở sẽ được thay bằng mã mẫu. Hãy tải bản cần giữ trước khi tiếp tục. Dự án của các bài khác được giữ nguyên.</p></div><div class="dialog-foot"><button id="microbitCancelReset" type="button" class="btn" onclick="document.getElementById('microbitResetDialog').close()">Giữ mã hiện tại</button><button id="microbitConfirmReset" type="button" class="btn btn--primary" onclick="resetMicrobitSource()">Nạp mã mẫu</button></div></dialog>
-  <script type="module" src="../src/app.js?v=latency-v1"></script>
+  <script type="module" src="../src/app.js?v=provider-auth-v5"></script>
   <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=account-sync-v1'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
 <script type="module">import { mountLessonBench } from '../src/modules/learning/LessonBench.js?v=guided-learning-v15'; import * as portfolio from '../src/modules/learning/PracticePortfolio.js?v=owned-lab-v1'; window.STROBOT_MOUNT_LESSON_BENCH=mountLessonBench; window.STROBOT_PRACTICE_PORTFOLIO=portfolio;</script>
 <script type="module">import { LabWorkspacePanel } from '../src/modules/learning/LabWorkspace.js?v=account-lab-v2'; window.STROBOT_LAB_WORKSPACE=LabWorkspacePanel;</script>
@@ -502,7 +502,7 @@ window.addEventListener('DOMContentLoaded',initPage);
 </script>
 
 <script type="module">
-import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES, AI_ACCOUNT_CODES } from '../src/services/AiService.js?v=provider-auth-v4';
+import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES, AI_ACCOUNT_CODES } from '../src/services/AiService.js?v=provider-auth-v5';
 import { buildTutorLearningContext } from '../src/services/TutorLearningContext.js?v=owned-lab-v1';
 import { createFloatingTutor } from '../src/modules/learning/FloatingTutor.js?v=workspace-v16';
 import { createTutorAttachments } from '../src/modules/learning/TutorAttachments.js?v=screen-region-v2';

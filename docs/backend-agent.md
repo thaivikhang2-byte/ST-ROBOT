@@ -84,6 +84,14 @@ Google HTTP 400, chỉ các Google ErrorInfo reason xác thực nằm trong allo
 Lỗi 400 khác giữ phân loại cũ. Khóa bị từ chối nhận cooldown tạm 300 giây ở đúng
 credential, không tự xóa và không bỏ qua giới hạn chung của tài khoản.
 
+Trong 300 giây đó, nếu tất cả cặp endpoint/khóa đủ điều kiện cùng bị ngưng vì
+xác thực, backend giữ `AI_PROVIDER_AUTH_FAILED` thay vì đổi thành lỗi chung.
+Nếu còn khóa dùng được, admission vẫn chọn được khóa đó theo cấu hình và cùng
+hạn mức tài khoản. Lỗi xác thực không tự gửi lại câu hỏi. HTTP 403 của provider
+còn có thể là thiếu quyền tài khoản/model; không đủ để kết luận chuỗi key sai.
+Xem [kiểm tra kết nối AI](ai-troubleshooting.md) để phân biệt kiểm tra catalog
+với quyền sinh câu trả lời và thời điểm cần Woku hỗ trợ.
+
 ## ID mô hình và giới hạn của tutor
 
 Ô API key nhận khóa do nhà cung cấp AI cấp; ô ID mô hình nhận đúng tên model từ

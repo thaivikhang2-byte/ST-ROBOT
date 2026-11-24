@@ -61,6 +61,33 @@ assert.equal(resolveBackendUrl(baseUrl + '/'), baseUrl);
     assert.equal(await otherServer.ready(), null);
 }
 
+// Failed API calls retain only a validated request UUID for private support correlation.
+{
+    const requestId = '123e4567-e89b-42d3-a456-426614174000';
+    const privateValue = 'fixture-private-provider-secret';
+    for (const candidate of [requestId, privateValue, { value: requestId }, null]) {
+        const storage = store();
+        let posts = 0;
+        const service = new AccountService({ baseUrl, storage, fetchImpl: async url => {
+            if (url.endsWith('/login')) return response(auth('access-one', 'refresh-one'));
+            posts++;
+            return { ok: false, status: 503, json: async () => ({ success: false,
+                message: 'AI connection rejected', error: { code: 'AI_PROVIDER_AUTH_FAILED' },
+                meta: { requestId: candidate, providerSecret: privateValue } }) };
+        } });
+        await service.signIn({ email: user.email, password: 'fixture password' });
+        await assert.rejects(service.request('/v1/ai/agent/chat', { method: 'POST', body: { message: 'Fixture' } }), error => {
+            assert.equal(error.code, 'AI_PROVIDER_AUTH_FAILED');
+            assert.equal(error.status, 503);
+            assert.equal(error.requestId, candidate === requestId ? requestId : undefined);
+            assert.equal(JSON.stringify(error).includes(privateValue), false);
+            return true;
+        });
+        assert.equal(posts, 1, 'Provider auth failure must not replay the question');
+        assert.equal(JSON.stringify(storage.getItem(ACCOUNT_SESSION_KEY)).includes(requestId), false);
+    }
+}
+
 // Concurrent expired requests use one refresh; retries receive the rotated token.
 {
     const storage = store(); let refreshCalls = 0;

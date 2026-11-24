@@ -145,23 +145,30 @@ export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...ar
             const disabled = status === 503 && backendCode === 'FEATURE_DISABLED';
             const missingModel = status === 503 && backendCode === 'AI_MODEL_UNAVAILABLE';
             const providerAuth = status === 503 && backendCode === 'AI_PROVIDER_AUTH_FAILED';
+            const providerAdmin = account.sessionOffline !== true && account.user?.isEmailVerified === true
+                && account.user.permissions?.includes('ai:manage')
+                && account.user.roles?.some(role => role.group === 'MANAGER' && role.scopeType === 'SYSTEM');
             const requestLimit = status === 400 && backendCode === 'AI_REQUEST_LIMIT_EXCEEDED';
             const incompatibleModel = status === 400 && backendCode === 'AI_CAPABILITY_UNSUPPORTED';
             const message = status === 401 ? 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để trợ lý đọc đúng dữ liệu của bạn.'
                 : status === 403 ? 'Tài khoản cần được xác nhận và cấp quyền sử dụng trợ lý. Hãy kiểm tra trong trang Tài khoản hoặc liên hệ quản trị viên.'
                 : status === 429 ? 'Trợ lý tài khoản đang đạt giới hạn sử dụng. Vui lòng thử lại sau.'
-                : disabled ? 'Agent tài khoản đang tắt. Quản trị viên mở Tài khoản → Quản trị → Cấu hình AI, lưu kết nối/mô hình rồi bấm Bật agent.'
-                : missingModel ? 'Agent tài khoản chưa có mô hình khả dụng. Quản trị viên kiểm tra ID mô hình và mô hình mặc định trong Tài khoản → Quản trị → Cấu hình AI.'
-                : providerAuth ? 'Nhà cung cấp AI đang từ chối khóa kết nối. Quản trị viên kiểm tra API key đúng nhà cung cấp trong Cấu hình AI: key Woku dùng với Woku, key Gemini dùng với Google Gemini.'
-                : requestLimit ? 'Ngữ cảnh bài học vượt giới hạn đã đăng ký cho mô hình. Quản trị viên mở Tài khoản → Quản trị → Cấu hình AI, kiểm tra giới hạn đầu vào/context theo khả năng thật của model rồi lưu lại.'
-                : incompatibleModel ? 'Nhà cung cấp chưa chấp nhận mô hình hoặc tính năng được yêu cầu. Quản trị viên kiểm tra đúng ID model, API key và khả năng gọi công cụ trong Cấu hình AI.'
+                : disabled ? 'Agent tài khoản đang tắt. Quản trị viên mở Cấu hình AI của hệ thống trong trang Tài khoản, lưu kết nối/mô hình rồi bấm Bật agent.'
+                : missingModel ? 'Agent tài khoản chưa có mô hình khả dụng. Quản trị viên kiểm tra ID mô hình và mô hình mặc định trong Cấu hình AI của hệ thống trong trang Tài khoản.'
+                : providerAuth ? (providerAdmin
+                    ? 'Nhà cung cấp AI chưa chấp nhận khóa kết nối hoặc quyền của tài khoản/model. Trong Cấu hình AI của hệ thống trong trang Tài khoản, kiểm tra đúng nhà cung cấp và quyền truy cập model: key Woku dùng với Woku; key Gemini dùng với Google Gemini.'
+                    : 'Nhà cung cấp AI chưa cho phép kết nối này. Hãy báo quản trị viên kiểm tra quyền truy cập AI; câu hỏi và tiến độ của bạn vẫn được giữ.')
+                : requestLimit ? 'Ngữ cảnh bài học vượt giới hạn đã đăng ký cho mô hình. Quản trị viên mở Cấu hình AI của hệ thống trong trang Tài khoản, kiểm tra giới hạn đầu vào/context theo khả năng thật của model rồi lưu lại.'
+                : incompatibleModel ? 'Nhà cung cấp chưa chấp nhận mô hình hoặc tính năng được yêu cầu. Quản trị viên kiểm tra đúng ID model, API key và khả năng gọi công cụ trong Cấu hình AI của hệ thống.'
                 : status === 400 ? 'Máy chủ từ chối yêu cầu AI. Kiểm tra ID model và cấu hình agent; Chi tiết lỗi có mã phản hồi để người quản trị xác định nguyên nhân.'
-                : status === 503 && backendCode === 'AI_PROVIDER_UNAVAILABLE' ? 'Nhà cung cấp của agent tài khoản chưa sẵn sàng. Quản trị viên kiểm tra kết nối và API key trong Tài khoản → Quản trị → Cấu hình AI.'
+                : status === 503 && backendCode === 'AI_PROVIDER_UNAVAILABLE' ? (providerAdmin
+                    ? 'Kết nối với nhà cung cấp AI đang tạm ngưng hoặc chưa sẵn sàng. Trong Cấu hình AI của hệ thống, kiểm tra trạng thái kết nối và hạn mức; có thể thử lại sau.'
+                    : 'Kết nối AI đang tạm thời chưa sẵn sàng. Bạn có thể thử lại sau; câu hỏi và tiến độ của bạn vẫn được giữ.')
                 : status === 503 ? 'Trợ lý tài khoản chưa sẵn sàng. Người quản lí cần kiểm tra cấu hình AI trên máy chủ.'
                 : 'Chưa kết nối được trợ lý tài khoản. Tiến độ trên thiết bị vẫn được giữ; bạn có thể thử lại.';
             throw new AiRequestError(message, {
                 code: [401, 403].includes(status) || providerAuth ? 'AI_AUTH' : status === 429 ? 'AI_BUSY' : !status ? 'AI_NETWORK' : missingModel || incompatibleModel ? 'AI_MODEL' : status === 400 ? 'AI_REQUEST' : 'AI_UNAVAILABLE',
-                backendCode, stage: providerAuth ? 'provider' : 'reply', httpStatus: status,
+                backendCode, stage: providerAuth ? 'provider' : 'reply', httpStatus: status, requestId: error?.requestId,
                 retryable: !disabled && !missingModel && !providerAuth && ![400, 401, 403].includes(status), api: endpoint,
             });
         }

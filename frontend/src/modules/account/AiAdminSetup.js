@@ -70,7 +70,8 @@ export function aiModelLimitNotice(model) {
 
 export function aiSetupErrorMessage(error) {
     if (error?.code === 'SESSION_CHANGED') return 'Phiên hoặc quyền quản trị đã thay đổi. Hãy đăng nhập lại trước khi tiếp tục.';
-    if (error?.code === 'AI_PROVIDER_AUTH_FAILED') return 'Nhà cung cấp AI đã từ chối API key. Chọn đúng nhà cung cấp cấp khóa đó (Google Gemini, Woku hoặc dịch vụ tương ứng), rồi kiểm tra khóa đã lưu. Nếu có khóa sai, xóa riêng khóa đó trước khi thêm khóa đúng; mật khẩu admin và khóa JWT không phải API key của nhà cung cấp.';
+    if (error?.code === 'AI_PROVIDER_AUTH_FAILED') return 'Nhà cung cấp chưa chấp nhận API key hoặc quyền của tài khoản/model. Kiểm tra đúng nhà cung cấp (key Woku dùng với Woku; key Gemini dùng với Google Gemini) và quyền truy cập model. Chỉ thay hoặc xóa khóa khi đã xác định khóa cần sửa.';
+    if (error?.code === 'AI_PROVIDER_UNAVAILABLE') return 'Nhà cung cấp đang tạm chưa sẵn sàng, có thể đang chờ lượt hoặc thời gian tạm ngưng kết nối. Chờ rồi tải lại trạng thái; cấu hình và khóa đang lưu vẫn được giữ.';
     if (error?.code === 'AI_SETUP_CREDENTIAL') return 'Mã nhà cung cấp hoặc mã khóa không hợp lệ. Tải lại trạng thái trước khi chọn khóa cần xóa.';
     if (error?.code === 'AI_SETUP_CREDENTIAL_NOT_FOUND') return 'Khóa đã được thay đổi hoặc không còn trong kết nối này. Tải lại trạng thái; chưa có khóa nào được xóa bởi thao tác này.';
     if (error?.code === 'AI_SETUP_KEY_REQUIRED') return 'Kết nối mới cần API key. Khóa hiện có không thể đọc lại; để trống chỉ khi đã lưu khóa trước đó.';
@@ -85,7 +86,7 @@ export function aiSetupErrorMessage(error) {
     if (error?.status === 409) return 'Cấu hình đã được sửa ở nơi khác. Tải lại trạng thái rồi thực hiện lại thao tác; các bước đã lưu vẫn được giữ.';
     if (error?.status === 401 || error?.status === 403) return 'Máy chủ từ chối thao tác. Kiểm tra phiên quản trị, HTTPS và địa chỉ nhà cung cấp được phép trên server.';
     if (error?.status === 429) return 'Đã đạt giới hạn thao tác hoặc nhà cung cấp. Chờ một lúc rồi thử lại.';
-    if (error?.status === 503) return 'Kho khóa AI hoặc dịch vụ chưa sẵn sàng. Người vận hành cần kiểm tra master key, đường dẫn kho khóa và cấu hình máy chủ.';
+    if (error?.status === 503) return 'Dịch vụ AI hoặc kho cấu hình hiện chưa sẵn sàng. Tải lại trạng thái và kiểm tra nhật ký máy chủ; các cấu hình đã lưu vẫn được giữ.';
     if (error?.status === 400) return 'Máy chủ chưa chấp nhận cấu hình. Kiểm tra ID model, khả năng gọi công cụ và các giới hạn đã nhập.';
     return 'Chưa hoàn thành thao tác. Các bước đã lưu trên server không tự bị xóa; tải lại trạng thái để kiểm tra.';
 }

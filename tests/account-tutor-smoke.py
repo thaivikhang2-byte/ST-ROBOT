@@ -14,6 +14,7 @@ base = args.base.rstrip('/')
 api = 'https://account-tutor.fixture/api'
 owner = '801c1c06-4236-4d99-9b02-234371f35755'
 conversation = '6ff63b39-e413-40fb-ab4e-f27fb722381d'
+request_id = '056698db-55eb-415f-9d09-cb9b6590af44'
 user = {'id': owner, 'email': 'fixture@example.test', 'firstName': 'Fixture',
         'lastName': 'Learner', 'isEmailVerified': True, 'roles': [],
         'permissions': ['learning:read', 'learning:update', 'ai:chat']}
@@ -76,6 +77,7 @@ with sync_playwright() as p:
                 if mode['error']:
                     route.fulfill(status=mode.get('httpStatus', 503), content_type='application/json', headers=cors,
                         body=json.dumps({'success': False, 'message': 'Fixture provider not configured',
+                            'meta': {'requestId': request_id},
                             **({'error': {'code': mode['backendCode']}} if mode.get('backendCode') else {})}))
                     return
                 data = {'message': 'AVR8js hợp thử LED; Wokwi phù hợp mạch có cảm biến.', 'conversationId': conversation,
@@ -132,7 +134,7 @@ with sync_playwright() as p:
         ('AI_REQUEST_LIMIT_EXCEEDED', 'vượt giới hạn đã đăng ký', 'AI_REQUEST', 400),
         ('AI_CAPABILITY_UNSUPPORTED', 'kiểm tra đúng ID model', 'AI_MODEL', 400),
         ('VALIDATION_ERROR', 'Máy chủ từ chối yêu cầu AI', 'AI_REQUEST', 400),
-        ('AI_PROVIDER_AUTH_FAILED', 'Nhà cung cấp AI đang từ chối khóa', 'AI_AUTH', 503),
+        ('AI_PROVIDER_AUTH_FAILED', 'Hãy báo quản trị viên', 'AI_AUTH', 503),
     ]:
         mode['backendCode'] = backend_code
         mode['httpStatus'] = http_status
@@ -141,6 +143,7 @@ with sync_playwright() as p:
         report = json.loads(page.locator('#tutorErrorDetails pre').text_content())
         require(report.get('backendCode') == backend_code and report.get('code') == client_code,
                 'Tutor diagnostics dropped the backend configuration failure')
+        require(report.get('requestId') == request_id, 'Tutor diagnostics dropped the safe request UUID')
         require('Fixture provider not configured' not in json.dumps(report), 'Raw backend message leaked into diagnostics')
         expect(page.locator('#tutorQuestion')).to_have_value('Còn bước tiếp theo?')
     require(not vision_calls, 'A configuration failure fell back to guest chat')
@@ -182,9 +185,37 @@ with sync_playwright() as p:
     expect(page.locator('#chatMessageContainer')).to_contain_text('Agent tài khoản đang tắt')
     report = json.loads(page.locator('.chat-error-report').text_content())
     require(report.get('backendCode') == 'FEATURE_DISABLED', 'Homepage diagnostics dropped the backend failure')
+    require(report.get('requestId') == request_id, 'Site chat diagnostics dropped the safe request UUID')
+
+    # The assistant on the Kiểm tra/quiz page uses the same connection as the lesson tutor.
+    # Repeated provider-auth failures must keep their diagnosis and question;
+    # showing diagnostics must not replay chats or ask students for API keys.
+    page.goto(base + '/frontend/public/quiz.html')
+    page.locator('#chatTriggerBtn').click()
+    for backend_code in ['AI_PROVIDER_AUTH_FAILED', 'AI_PROVIDER_AUTH_FAILED', 'AI_PROVIDER_UNAVAILABLE']:
+        mode.update(error=True, backendCode=backend_code, httpStatus=503)
+        question = 'Hướng dẫn tôi làm bài kiểm tra'
+        page.locator('#chatInputField').fill(question)
+        before = len(agent_calls)
+        page.locator('#chatSubmitBtn').click()
+        failed = page.locator('#chatMessageContainer .msg--assistant[data-state="failed"]').last
+        expect(failed).to_contain_text('báo quản trị viên' if backend_code == 'AI_PROVIDER_AUTH_FAILED' else 'tạm thời chưa sẵn sàng')
+        report = json.loads(failed.locator('.chat-error-report').text_content())
+        require(report.get('backendCode') == backend_code and report.get('requestId') == request_id,
+                'Quiz assistant lost the provider diagnosis or safe request UUID')
+        require(len(agent_calls) == before + 1, 'Quiz failure triggered an automatic chat replay')
+        expect(page.locator('#chatInputField')).to_have_value(question)
+        require('API key' not in failed.text_content() and 'Cấu hình AI' not in failed.text_content(),
+                'Students were directed into provider credential configuration')
+        require('Fixture provider not configured' not in json.dumps(report), 'Provider text leaked into the copied report')
+    require(len(vision_calls) == 1, 'Provider failure silently used the legacy AI route')
     mode['error'] = False
+    # Quiz intentionally reloads when the account scope changes. Use the normal
+    # site chat for the independent logout/old-message isolation assertion.
+    page.goto(base + '/frontend/public/index.html')
     page.evaluate('''async () => {
         const {accountService} = await import(new URL('../src/services/AccountService.js', location.href));
+        await accountService.ready();
         await accountService.signOut();
     }''')
     expect(page.locator('#chatMessageContainer')).not_to_contain_text('Wokwi phù hợp')
