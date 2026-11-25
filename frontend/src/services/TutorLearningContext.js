@@ -1,6 +1,6 @@
 // Only learning records from the current page's account-scoped storage may be
 // sent to the vision/guest tutor. Never enumerate localStorage or sessionStorage.
-import { LAB_COURSE_PLATFORMS, normalizeLabWork } from '../modules/learning/LabWorkspace.js';
+import { LAB_COURSE_PLATFORMS, normalizeLabWork } from '../modules/learning/LabWorkspace.js?v=native-labs-v1';
 const COURSE_IDS = new Set(['arduino', 'microbit', 'vex-iq', 'lego-spike', 'vex-vr']);
 const SOURCES = new Set(['local-model', 'external', 'hardware']);
 const plain = value => value && typeof value === 'object' && !Array.isArray(value)
@@ -39,7 +39,7 @@ export function buildTutorLearningContext({ courses = [], courseId, lessonId: cu
     // is reference text in its journal, not authority or live iframe contents.
     if (LAB_COURSE_PLATFORMS[courseId].includes(platformKey) && plain(record.labWork)) {
         try {
-            const work = normalizeLabWork(record.labWork[platformKey]);
+            const work = normalizeLabWork(record.labWork[platformKey], platformKey);
             const savedCopy = scrub(`Bản sao bài làm đã lưu (${platformKey}, ${work.savedAt}):\n${work.notes}\n${work.code}`);
             journal.note = [text(journal.note, 600), savedCopy.slice(0, 990)].filter(Boolean).join('\n').slice(0, 1600);
         } catch { /* Invalid or absent saved work is never forwarded. */ }

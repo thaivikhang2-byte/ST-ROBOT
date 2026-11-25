@@ -5,6 +5,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import {spawnSync} from 'node:child_process';
 import {getPlatformGuide} from '../frontend/src/modules/learning/PlatformGuides.js';
+import {getLabWorkflow} from '../frontend/src/modules/learning/LabPlatformWorkflows.js';
 
 const curriculum = JSON.parse(fs.readFileSync(new URL('../ai-server/curriculum.json', import.meta.url)));
 const registry = {window: {}};
@@ -21,7 +22,7 @@ for (const course of curriculum) {
             assert.equal(guide.id, `${course.id}:${lesson.id}:${platformKey}`);
             assert.ok(['primary', 'related'].includes(guide.activityType));
             for (const field of ['title', 'goal', 'capability', 'levelChallenge']) assert.ok(typeof guide[field] === 'string' && guide[field].length > 15, `${guide.id}: ${field}`);
-            for (const field of ['setupSteps', 'steps', 'expected', 'troubleshooting', 'evidence']) {
+            for (const field of ['setupSteps', 'steps', 'expected', 'troubleshooting', 'evidence', 'saveSteps', 'reopenSteps', 'finishCheck']) {
                 assert.ok(Array.isArray(guide[field]) && guide[field].length > 0, `${guide.id}: ${field}`);
                 assert.ok(guide[field].every(value => typeof value === 'string' && value.trim().length > 3), `${guide.id}: empty ${field}`);
             }
@@ -31,6 +32,8 @@ for (const course of curriculum) {
             assert.equal(new Set(levels.map(value => value.levelChallenge)).size, 3);
             assert.deepEqual(levels[0].codeExamples, levels[2].codeExamples, 'Scaffolding must not silently change runtime/language');
             assert.deepEqual(guide, getPlatformGuide({course: course.id, lesson, platformKey}));
+            assert.deepEqual(guide.saveSteps, getLabWorkflow(platformKey).saveSteps);
+            assert.deepEqual(guide.reopenSteps, getLabWorkflow(platformKey).reopenSteps);
             if (['local', 'circuit', 'phet', 'scratch'].includes(platformKey)) assert.deepEqual(guide.codeExamples, [], `${guide.id}: no executable text code for this activity`);
             else {
                 assert.ok(guide.codeExamples.length > 0, `${guide.id}: runnable native sample`);
@@ -46,8 +49,9 @@ for (const course of curriculum) {
         }
     }
 }
-assert.equal(guides.length, 126);
-assert.equal(variants, 378);
+assert.equal(guides.length, 78);
+assert.equal(variants, 234);
+for (const retired of ['scratch', 'arcade', 'makecode']) assert.ok(!Object.hasOwn(registry.window.STROBOT_LAB_PLATFORMS, retired));
 for (const course of curriculum) {
     for (const platformKey of registry.window.STROBOT_COURSE_LABS[course.id]) {
         const activities = guides.filter(guide => guide.courseId === course.id && guide.platformKey === platformKey);
@@ -106,22 +110,8 @@ try {
         if (guide.lessonId === 'project') assert.deepEqual(trace.filter(([at]) => [0, 3000, 6000, 9000, 15000, 18000].includes(at)).map(([, state]) => state), [0, 1, 1, 1, 1, 0]);
     }
 
-    // Exercise pure Arcade sample control flow with a small explicit provider API model.
-    // It checks recipes and termination, not the MakeCode compiler or live simulator.
-    for (const guide of guides.filter(value => value.platformKey === 'arcade')) {
-        const messages = [], handlers = [];
-        const image = {create() {return {fill() {}, fillRect() {}, setPixel() {}};}};
-        const controller = Object.fromEntries(['A', 'B', 'left', 'right', 'up', 'down'].map(key => [key, {onEvent(event, handler) {handlers.push(handler);}}]));
-        const context = {image, sprites: {create(value) {return {image: value, setPosition() {}, setFlag() {}};}}, SpriteKind: {Player: 0}, controller, ControllerButtonEvent: {Pressed: 0}, info: {setScore() {}}, game: {splash(...args) {messages.push(args.join(' '));}}, pause() {}, console: {log() {}}, Math: Object.assign(Object.create(Math), {idiv(a, b) {return Math.trunc(a / b);}})};
-        // The examples only use number annotations, including nested number arrays.
-        const script = guide.codeExamples[0].code.replace(/:\s*number(?:\[\])*/g, '');
-        vm.runInNewContext(script, context, {timeout: 1000, filename: guide.id});
-        for (const handler of handlers) handler();
-        if (guide.lessonId === 'experiment') assert.equal(messages.filter(message => message.includes('2/3')).length, 2);
-        if (guide.lessonId === 'search') assert.ok(messages.some(message => message.includes('distance 5')), 'BFS uses the declared grid');
-    }
 } finally {
     fs.rmSync(temporary, {recursive: true, force: true});
 }
 
-console.log(`Platform guides: ${guides.length} lesson/platform activities, ${variants} level variants; Python syntax, six native LED sketches and 24 Arcade recipes passed.`);
+console.log(`Platform guides: ${guides.length} lesson/platform activities, ${variants} level variants; native save/reopen workflows, Python syntax and six LED sketches passed.`);

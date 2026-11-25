@@ -20,9 +20,9 @@
     };
     function renderTheory(host, lesson) {
         host.replaceChildren();
-        const objectives = section('objectives', 'Sau bài này, bạn có thể');
+        const objectives = section('objectives', 'Mục tiêu bài học');
         objectives.append(list(lesson.objectives || [lesson.goal]));
-        const concepts = section('concepts', 'Hiểu từng bước');
+        const concepts = section('concepts', 'Kiến thức cốt lõi');
         const blocks = lesson.concepts?.length ? lesson.concepts : [{ title: 'Kiến thức cốt lõi', body: lesson.theory }];
         for (const [index, block] of blocks.entries()) {
             const article = document.createElement('div');
@@ -34,13 +34,13 @@
         const example = section('example', 'Ví dụ có lời giải');
         example.classList.add('worked-example');
         example.append(textElement('p', lesson.example));
-        const mistakes = section('misconceptions', 'Lỗi thường gặp và cách tránh');
+        const mistakes = section('misconceptions', 'Lỗi thường gặp');
         mistakes.append(list(lesson.misconceptions || []));
-        const selfCheck = section('self-check', 'Tự kiểm tra trước khi thực hành');
+        const selfCheck = section('self-check', 'Câu hỏi trước khi thực hành');
         selfCheck.append(list(lesson.selfCheck || []));
-        const sources = section('sources', 'Đọc thêm từ nguồn chính thức');
+        const sources = section('sources', 'Tài liệu tham khảo');
         const details = document.createElement('details');
-        details.append(textElement('summary', 'Mở tài liệu tham khảo'));
+        details.append(textElement('summary', 'Xem nguồn tham khảo'));
         const links = document.createElement('ul');
         for (const source of lesson.sources || []) {
             let url;
@@ -82,23 +82,27 @@
                 if (body) hostNode.append(textElement('p', body, className));
             }
         };
-        host.append(textElement('h3', 'Cùng hiểu bài từ đầu', 'learning-guide-heading'));
+        host.append(textElement('h3', 'Hướng dẫn học bài', 'learning-guide-heading'));
         paragraph(host, guide.intro, 'learning-guide-intro');
 
         if (guide.analogy) {
-            const analogy = guideSection('analogy', 'Hình dung bằng một việc quen thuộc');
-            paragraph(analogy, guide.analogy.familiar, 'learning-guide-familiar');
-            paragraph(analogy, guide.analogy.meaning);
+            const analogy = guideSection('analogy', 'Liên hệ thực tế');
+            const example = document.createElement('details');
+            example.className = 'learning-guide-example';
+            example.append(textElement('summary', 'Xem ví dụ'));
+            paragraph(example, guide.analogy.familiar, 'learning-guide-familiar');
+            paragraph(example, guide.analogy.meaning);
             const limit = document.createElement('div');
             limit.className = 'learning-guide-limit';
-            limit.append(textElement('strong', 'Ví von có giới hạn'));
+            limit.append(textElement('strong', 'Phạm vi áp dụng'));
             paragraph(limit, guide.analogy.limit);
-            analogy.append(limit);
+            example.append(limit);
+            analogy.append(example);
             host.append(analogy);
         }
 
         if (guide.vocabulary?.length) {
-            const vocabulary = guideSection('vocabulary', 'Những từ cần hiểu');
+            const vocabulary = guideSection('vocabulary', 'Thuật ngữ');
             const definitions = document.createElement('dl');
             definitions.className = 'learning-guide-vocabulary';
             for (const entry of guide.vocabulary) {
@@ -112,10 +116,10 @@
 
         if (guide.workedCase) {
             const worked = guideSection('case', guide.workedCase.title);
-            worked.append(textElement('p', 'Cùng làm một trường hợp nhỏ', 'learning-guide-eyebrow'));
+            worked.append(textElement('p', 'Ví dụ từng bước', 'learning-guide-eyebrow'));
             const input = document.createElement('div');
             input.className = 'learning-guide-case-input';
-            input.append(textElement('strong', 'Bắt đầu với'));
+            input.append(textElement('strong', 'Dữ kiện'));
             paragraph(input, guide.workedCase.input);
             worked.append(input);
             const steps = document.createElement('ol');
@@ -129,7 +133,7 @@
             worked.append(steps);
             const output = document.createElement('div');
             output.className = 'learning-guide-case-output';
-            output.append(textElement('strong', 'Kết quả và ý nghĩa'));
+            output.append(textElement('strong', 'Kết quả và giải thích'));
             paragraph(output, guide.workedCase.output);
             paragraph(output, guide.workedCase.why);
             worked.append(output);
@@ -137,14 +141,14 @@
         }
 
         if (guide.checkpoints?.length) {
-            const checkpoints = guideSection('checkpoints', 'Dừng một chút để tự giải thích');
-            paragraph(checkpoints, 'Thử trả lời bằng lời của bạn trước, rồi mở gợi ý để đối chiếu.');
+            const checkpoints = guideSection('checkpoints', 'Tự kiểm tra');
+            paragraph(checkpoints, 'Trả lời trước khi mở phần giải thích.');
             for (const [index, checkpoint] of guide.checkpoints.entries()) {
                 const card = document.createElement('div');
                 card.className = 'learning-guide-checkpoint';
                 card.append(textElement('p', `${index + 1}. ${checkpoint.question}`));
                 const reveal = document.createElement('details');
-                reveal.append(textElement('summary', 'Mở lời giải thích'));
+                reveal.append(textElement('summary', 'Xem giải thích'));
                 paragraph(reveal, checkpoint.answer);
                 card.append(reveal);
                 checkpoints.append(card);
@@ -153,8 +157,7 @@
         }
 
         if (guide.levelSupport) {
-            const support = guideSection('support', 'Chọn độ sâu phù hợp với bạn');
-            paragraph(support, 'Bạn có thể đổi mức đọc bất cứ lúc nào. Mức đọc dựa trên điều bạn đã biết, không dựa vào lớp học.');
+            const support = guideSection('support', 'Luyện tập thêm');
             const current = guide.levelSupport[selected];
             if (current && selected !== 'advanced') {
                 const card = document.createElement('div');
@@ -170,7 +173,7 @@
                 const more = document.createElement('details');
                 more.className = 'learning-guide-deeper';
                 more.open = selected === 'advanced';
-                more.append(textElement('summary', `${labels.advanced}: ${advanced.title}`));
+                more.append(textElement('summary', `Mở rộng: ${advanced.title}`));
                 paragraph(more, advanced.body);
                 paragraph(more, advanced.task, 'learning-guide-try');
                 support.append(more);

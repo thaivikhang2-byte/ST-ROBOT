@@ -12,6 +12,7 @@ Requires PostgreSQL/Redis loopback fixtures, Chromium and Python Playwright.
 Reports contain assertion names, never passwords, tokens or private work.
 """
 import argparse
+import base64
 import json
 import os
 import pathlib
@@ -156,7 +157,8 @@ def main():
     student_b = {'email': 'learner-b-' + run_id + '@school.local', 'password': secrets.token_urlsafe(30),
                  'firstName': 'Fixture B', 'lastName': 'Student'}
     note_a = 'Private student A journal ' + run_id
-    lab_code, lab_notes = 'print("private-workspace-' + run_id + '")', 'Private lab checkpoint ' + run_id
+    lab_code, lab_notes = '// private-workspace-' + run_id + '\nvoid setup() {}\nvoid loop() {}', 'Private lab checkpoint ' + run_id
+    diagram_bytes = json.dumps({'version': 1, 'author': run_id, 'editor': 'wokwi', 'parts': [], 'connections': []}).encode()
     dummy_key = 'synthetic-provider-never-dispatched-' + secrets.token_urlsafe(24)
     private_values = [admin_password, student_a['password'], student_b['password'], dummy_key,
                       cfg.get('JWT_SECRET', ''), cfg.get('JWT_REFRESH_SECRET', ''),
@@ -371,7 +373,7 @@ def main():
                 passed('approved student has a personal dashboard and agent availability without key setup')
 
                 stage = 'student lab workspace and completion synchronization'
-                course_url = public + 'course.learning.html?course=arduino&lesson=led&view=lab&lab=local'
+                course_url = public + 'course.learning.html?course=arduino&lesson=led&view=lab&lab=wokwi'
                 learner.goto(course_url, wait_until='domcontentloaded')
                 expect(learner.locator('#main')).to_have_attribute('aria-busy', 'false')
                 learner.locator('#tabBtnLab').click()
@@ -385,10 +387,20 @@ def main():
                     code_details.locator(':scope > summary').click()
                 learner.locator('#labWorkCode').fill(lab_code)
                 learner.locator('#labWorkNotes').fill(lab_notes)
+                learner.locator('#labWorkFiles').set_input_files([
+                    {'name': 'sketch.ino', 'mimeType': 'text/plain', 'buffer': lab_code.encode()},
+                    {'name': 'diagram.json', 'mimeType': 'application/json', 'buffer': diagram_bytes},
+                ])
+                expect(learner.locator('#labWorkFileList')).to_contain_text('diagram.json')
                 learner.locator('#labWorkSave').click()
+                learner.locator('#labButtons button[data-lab-key="local"]').click()
                 learner.locator('#prediction').fill('The LED should light with a closed forward circuit.')
                 learner.locator('#practiceSource').select_option('local-model')
                 learner.locator('#localLab').get_by_role('button', name='Thử mạch', exact=True).click()
+                last_result = learner.evaluate('record().modelEvidence.summary')
+                learner.locator('#labWorkExperiment').click()
+                require(last_result in learner.locator('#labWorkNotes').input_value(),
+                        'Local worksheet did not receive the most recent model result')
                 learner.locator('#observation').fill('With the circuit closed and forward polarity the LED lights.')
                 learner.locator('#explanation').fill('The forward circuit allows current through the resistor and LED.')
                 learner.locator('#transfer').fill('Reverse polarity stops current; restoring forward polarity lights it.')
@@ -398,15 +410,18 @@ def main():
                 answer = learner.evaluate('course.lessons.find(item => item.id === "led").answer')
                 learner.locator('#quizForm input[name="answer"][value="' + str(answer) + '"]').check()
                 learner.locator('#quizForm button[type="submit"]').click()
-                learner.get_by_role('button', name='Tự xác nhận hoàn thành bài', exact=True).click()
+                learner.get_by_role('button', name='Xác nhận hoàn thành bài', exact=True).click()
+                learner.locator('#labButtons button[data-lab-key="wokwi"]').click()
 
                 def saved_work():
                     snapshot = api.call('/v1/learner-state', token=token_a)
                     state = json.loads(snapshot['values'].get('strobot.original.course.v3', '{}'))
                     record = state.get('arduino', {}).get('led', {})
-                    work = record.get('labWork', {}).get('local', {})
+                    work = record.get('labWork', {}).get('wokwi', {})
                     return (record.get('note') == note_a and record.get('done') is True
-                            and work.get('code') == lab_code and work.get('notes') == lab_notes)
+                            and work.get('version') == 2 and work.get('code') == lab_code and work.get('notes') == lab_notes
+                            and {file['name']: file['dataBase64'] for file in work.get('files', [])}
+                            == {'sketch.ino': base64.b64encode(lab_code.encode()).decode(), 'diagram.json': base64.b64encode(diagram_bytes).decode()})
                 eventually(saved_work, 'Completed practice and lab checkpoint did not reach PostgreSQL', page=learner)
                 expect(learner.locator('#labWorkStatus')).to_contain_text('Đã đồng bộ')
                 passed('student completion, journal and lab checkpoint persist through real synchronization')
@@ -429,6 +444,11 @@ def main():
                 expect(learner_again.locator('#journal')).to_have_value(note_a)
                 expect(learner_again.locator('#labWorkCode')).to_have_value(lab_code)
                 expect(learner_again.locator('#labWorkNotes')).to_have_value(lab_notes)
+                expect(learner_again.locator('#labWorkFileList li')).to_have_count(2)
+                with learner_again.expect_download() as native_download:
+                    learner_again.locator('#labWorkFileList li').filter(has_text='diagram.json').get_by_role('button', name='Tải tệp', exact=True).click()
+                require(pathlib.Path(native_download.value.path()).read_bytes() == diagram_bytes,
+                        'Native diagram bytes changed across PostgreSQL and the second browser')
                 passed('the same learner restores progress and lab work on another browser/device')
 
                 stage = 'same-browser logout clears prior lab tabs and preserves saved work'
@@ -454,6 +474,7 @@ def main():
                 expect(learner.locator('#labWorkSave')).to_be_disabled()
                 expect(learner.locator('#labWorkCode')).to_have_value('')
                 expect(learner.locator('#labWorkNotes')).to_have_value('')
+                expect(learner.locator('#labWorkFileList li')).to_have_count(0)
                 expect(learner.locator('#journal')).to_have_value('')
                 guest_guard['active'] = True
                 # Wait beyond workspace autosave debounce; no guest/background save may run.
@@ -466,8 +487,8 @@ def main():
                 after_state = json.loads(own_after_logout['values'].get('strobot.original.course.v3', '{}'))
                 after_record = after_state.get('arduino', {}).get('led', {})
                 require(after_record.get('note') == note_a and after_record.get('done') is True
-                        and after_record.get('labWork', {}).get('local', {}).get('code') == lab_code
-                        and after_record.get('labWork', {}).get('local', {}).get('notes') == lab_notes,
+                        and after_record.get('labWork', {}).get('wokwi', {}).get('code') == lab_code
+                        and after_record.get('labWork', {}).get('wokwi', {}).get('notes') == lab_notes,
                         'Ordinary logout changed account-owned server work')
                 learner_again.locator('#labWorkSave').click()
                 expect(learner_again.locator('#labWorkStatus')).to_contain_text('Đã đồng bộ')
@@ -499,6 +520,7 @@ def main():
                 expect(learner_b.locator('#labWorkSave')).to_be_enabled()
                 expect(learner_b.locator('#labWorkCode')).to_have_value('')
                 expect(learner_b.locator('#labWorkNotes')).to_have_value('')
+                expect(learner_b.locator('#labWorkFileList li')).to_have_count(0)
                 api.call('/v1/users/' + second['id'] + '/approve-student', method='POST', token=token_b, status=403)
                 passed('a separate student account cannot read or approve another learner workspace')
 

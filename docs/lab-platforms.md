@@ -8,7 +8,7 @@ The micro:bit course now defaults to the Foundation's full Python Editor V3:
 
 This is an editable editor, not a shared simulator player. The official controller API is documented by [IframeHost](https://github.com/microbit-foundation/python-editor-v3/blob/v3.1.17/src/fs/host.ts) and its [protocol tests](https://github.com/microbit-foundation/python-editor-v3/blob/v3.1.17/src/fs/host-iframe.test.ts). It provides code editing, a MicroPython simulator, API reference, project files and HEX export. Hardware USB connection remains a browser/device capability requiring the user's permission.
 
-`MicrobitEditorBridge.js` answers `workspacesync` with the current lesson's MicroPython starter or saved project, waits for `workspaceloaded`, then stores validated `workspacesave` projects. The parent checks both the exact provider origin and the current iframe window. UTF-8 files use the provider's base64 format. Each lesson has separate browser storage. The bridge accepts official unnamed projects, whose optional `projectName` may be present with value `undefined`.
+`MicrobitEditorBridge.js` answers `workspacesync` with the current lesson's MicroPython starter or saved project, waits for `workspaceloaded`, then stores validated `workspacesave` projects. The parent checks both the exact provider origin and the current iframe window. UTF-8 files use the provider's base64 format. Each lesson uses separate, account-bound storage synchronized through the learner snapshot. The bridge accepts official unnamed projects, whose optional `projectName` may be present with value `undefined`.
 
 The provider debounces saves for about one second and supplies no synchronous flush API. Learners wait for the saved notice before changing lessons; the download button exports the last received source. Confirmed reset removes only that lesson and recreates the iframe so an old delayed save cannot restore the discarded project. Storage failures produce a recovery message while editable source remains downloadable.
 
@@ -24,40 +24,34 @@ All displayed samples now name an executable language. Robot lessons use GearsBo
 
 `tests/lesson-code-validation.py` checks 25 Python samples, 6 MakeCode JavaScript alternatives and 6 Arduino C++ sketches. Arduino controllers also run against deterministic Echo inputs through a host API contract. Robot behavior tests cover route geometry, thresholds, invalid inputs, motor timeout/stall cleanup, color-event debouncing, failed actuator cycles and experiment denominators. Official GearsBot Python modules were additionally exercised against a deterministic native-bridge model during development. Neither this model nor a host C++ build validates physical hardware or live GearsBot rendering.
 
-## Restored original platforms
+## Current course choices
 
-CircuitJS, AVR8js and GearsBot URLs and iframe permissions are preserved from commit `4b26e4a`. The requested micro:bit replacement is described above; the old MakeCode registry entry remains for compatibility but is no longer a course-menu choice.
+There are seven active tools and thirteen course/tool choices (78 lesson activities):
 
-| Platform | Original URL | Default courses |
+| Course | Offered tools | Lesson defaults |
 | --- | --- | --- |
-| CircuitJS | https://www.falstad.com/circuit/circuitjs.html | Additional original Arduino option |
-| AVR8js | https://www.falstad.com/circuit/avr8js/ | Arduino Uno |
-| MakeCode micro:bit | https://makecode.microbit.org/#editor | Legacy entry; JavaScript variants use MakeCode |
-| GearsBot | https://gears.aposteriori.com.sg/ | VEX IQ, LEGO SPIKE Prime, VEXcode VR |
+| Arduino Uno | CircuitJS, AVR8js, Wokwi, PhET, local model | CircuitJS for LED, AVR8js for timing, local model for distance/alarm/calibration/project |
+| micro:bit | Python Editor, local model | Python Editor except radio, whose protocol exercise starts in the local model |
+| VEX IQ / LEGO SPIKE / VEX VR | GearsBot, local model | GearsBot |
 
-The original in-page numerical/logic bench remains available as the last choice. This is a simple model, not a substitute for a complete hardware simulator.
+Defaults follow the actual lesson task. AVR8js is the Arduino LED configuration, not an HC-SR04 circuit editor. GearsBot uses its own supported robot API and is not native VEX/SPIKE firmware. PhET models DC circuits and does not run Arduino code. Local models are deterministic teaching models, not arbitrary code interpreters.
 
-## Additional official iframe endpoints
+Scratch and MakeCode Arcade sample-player frames were removed. The unoffered MakeCode registry entry was also removed; existing curriculum language alternatives are retained. Stored Scratch/Arcade work remains valid in account records and course backups.
 
-Only embed routes are configured. There is no external-only platform choice or automatic popup fallback. Each selected lab has an optional new-tab link. Arduino and robot defaults are preserved; micro:bit defaults to the editable Python Editor. No platform-help link is rendered.
+## Full Wokwi editor
 
-| Addition | Configured iframe URL | Official source evidence |
-| --- | --- | --- |
-| Wokwi Uno | https://wokwi.com/share/embed/322062421191557714 | The Uno project ID appears in [official welcome docs](https://github.com/wokwi/wokwi-docs/blob/main/docs/welcome.md). The numeric `/share/embed/` route is documented in [official issue 526](https://github.com/wokwi/wokwi-features/issues/526). |
-| PhET DC circuits | https://phet.colorado.edu/sims/html/circuit-construction-kit-dc/latest/circuit-construction-kit-dc_all.html | [Official iframe template](https://github.com/phetsims/chipper/blob/main/templates/sim-iframe.html) and [simulation source](https://github.com/phetsims/circuit-construction-kit-dc). |
-| Scratch Maze Starter | https://scratch.mit.edu/projects/10128431/embed | Project ID from [Scratch starter-project data](https://github.com/scratchfoundation/scratch-www/blob/develop/src/views/starter-projects/starter-projects.json), route supported by the [official embedded player](https://github.com/scratchfoundation/scratch-www/blob/develop/src/views/preview/embed-view.jsx). |
-| MakeCode Arcade | https://arcade.makecode.com/---run?id=_1yfTMtFAe5yC | Project ID from [Microsoft game gallery](https://github.com/microsoft/pxt-arcade/blob/master/docs/games.md); simulator embed supported by [PXT sharing](https://github.com/microsoft/pxt/blob/master/common-docs/share.md) and its URL generator. |
+The former shared `/share/embed/` player was replaced with an explicit launch card for the full project at `https://wokwi.com/projects/322062421191557714`. Selecting Wokwi does not open a popup automatically. The learner chooses **Mở editor Wokwi** or **Mở riêng ở tab ngoài**, makes a personal project copy, edits `sketch.ino` and `diagram.json`, and saves it in Wokwi. The link and native files can also be saved in ST-Robot. New tabs use `noopener noreferrer`.
 
-Scratch and Arcade frames run examples; they are not full VEX/LEGO hardware editors. PhET models DC circuits, not Arduino code. GearsBot remains an alternative robot environment rather than an exact VEX/LEGO emulator. These distinctions are retained in the lesson material.
+CircuitJS, AVR8js and GearsBot retain their original iframe URLs and permissions. Python Editor uses its official controller route. PhET uses its official HTML simulation route. A transient frame failure retains the selected platform and offers reload, a new tab or the local model; it does not rewrite the catalog. An iframe load event alone is not proof of third-party execution.
 
-New frames cannot automatically open popup tabs or navigate the top page. The user can explicitly choose the parent page’s “Mở riêng ở tab ngoài” link with `target="_blank"` and `rel="noopener noreferrer"`. Wokwi/Scratch/Arcade links open their full editor pages; the local bench reopens the current course and lesson with `view=lab&lab=local`. A new platform that raises a frame load error is removed for the current session and the original course lab is restored. Original platforms retain their pre-change iframe behavior and are not removed by this extra handling. An iframe load event alone is not proof of successful third-party execution.
+## Native save/reopen workflows
 
-## Validation scope
+See [account and lab integration](lab-account-integration.md) for the formats, privacy boundary and instructions presented to learners. GearsBot menu behavior was checked against official `QuirkyCort/gears` source commit `c0549600a26f9811906b4e02fd9246fe2413a072`: ZIP exports code, blocks and robot configuration, while world JSON must be saved separately. CircuitJS export/import menus were checked against `sharpie7/circuitjs1` commit `dd47cf43a1baa91e2d6ae0f5884ccf0f589989bf`. These source checks do not establish live service availability.
 
-Official source documentation supports the added routes. Direct provider requests from this managed environment failed at the network proxy CONNECT stage with HTTP 403; that is not evidence that the provider rejects website embedding. It must not be used to remove the user's original working labs.
+## Validation scope and generated data
 
-The browser suite uses local iframe fixtures to verify all original URLs/defaults, the four added embed URLs, local benches, blocked-addition recovery, optional new-tab links and preservation of the embedded view, responsive layout and existing course features. It does not claim live provider availability. Editors without a supported iframe mode remain excluded. Python Editor is included through its explicit controller API.
+`tests/ui-smoke.py` exercises the active catalog, all 78 guides, explicit Wokwi launch, original iframe permissions, retry, optional links, responsive layout and course features with local iframe/AI fixtures. `tests/platform-guides.mjs` checks 234 level variants, native save/reopen instructions, Python syntax and six compiled/executed AVR LED sketches. No paid provider requests are made.
 
-## Atomic browser snapshot
+External provider origins are blocked by the managed environment's network policy. Live embedding, provider uptime and physical hardware behavior must be checked on the deployed website; proxy denial here is not evidence of a provider outage.
 
-A stale copy of the old standalone registry was reproduced against the restored page: it displayed only the local bench, matching the reported screenshot. The lab registry is now bundled into `course.learning.html` by `scripts/build-lab-snapshot.py`, so the page and lab data share one HTTP response. The editable JS source remains in `frontend/src/data/lab-platforms.js`. `--check` detects an out-of-date page snapshot; the browser regression feeds an old registry response and asserts it is never requested.
+`scripts/build-lab-snapshot.py` generates the inline browser catalog, backend agent catalog, guest tutor course choices and backend save/reopen workflows from editable frontend sources. `--check` detects drift. Browser regressions serve a stale standalone registry and confirm that it is never requested, so an old cached script cannot hide the current lab choices.

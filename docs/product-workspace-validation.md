@@ -21,11 +21,23 @@ Kiểm chứng bản xác thực ngày 24/11/2026: build/typecheck đạt; 43 b�
 
 Fixture native/PostgreSQL `tests/auth-upgrade-pg.cjs` đạt tám nhóm; hai lần đăng nhập bcrypt đồng thời cùng thành công với đúng một lần thử lại, reset đồng thời không cấp phiên từ mật khẩu cũ, phiên đã có vẫn hợp lệ sau chuyển thuật toán và ứng viên hơn 72 byte UTF-8 giữ hash cũ. So sánh driver xác nhận đăng nhập 15→8 câu lệnh, JWT 9→1 và quyền/giới hạn scope vẫn tương đương. Database thử riêng được xóa sau kiểm tra; workflow GitHub chạy lại fixture này trên Node 22.
 
+## Kiểm chứng phần lab và tệp dự án — 25/11/2026
+
+- Backend build/typecheck và toàn bộ 45 bộ Jest: 357 kiểm thử đạt; sáu kiểm thử Redis tùy chọn không chạy trong lượt này. Sau khi chỉnh câu chữ hướng dẫn, ba bộ liên quan được chạy lại: 32 kiểm thử đạt.
+- Schema native v2 giữ nguyên bản v1, các bài Scratch/Arcade cũ, quota 5 MiB/8 MiB và quyền chủ tài khoản. Kiểm tra tên, phần mở rộng, canonical base64, byte thực và tổng 256 KiB đạt; không giải nén hay gửi tệp sang AI.
+- Hướng dẫn theo nền tảng: 78 hoạt động, 234 mức giải thích; cú pháp Python và sáu sketch AVR biên dịch/chạy đạt. Menu lưu GearsBot và CircuitJS được đối chiếu với mã nguồn chính thức.
+- Browser UI: 15 nhóm đạt, 30 bài, 78 hướng dẫn, 37 mẫu mã hiển thị/sao chép; không có lỗi JavaScript. Wokwi mở editor khi chủ động bấm, iframe CircuitJS tải lại được khi lỗi, bố cục điện thoại không tràn ngang.
+- Guided learning: đủ 30 mô hình có thao tác thật, không tự sinh minh chứng khi mở bài; kiểm tra dự đoán, đổi đầu vào, điều kiện hoàn thành, tải/khôi phục hồ sơ và dữ liệu cũ đạt.
+- Lab workspace: tải ZIP nguyên byte, reload, nhập tệp quá giới hạn, khôi phục/xóa tệp khi còn lượt đọc chậm, đổi tài khoản và đăng xuất đều được kiểm tra. Ảnh desktop/mobile được xem lại trực tiếp.
+- Hành trình PostgreSQL/Redis: chín nhóm đạt. Tệp `sketch.ino` và `diagram.json` cùng bài làm đi qua database; thiết bị thứ hai tải được `diagram.json` nguyên byte. Đăng xuất xóa tệp khỏi giao diện và không gửi yêu cầu ghi muộn; học sinh khác không có tệp. Báo cáo admin không chứa nội dung riêng.
+
+Các kiểm thử dùng database riêng và phản hồi provider giả lập, không gọi sinh nội dung AI trả phí. Không kiểm chứng trực tiếp uptime, header iframe hoặc simulator ở các tên miền ngoài do chính sách mạng của môi trường. Bridge micro:bit được kiểm tra bằng bộ giao thức hiện có; không chạy lại editor upstream thực trong đợt này. Kết quả không thay cho thử nghiệm trên phần cứng hoặc đánh giá của giám khảo.
+
 ## Triển khai và sử dụng
 
 Backend Render giữ Root Directory `backend`, build `npm ci --include=dev && npm run prisma:generate && npm run build`, start `npm run start:production`. Startup tự áp dụng migration bổ sung cờ chờ duyệt, giữ dữ liệu tài khoản cũ. Với `MANAGED_ACCOUNTS_ENABLED=true`, luồng học sinh chờ duyệt mặc định được bật; không cần nhập lại khóa AI hay tạo lại admin. GitHub Pages phục vụ frontend mới từ cùng nhánh chính. Nếu Auto-Deploy bị tắt, chọn **strobot-backend → Manual Deploy → Deploy latest commit** rồi chờ Live. Backend và frontend phải cùng cập nhật trước khi kiểm tra đăng ký mới.
 
-Học sinh chọn **Đăng nhập → Tạo tài khoản**, chờ duyệt rồi đăng nhập để học. Admin chọn **Học viên → Chờ duyệt → Duyệt học sinh**. Bài học gần nhất và tiến độ nằm ở **Việc học của tôi**; bài lab có **Bài thực hành của tôi**. Chờ thông báo đã đồng bộ trước khi chuyển máy.
+Học sinh chọn **Đăng nhập → Tạo tài khoản**, chờ duyệt rồi đăng nhập để học. Admin chọn **Học viên → Chờ duyệt → Duyệt học sinh**. Bài học gần nhất và tiến độ nằm ở **Việc học của tôi**; bài lab có **3. Lưu bài thực hành**. Chờ thông báo đã đồng bộ trước khi chuyển máy.
 
 Render Free vẫn có thời gian thức dậy sau khi ngủ. Các thay đổi giảm chờ thừa trong ứng dụng, không tạo cam kết backend luôn sẵn sàng. Để trình diễn ít rủi ro hơn, mở thử đăng nhập và agent trước buổi thi; triển khai backend luôn chạy là lựa chọn hạ tầng riêng, không được tự mua hoặc nâng gói trong lần cập nhật này. Database miễn phí của bản Render đã tạo có ngày hết hạn hiển thị 15/12/2026; phải xuất dữ liệu hoặc chuyển/nâng database trước ngày đó nếu tiếp tục sử dụng.
 

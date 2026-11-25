@@ -34,7 +34,8 @@ for (const word of ['CircuitJS', 'AVR8js', 'Wokwi', 'PhET', 'Bàn thí nghiệm'
 assert.match(prompt, /không cần nhìn bên trong iframe/);
 assert.match(prompt, /không gọi nó là điểm chấm/);
 assert.match(tutorContextPrompt({}, 'microbit'), /Python Editor/);
-assert.match(tutorContextPrompt({}, 'microbit'), /TypeScript/);
+assert.match(tutorContextPrompt({}, 'microbit'), /MicroPython/);
+assert.doesNotMatch(tutorContextPrompt({}, 'microbit'), /Scratch|Arcade|TypeScript/);
 for (const invalid of [
   {...report, accessToken: forbidden},
   {...report, source: 'postgresql-account'},

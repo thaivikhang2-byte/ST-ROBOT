@@ -17,14 +17,6 @@ window.STROBOT_LAB_PLATFORMS = {
         "sourceUrl": "https://github.com/wokwi/avr8js",
         "embedSupport": "existing"
     },
-    "makecode": {
-        "name": "MakeCode · micro:bit",
-        "mode": "embed",
-        "languages": "Blocks · JavaScript · MakeCode Python",
-        "url": "https://makecode.microbit.org/#editor",
-        "sourceUrl": "https://makecode.microbit.org/docs",
-        "embedSupport": "existing"
-    },
     "python": {
         "name": "micro:bit Python Editor",
         "mode": "embed",
@@ -46,10 +38,9 @@ window.STROBOT_LAB_PLATFORMS = {
     },
     "wokwi": {
         "name": "Wokwi · Arduino Uno",
-        "mode": "embed",
-        "languages": "Arduino C/C++ · mô phỏng số",
-        "url": "https://wokwi.com/share/embed/322062421191557714",
-        "embedUrl": "https://wokwi.com/share/embed/322062421191557714",
+        "mode": "external",
+        "languages": "Arduino C/C++ · editor ở tab riêng",
+        "url": "https://wokwi.com/projects/322062421191557714",
         "sourceUrl": "https://docs.wokwi.com/",
         "embedSupport": "official",
         "externalUrl": "https://wokwi.com/projects/322062421191557714"
@@ -62,26 +53,6 @@ window.STROBOT_LAB_PLATFORMS = {
         "embedUrl": "https://phet.colorado.edu/sims/html/circuit-construction-kit-dc/latest/circuit-construction-kit-dc_all.html",
         "sourceUrl": "https://phet.colorado.edu/en/simulations/circuit-construction-kit-dc",
         "embedSupport": "official"
-    },
-    "scratch": {
-        "name": "Scratch · Mê cung",
-        "mode": "embed",
-        "languages": "Khối lệnh · chạy dự án mẫu",
-        "url": "https://scratch.mit.edu/projects/10128431/embed",
-        "embedUrl": "https://scratch.mit.edu/projects/10128431/embed",
-        "sourceUrl": "https://scratch.mit.edu/ideas",
-        "embedSupport": "official",
-        "externalUrl": "https://scratch.mit.edu/projects/10128431/editor/"
-    },
-    "arcade": {
-        "name": "MakeCode Arcade · Trò chơi",
-        "mode": "embed",
-        "languages": "Blocks · TypeScript · game simulator",
-        "url": "https://arcade.makecode.com/---run?id=_1yfTMtFAe5yC",
-        "embedUrl": "https://arcade.makecode.com/---run?id=_1yfTMtFAe5yC",
-        "sourceUrl": "https://arcade.makecode.com/share",
-        "embedSupport": "official",
-        "externalUrl": "https://arcade.makecode.com/#pub:_1yfTMtFAe5yC"
     },
     "local": {
         "name": "Bàn thí nghiệm trong bài",
@@ -100,26 +71,18 @@ window.STROBOT_COURSE_LABS = {
     ],
     "microbit": [
         "python",
-        "scratch",
-        "arcade",
         "local"
     ],
     "vex-iq": [
         "gears",
-        "scratch",
-        "arcade",
         "local"
     ],
     "lego-spike": [
         "gears",
-        "scratch",
-        "arcade",
         "local"
     ],
     "vex-vr": [
         "gears",
-        "scratch",
-        "arcade",
         "local"
     ]
 };

@@ -83,6 +83,8 @@ def check_platform_guide(page, copy_examples=False):
         expect(page.locator(selector + ' > li')).to_have_text(guide[field])
     expect(page.locator('#labGuide')).to_have_text(guide['levelChallenge'])
     expect(page.locator('#platformEvidencePrompt')).to_have_text(' '.join(guide['evidence']))
+    require(guide['saveSteps'] and guide['reopenSteps'], 'Missing platform-specific save/reopen guidance: ' + key)
+    expect(page.locator('#labWorkSaveSteps > li')).to_have_text(guide['saveSteps'])
     examples = guide['codeExamples']
     selector = page.locator('#codeVariantSelect')
     expect(selector.locator('option')).to_have_count(len(examples))
@@ -135,6 +137,7 @@ def check_learning_guide(page, lesson_data):
     for section in ['analogy', 'vocabulary', 'case', 'checkpoints', 'support']:
         expect(host.locator('[data-guide-section="' + section + '"]')).to_have_count(1)
     analogy = host.locator('[data-guide-section="analogy"]')
+    analogy.locator('details > summary').click()
     for field in ['familiar', 'meaning', 'limit']:
         require(readable_text(guide['analogy'][field]) in readable_text(analogy.inner_text()), 'Missing analogy or its limit')
     require(len(guide['vocabulary']) >= 3, 'Expanded explanation needs defined vocabulary')
@@ -719,7 +722,7 @@ with sync_playwright() as p:
             page.locator('#tabBtnTheory').click()
             expect(page.locator('#theoryView')).to_be_visible()
             expect(page.locator('#labView')).to_be_hidden()
-        require(platform_guides_checked == 126, 'Some course/lesson/platform guides were not exercised')
+        require(platform_guides_checked == 78, 'Some course/lesson/platform guides were not exercised')
         require(code_examples_checked >= 30, 'Runnable platform samples are missing')
         page.locator('#learningLevel').select_option('advanced')
         page.reload(wait_until='domcontentloaded')
@@ -741,10 +744,10 @@ with sync_playwright() as p:
         expect(page.locator('#labButtons button')).to_have_count(5)
         for key in ['circuit', 'avr', 'wokwi', 'phet', 'local']:
             expect(page.locator('#labButtons button[data-lab-key="' + key + '"]')).to_have_count(1)
-        expect(page.locator('#practiceFrame')).to_have_attribute('src', 'https://www.falstad.com/circuit/avr8js/')
+        expect(page.locator('#practiceFrame')).to_have_attribute('src', 'https://www.falstad.com/circuit/circuitjs.html')
         require(not stale_requests, 'The page still loads a separately cached lab registry')
         fixtures['stale_registry'] = None
-        return {'old_registry_requests': len(stale_requests), 'arduino_choices': 5, 'original_default': 'avr', 'atomic_lab_snapshot': True}
+        return {'old_registry_requests': len(stale_requests), 'arduino_choices': 5, 'original_default': 'circuit', 'atomic_lab_snapshot': True}
 
     checked('old cached lab registry cannot hide the restored platforms', stale_lab_registry)
 
@@ -755,13 +758,16 @@ with sync_playwright() as p:
         original_urls = {
             'circuit': 'https://www.falstad.com/circuit/circuitjs.html',
             'avr': 'https://www.falstad.com/circuit/avr8js/',
-            'makecode': 'https://makecode.microbit.org/#editor',
             'gears': 'https://gears.aposteriori.com.sg/'
         }
-        defaults = {'arduino': 'avr', 'microbit': 'python', 'vex-iq': 'gears', 'lego-spike': 'gears', 'vex-vr': 'gears'}
-        additions = {'wokwi', 'phet', 'scratch', 'arcade', 'python'}
+        defaults = {'arduino': 'circuit', 'microbit': 'python', 'vex-iq': 'gears', 'lego-spike': 'gears', 'vex-vr': 'gears'}
+        additions = {'wokwi', 'phet', 'python'}
         default_urls = {**original_urls, 'python': 'https://python.microbit.org/v/3/?controller=1&flag=noWelcome&l=en'}
-        require(set(registry) == set(original_urls) | additions | {'local'}, 'Original labs or official embed additions missing; external-only editor added')
+        require(set(registry) == set(original_urls) | additions | {'local'}, 'Active lab registry does not match the supported editors and models')
+        require(not {'scratch', 'arcade', 'makecode'}.intersection(registry), 'Retired sample players remain active lab choices')
+        require(assignments['microbit'] == ['python', 'local'], 'Microbit choices include an unrelated sample player')
+        for course_id in ['vex-iq', 'lego-spike', 'vex-vr']:
+            require(assignments[course_id] == ['gears', 'local'], 'Robot course choices include an unrelated sample player')
         for key, url in original_urls.items():
             require(registry[key]['url'] == url and registry[key]['mode'] == 'embed', 'Original lab changed: ' + key)
             require(registry[key]['embedSupport'] == 'existing', 'Original lab can be disabled by a new verification gate: ' + key)
@@ -774,7 +780,7 @@ with sync_playwright() as p:
         page.on('popup', on_popup)
         checks = 0
         for course_id, keys in assignments.items():
-            require(len(keys) >= 4 and len(set(keys)) == len(keys) and keys[-1] == 'local', 'Missing course lab choices: ' + course_id)
+            require(len(keys) >= 2 and len(set(keys)) == len(keys) and keys[-1] == 'local', 'Missing course lab choices: ' + course_id)
             page.locator('#courseSelect').select_option(course_id)
             page.locator('#tabBtnLab').click()
             default = defaults[course_id]
@@ -782,7 +788,7 @@ with sync_playwright() as p:
             expect(page.locator('#labButtons button[data-lab-key="' + default + '"]')).to_have_attribute('aria-pressed', 'true')
             expect(page.locator('#localLab')).to_be_hidden()
             expect(page.locator('#labActivity, #labProviderDocs, #labBoxDesc, #frameNote')).to_have_count(0)
-            expect(page.locator('#labView a')).to_have_count(1)
+            expect(page.locator('#labExternalBtn')).to_have_count(1)
             check_platform_guide(page)
             expect(page.locator('#labButtons button')).to_have_count(len(keys))
             for key in keys:
@@ -805,6 +811,12 @@ with sync_playwright() as p:
                     expect(page.locator('#localLab')).to_be_visible()
                     expect(page.locator('#practiceFrame')).to_have_count(0)
                     require(page.locator('#localLab .lesson-bench-output').inner_text().strip(), 'In-page lesson model did not mount')
+                elif cfg['mode'] == 'external':
+                    expect(page.locator('#practiceFrame')).to_have_count(0)
+                    expect(page.locator('.lab-editor-launch')).to_be_visible()
+                    expect(page.locator('.lab-editor-launch a')).to_have_attribute('href', cfg.get('externalUrl') or cfg['url'])
+                    expect(page.locator('#labReloadBtn')).to_be_hidden()
+                    expect(page.locator('#labFullscreenBtn')).to_be_hidden()
                 else:
                     frame = page.locator('#practiceFrame')
                     expect(frame).to_have_attribute('src', cfg.get('embedUrl') or cfg['url'])
@@ -820,33 +832,39 @@ with sync_playwright() as p:
                     page.locator('#labReloadBtn').click()
                     expect(page.locator('#practiceFrame')).to_have_attribute('src', cfg.get('embedUrl') or cfg['url'])
                 checks += 1
-            # The next lesson must reopen the original lab, rather than replacing it with a local-only screen.
+            # Defaults must fit the new lesson's hardware, instead of retaining the last chosen platform.
             page.locator('#lessonList button').nth(1).click()
             page.locator('#tabBtnLab').click()
-            expect(page.locator('#practiceFrame')).to_have_attribute('src', default_urls[default])
+            next_default = 'avr' if course_id == 'arduino' else default
+            expect(page.locator('#practiceFrame')).to_have_attribute('src', default_urls[next_default])
+            expect(page.locator('#labButtons button[data-lab-key="' + next_default + '"]')).to_have_attribute('aria-pressed', 'true')
         page.locator('#courseSelect').select_option('arduino')
         page.locator('#tabBtnLab').click()
         original = page.evaluate('JSON.parse(JSON.stringify(labs.wokwi))')
-        page.evaluate("labs.wokwi.mode='external';renderLabButtons();selectLabPlatform('wokwi')")
+        page.evaluate("labs.wokwi.mode='unsupported';renderLabButtons();selectLabPlatform('wokwi')")
         expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_count(0)
         expect(page.locator('#labExternalBtn')).to_have_count(1)
         page.evaluate("labs.wokwi.mode='embed';labs.wokwi.embedSupport='unknown';renderLabButtons()")
         expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_count(0)
         page.evaluate('(cfg)=>{labs.wokwi=cfg;renderLabButtons()}', original)
         page.locator('#labButtons button[data-lab-key="wokwi"]').click()
+        expect(page.locator('.lab-editor-launch')).to_be_visible()
+        expect(page.locator('#practiceFrame')).to_have_count(0)
+        circuit = page.evaluate('JSON.parse(JSON.stringify(labs.circuit))')
+        page.locator('#labButtons button[data-lab-key="circuit"]').click()
         page.locator('#practiceFrame').dispatch_event('error')
         expect(page.locator('#platformHelp')).to_contain_text('Khung lab tải chưa thành công')
-        expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_count(1)
-        expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_attribute('aria-pressed', 'true')
-        expect(page.locator('#practiceFrame')).to_have_attribute('src', original.get('embedUrl') or original['url'])
-        require(page.evaluate('labs.wokwi.mode') == original['mode'], 'A transient frame error permanently changed the provider registry')
+        expect(page.locator('#labButtons button[data-lab-key="circuit"]')).to_have_count(1)
+        expect(page.locator('#labButtons button[data-lab-key="circuit"]')).to_have_attribute('aria-pressed', 'true')
+        expect(page.locator('#practiceFrame')).to_have_attribute('src', circuit['url'])
+        require(page.evaluate('labs.circuit.mode') == circuit['mode'], 'A transient frame error permanently changed the provider registry')
         page.locator('#labReloadBtn').click()
-        expect(page.locator('#practiceFrame')).to_have_attribute('src', original.get('embedUrl') or original['url'])
+        expect(page.locator('#practiceFrame')).to_have_attribute('src', circuit['url'])
         page.locator('#labButtons button[data-lab-key="local"]').click()
         expect(page.locator('#localLab .lesson-bench')).to_be_visible()
         expect(page.locator('#practiceFrame')).to_have_count(0)
-        page.locator('#labButtons button[data-lab-key="wokwi"]').click()
-        expect(page.locator('#practiceFrame')).to_have_attribute('src', original.get('embedUrl') or original['url'])
+        page.locator('#labButtons button[data-lab-key="circuit"]').click()
+        expect(page.locator('#practiceFrame')).to_have_attribute('src', circuit['url'])
         require(len(popups) == 0, 'A lab choice opened a separate tab')
         page.remove_listener('popup', on_popup)
         page.set_viewport_size({'width': 390, 'height': 844})
@@ -857,7 +875,7 @@ with sync_playwright() as p:
             mobile_layouts[course_id] = no_overflow()
         page.set_viewport_size({'width': 1440, 'height': 1000})
         fixtures['frame_urls'] = set()
-        return {'original_platforms_restored': 4, 'course_defaults_checked': 5, 'official_embed_additions': 5, 'selections_checked': checks, 'optional_new_tab_links_checked': checks, 'popups': 0, 'transient_frame_error_preserves_provider_and_retry': True, 'manual_model_fallback_available': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; iframe integration uses local fixtures'}
+        return {'retained_original_platforms': 3, 'course_defaults_checked': 5, 'official_embed_additions': 2, 'full_external_editors': 1, 'retired_sample_players': ['scratch', 'arcade'], 'selections_checked': checks, 'optional_new_tab_links_checked': checks, 'popups': 0, 'transient_frame_error_preserves_provider_and_retry': True, 'manual_model_fallback_available': True, 'mobile_lab_layouts': mobile_layouts, 'live_provider_availability': 'not tested; iframe integration uses local fixtures'}
 
     checked('lab embeds, editable micro:bit configuration and optional new-tab links', lab_platforms)
 
@@ -877,7 +895,8 @@ with sync_playwright() as p:
             remote_tab.wait_for_load_state('domcontentloaded')
             expect(remote_tab).to_have_url(separate_url)
             require(remote_tab.evaluate('window.opener === null'), 'External lab can access the original tab')
-            expect(page.locator('#practiceFrame')).to_have_attribute('src', embed_url)
+            expect(page.locator('#practiceFrame')).to_have_count(0)
+            expect(page.locator('.lab-editor-launch')).to_be_visible()
             expect(page.locator('#labButtons button[data-lab-key="wokwi"]')).to_have_attribute('aria-pressed', 'true')
             remote_tab.close()
         finally:
@@ -899,19 +918,20 @@ with sync_playwright() as p:
         require(parse_qs(urlparse(local_url).query)['lesson'] == ['distance'], 'Local new tab changed the selected lesson')
         local_tab.close()
         expect(page.locator('#localLab')).to_be_visible()
-        return {'external_editor_new_tab': True, 'original_embed_preserved': True, 'local_lab_course_and_lesson_preserved': True, 'opener_isolated': True, 'live_provider_calls': 0}
+        return {'external_editor_new_tab': True, 'editor_launch_card_preserved': True, 'local_lab_course_and_lesson_preserved': True, 'opener_isolated': True, 'live_provider_calls': 0}
 
-    checked('optional lab tabs open the right editor or same local lesson without replacing the embed', optional_lab_tabs)
+    checked('explicit lab links open the full editor or same local lesson with opener isolation', optional_lab_tabs)
 
     def persistence_pdf():
         goto('course.learning.html?course=arduino')
         page.evaluate('localStorage.removeItem("strobot.original.course.v3")')
         page.reload(wait_until='domcontentloaded')
         expect(page.locator('#progressText')).to_contain_text('0/6')
-        page.locator('button[onclick="markLessonComplete()"]').first.click()
+        page.locator('#tabBtnLab').click()
         expect(page.locator('#labView')).to_be_visible()
-        expect(page.locator('#notice')).to_contain_text('Trả lời đúng')
-        expect(page.locator('#notice')).to_contain_text('Ghi dự đoán')
+        expect(page.locator('#completeLesson')).to_be_disabled()
+        expect(page.locator('#completionChecklist')).to_contain_text('Trả lời đúng')
+        expect(page.locator('#completionChecklist')).to_contain_text('Ghi dự đoán')
         answer = page.evaluate('lesson().answer')
         page.locator('#quizOptions input[value="' + str(answer) + '"]').check()
         page.locator('#quizForm button[type=submit]').click()
@@ -920,11 +940,11 @@ with sync_playwright() as p:
         note_details = page.locator('#journal').locator('xpath=ancestor::details[1]')
         note_details.locator(':scope > summary').click()
         page.locator('#journal').fill(note)
-        expect(page.locator('#saveNotice')).to_contain_text('Đã lưu')
-        page.locator('button[onclick="markLessonComplete()"]').first.click()
+        expect(page.locator('#saveNotice')).to_contain_text('lưu trên trình duyệt')
+        expect(page.locator('#completeLesson')).to_be_disabled()
         expect(page.locator('#progressText')).to_contain_text('0/6')
-        expect(page.locator('#notice')).to_contain_text('Ghi dự đoán')
-        expect(page.locator('#notice')).to_contain_text('Chọn nơi')
+        expect(page.locator('#completionChecklist')).to_contain_text('Ghi dự đoán')
+        expect(page.locator('#completionChecklist')).to_contain_text('Chọn nơi')
         evidence = {
             'prediction': 'Với điện trở 330 ohm, tôi dự đoán LED sáng và dòng điện được giới hạn.',
             'observation': 'Mạch nối kín với điện trở 330 ohm: LED sáng; đây là bản ghi kiểm thử của editor.',
@@ -934,9 +954,9 @@ with sync_playwright() as p:
         page.locator('#practiceSource').select_option('external')
         for field in ['prediction', 'observation', 'explanation']:
             page.locator('#' + field).fill(evidence[field])
-        page.locator('button[onclick="markLessonComplete()"]').first.click()
+        expect(page.locator('#completeLesson')).to_be_disabled()
         expect(page.locator('#progressText')).to_contain_text('0/6')
-        expect(page.locator('#notice')).to_contain_text('Đổi một đầu vào')
+        expect(page.locator('#completionChecklist')).to_contain_text('Đổi một đầu vào')
         page.locator('#transfer').fill(evidence['transfer'])
         page.reload(wait_until='domcontentloaded')
         expect(page.locator('#journal')).to_have_value(note)
@@ -944,9 +964,12 @@ with sync_playwright() as p:
         for field, value in evidence.items():
             expect(page.locator('#' + field)).to_have_value(value)
         expect(page.locator('#practiceSource')).to_have_value('external')
-        page.locator('button[onclick="markLessonComplete()"]').first.click()
+        page.locator('#tabBtnLab').click()
+        expect(page.locator('#completeLesson')).to_be_enabled()
+        page.locator('#completeLesson').click()
         expect(page.locator('#progressText')).to_contain_text('1/6')
-        expect(page.locator('#completionStatus')).to_contain_text('tự xác nhận')
+        expect(page.locator('#completionStatus')).to_contain_text('Đã ghi nhận hoàn thành bài.')
+        expect(page.locator('#completeLesson')).to_be_disabled()
         page.reload(wait_until='domcontentloaded')
         expect(page.locator('#progressText')).to_contain_text('1/6')
         page.locator('button[onclick="openPdfModal()"]').first.click()
@@ -961,6 +984,7 @@ with sync_playwright() as p:
         page.keyboard.press('Escape')
         expect(page.locator('#pdfModal')).to_be_hidden()
         page.locator('#tabBtnLab').click()
+        page.locator('#courseBackup > summary').click()
         with page.expect_download() as info:
             page.locator('#exportNotes').click()
         notes = json.loads(pathlib.Path(info.value.path()).read_text())
@@ -1025,9 +1049,11 @@ with sync_playwright() as p:
         require(reqs[-1]['question'] == 'Giải thích lệnh trong bài?', 'Tutor changed the raw question')
         require(reqs[-1].get('platformKey') == 'python' and reqs[-1].get('learningLevel') == 'beginner', 'Tutor lost the selected editor or explanation level')
         require('images' not in reqs[-1], 'Text-only tutor request acquired unexpected attachments')
+        page.locator('#tutorClose').click()
         page.locator('#learningLevel').select_option('intermediate')
         page.locator('#tabBtnLab').click()
-        page.locator('#labButtons button[data-lab-key="scratch"]').click()
+        page.locator('#labButtons button[data-lab-key="local"]').click()
+        page.locator('#tutorLauncher').click()
         page.locator('#tutorQuestion').fill('Cho ví dụ?')
         page.locator('#tutorSend').click()
         expect(page.locator('#tutorSend')).to_be_enabled()
@@ -1037,7 +1063,7 @@ with sync_playwright() as p:
                     {'role': 'user', 'content': 'Giải thích lệnh trong bài?'},
                     {'role': 'assistant', 'content': 'Phản hồi AI kiểm thử: mạch điện và thuật toán.'}
                 ], 'Tutor lost raw follow-up question or conversation history')
-        require(reqs[-1].get('platformKey') == 'scratch' and reqs[-1].get('learningLevel') == 'intermediate',
+        require(reqs[-1].get('platformKey') == 'local' and reqs[-1].get('learningLevel') == 'intermediate',
                 'Tutor did not follow the selected platform and explanation level')
         page.locator('#lessonList button').nth(1).click()
         expect(page.locator('#tutorMessages')).to_be_empty()

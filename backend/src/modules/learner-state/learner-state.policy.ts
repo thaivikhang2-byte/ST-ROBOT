@@ -5,6 +5,20 @@ const coursePlatforms: Readonly<Record<string, readonly string[]>> = {
   'vex-iq': ['gears', 'scratch', 'arcade', 'local'], 'lego-spike': ['gears', 'scratch', 'arcade', 'local'], 'vex-vr': ['gears', 'scratch', 'arcade', 'local'],
 };
 
+// Retired platform records remain valid for account backups. The active lesson
+// menu and AI catalog are deliberately narrower than this compatibility list.
+const labFileExtensions: Readonly<Record<string, readonly string[]>> = {
+  circuit: ['txt'],
+  avr: ['ino', 'cpp', 'c', 'h', 'txt', 'zip'],
+  wokwi: ['ino', 'cpp', 'c', 'h', 'json', 'txt', 'zip'],
+  python: ['py', 'hex', 'json', 'zip'],
+  gears: ['py', 'xml', 'json', 'zip'],
+  phet: [], local: [],
+  scratch: ['sb3', 'json', 'txt', 'zip'],
+  arcade: ['png', 'ts', 'js', 'py', 'json', 'hex', 'zip'],
+};
+const labProjectBytes = 256 * 1024;
+
 export const courseLessons: Readonly<Record<string, readonly string[]>> = Object.freeze({
   arduino: ['led', 'timing', 'distance', 'alarm', 'calibration', 'project'],
   'vex-iq': ['drive', 'turn', 'detect', 'mission', 'odometry', 'control'],
@@ -37,10 +51,12 @@ function projectUrl(value: string) {
 
 function validateLabWork(value: unknown, courseId: string) {
   if (!object(value)) fail('Invalid lab work map');
-  const fields = ['version', 'savedAt', 'code', 'notes', 'projectUrl', 'fileName'];
   for (const [platform, work] of Object.entries(value)) {
+    const fields = ['version', 'savedAt', 'code', 'notes', 'projectUrl', 'fileName',
+      ...(object(work) && work.version === 2 ? ['files'] : [])];
     if (!coursePlatforms[courseId]?.includes(platform) || !object(work)
-      || Object.keys(work).some(key => !fields.includes(key)) || work.version !== 1
+      || Object.keys(work).some(key => !fields.includes(key))
+      || (work.version !== 1 && work.version !== 2)
       || !time(work.savedAt) || !/^\d{4}-\d{2}-\d{2}T/.test(String(work.savedAt))
       || !short(work.code, 32768) || Buffer.byteLength(work.code as string, 'utf8') > 32768
       || !short(work.notes, 2000) || !short(work.projectUrl, 2048) || !short(work.fileName, 120)) fail('Invalid saved lab work');
@@ -48,6 +64,28 @@ function validateLabWork(value: unknown, courseId: string) {
     const name = work.fileName as string;
     if (/[\/\\\u0000-\u001f\u007f]/.test(name) || name.includes('..')
       || ['__proto__', 'prototype', 'constructor'].includes(name)) fail('Invalid lab work filename');
+    if (work.version === 2) {
+      if (!Array.isArray(work.files) || work.files.length > 4) fail('Invalid lab project files');
+      let bytes = 0;
+      const names = new Set<string>();
+      for (const file of work.files) {
+        if (!object(file) || Object.keys(file).some(key => !['name', 'dataBase64'].includes(key))
+          || !short(file.name, 120) || !file.name
+          || /[\/\\\u0000-\u001f\u007f]/.test(file.name as string)
+          || (file.name as string).includes('..') || ['__proto__', 'prototype', 'constructor'].includes(file.name as string)
+          || typeof file.dataBase64 !== 'string' || file.dataBase64.length > 349528
+          || !/^[A-Za-z0-9+/]*={0,2}$/.test(file.dataBase64)) fail('Invalid lab project file');
+        const name = file.name as string;
+        const normalized = name.toLowerCase();
+        const extension = name.includes('.') ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : '';
+        if (names.has(normalized) || !labFileExtensions[platform]?.includes(extension)) fail('Lab file does not match this platform');
+        names.add(normalized);
+        const decoded = Buffer.from(file.dataBase64, 'base64');
+        bytes += decoded.length;
+        if (decoded.length > labProjectBytes || bytes > labProjectBytes
+          || decoded.toString('base64') !== file.dataBase64) fail('Lab project exceeds file limits');
+      }
+    }
   }
 }
 

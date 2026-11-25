@@ -1,12 +1,12 @@
 # Luồng tự học và thực hành
 
-Bản cập nhật này chuẩn bị phần giao diện và nội dung cho học sinh THCS, THPT bắt đầu học STEM Robotics. Database, đăng nhập, agent và khảo sát thuộc giai đoạn tích hợp tiếp theo.
+Giao diện dành cho học sinh THCS, THPT bắt đầu học STEM Robotics. Tài khoản, tiến độ và bài thực hành được đồng bộ với database; agent dùng cấu hình do admin quản lý.
 
 ## Hành trình học
 
 1. Trang bắt đầu chọn một trong năm khóa và kinh nghiệm hiện tại. Vào bài đầu trực tiếp, không thu tên hoặc thông tin liên hệ để mở học liệu.
 2. Mỗi bài nêu mục tiêu, điều cần chuẩn bị và một ý chính trước khi mở phần giải thích sâu hơn.
-3. Trong tab Thực hành, học sinh đọc nhiệm vụ và ghi dự đoán. Hướng dẫn từng bước, hướng dẫn editor và mã mẫu ở cùng tab với lab. Có nút chuyển nhanh giữa nhiệm vụ, bàn thực hành và ghi kết quả.
+3. Trong tab Thực hành, học sinh đọc nhiệm vụ và ghi dự đoán. Hướng dẫn từng bước, hướng dẫn editor và mã mẫu ở cùng tab với lab. Thanh bốn bước chuyển tới Hướng dẫn, Chạy thử, Lưu bài và Kiểm tra. Chuẩn bị và các bước chính hiện ngay; xử lý lỗi, mở rộng, mã đầy đủ và sao lưu được thu gọn.
 4. Học sinh thao tác trong editor, bộ kit hoặc mô hình quy tắc của bài; ghi quan sát, giải thích và kết quả khi đổi đầu vào.
 5. Câu kiểm tra giúp đối chiếu kiến thức. Hoàn thành là học sinh **tự xác nhận** sau khi điền các phần và trả lời đúng; không phải điểm năng lực tự động chấm từ văn bản.
 
@@ -24,15 +24,15 @@ Có mô hình riêng cho 30 bài, chia thành các bộ: Arduino (mạch, nhịp
 
 Giữ khóa `strobot.original.course.v3` và các ghi chú/tiến độ cũ. Bản ghi mới thêm `prediction`, `observation`, `explanation`, `transfer`, `source`, `projectUrl`, `modelEvidence`, `completionSource`, `completedAt`. `source` là `local-model`, `external` hoặc `hardware`. Chỉnh các phần minh chứng hoặc làm lại kiểm tra sẽ mở lại trạng thái hoàn thành; ghi chú thêm không xóa tiến độ.
 
-Tải hồ sơ xuất JSON phiên bản 2 theo từng khóa. Khôi phục hỗ trợ bản cũ, kiểm tra toàn bộ tệp trước khi thay dữ liệu, yêu cầu xem trước và xác nhận thay các bài có trong tệp; giữ các bài khác/khóa khác. Dữ liệu nhập đánh dấu hoàn thành được gắn `imported-self-report`; không tiếp nhận cờ chấm điểm hoặc xác minh tùy ý. Tệp tối đa 1 MiB, chỉ nhận bài thuộc khóa và đường dẫn dự án HTTPS. Đã có kiểm thử tệp lỗi, giới hạn dữ liệu và khóa có nguy cơ sửa prototype.
+Tải hồ sơ xuất JSON phiên bản 2 theo từng khóa. Khôi phục hỗ trợ bản cũ, kiểm tra toàn bộ tệp trước khi thay dữ liệu, yêu cầu xem trước và xác nhận thay các bài có trong tệp; giữ các bài khác/khóa khác. Dữ liệu nhập đánh dấu hoàn thành được gắn `imported-self-report`; không tiếp nhận cờ chấm điểm hoặc xác minh tùy ý. Tệp tối đa 5 MiB, chỉ nhận bài thuộc khóa và đường dẫn dự án HTTPS. Đã có kiểm thử tệp lỗi, giới hạn dữ liệu và khóa có nguy cơ sửa prototype.
 
-Hồ sơ trên là dự đoán, quan sát và ghi chú. Tệp mã/dự án thực tế của editor cần lưu hoặc tải tại nền tảng đó. Cầu nối micro:bit hiện có vẫn lưu dự án từng bài ở bộ nhớ trình duyệt riêng và cho tải `.py`. Các iframe khác giữ cách lưu dự án của nền tảng tương ứng; tài khoản nền tảng đó độc lập. Tệp hồ sơ có thể chuyển thủ công sang trình duyệt khác, chưa có đồng bộ tài khoản tự động.
+Hồ sơ chứa dự đoán, quan sát, ghi chú và bài làm theo nền tảng. Tệp dự án gốc có thể đính kèm trong phần Lưu bài thực hành (bốn tệp, tổng 256 KiB). Cầu nối micro:bit tự lưu toàn bộ dự án nhúng theo bài và tài khoản. PhET và mô hình trong web lưu phiếu kết quả; người học nhập lại đầu vào khi mở phiên mới. Các editor ngoài giữ cơ chế lưu và tài khoản riêng. Xem [hướng dẫn từng nền tảng](lab-account-integration.md).
 
 Lỗi tải iframe giữ tùy chọn nền tảng, cho thử tải lại, mở riêng hoặc chuyển mô hình. Một lần tải lỗi không xóa nền tảng khỏi danh sách. Các mô hình và PDF được phục vụ cùng web nên vẫn dùng khi bên cung cấp lab gián đoạn; không cam kết chúng thực thi thay mọi dự án trên nền tảng đó.
 
-## Tích hợp sau này
+## Agent và quyền kiểm soát
 
-Nhóm phụ trách database có thể lưu bản ghi theo người dùng + khóa + bài, giữ định danh cũ và phân biệt dữ liệu người học báo cáo với thao tác máy ghi nhận. Agent cần adapter chính thức cho từng editor và sự cho phép của người học trước khi áp dụng sửa mã. Ba nút gợi ý AI hiện chỉ điền câu hỏi để người học xem và gửi; chúng không tự gọi API hoặc điều khiển iframe. Cấu hình provider và luồng lập đề AI hiện tại được giữ nguyên.
+Agent đọc dữ liệu học tập của đúng chủ tài khoản trên server và nhận danh mục lab/cách lưu do website quản lý. Tệp nhị phân không được gửi sang AI. Ba nút gợi ý chỉ điền câu hỏi để người học xem rồi gửi; không tự gọi API hoặc điều khiển iframe. Editor khác miền chỉ được đọc/ghi qua giao thức chính thức đã triển khai, hiện có ở micro:bit. Cấu hình provider và luồng lập đề AI được giữ nguyên.
 
 ## Kiểm tra cục bộ
 
@@ -49,7 +49,7 @@ Các kiểm thử trình duyệt chặn iframe bên ngoài và dùng phản hồ
 
 ## Hướng dẫn theo nền tảng và AI nổi
 
-Trang học dùng `PlatformGuides.js` để chọn nhiệm vụ, các bước chuẩn bị, cách chạy, kết quả dự kiến, cách xử lý lỗi và mã theo bộ ba khóa/bài/nền tảng. Có 126 hoạt động cho các lựa chọn hiện có. Mỗi hoạt động ghi rõ là thực hành chính hay bổ trợ và nêu phần có thể so sánh với bài học. Python Editor chỉ hiện MicroPython; GearsBot dùng API ev3dev2 hoặc Python tính toán đúng theo mẫu. Scratch có công thức khối lệnh; Arcade có TypeScript. Các bàn mô hình và mô phỏng mạch không có editor mã dùng hướng dẫn thao tác. Với khung chỉ chạy dự án mẫu, hướng dẫn chỉ rõ cách vào editor đầy đủ ở tab riêng để sửa và lưu.
+Trang học dùng `PlatformGuides.js` để chọn nhiệm vụ, các bước chuẩn bị, cách chạy, kết quả dự kiến, xử lý lỗi và mã theo khóa/bài/nền tảng. Có 78 hoạt động trên bảy công cụ. Python Editor dùng MicroPython; GearsBot dùng API ev3dev2 hoặc Python tính toán đúng theo nhãn. Wokwi mở editor đầy đủ ở tab riêng; Scratch/Arcade sample player không còn trong lựa chọn. Mô hình và mô phỏng mạch không chạy mã có hướng dẫn thao tác riêng.
 
 Mỗi bài có giải thích nhập môn, ví von kèm giới hạn, thuật ngữ, một trường hợp làm từng bước, câu hỏi tự giải thích và ba mức đọc. Mức đọc do học sinh tự chọn và được nhớ trên trình duyệt. Các nội dung này cũng có trong PDF; chương trình, câu hỏi và đáp án cũ được giữ nguyên.
 
@@ -67,7 +67,7 @@ Tệp gốc giới hạn 8 MiB, tối đa 25 triệu pixel; ảnh chuẩn hóa J
 
 Kiểm tra bổ sung:
 
-- `node tests/platform-guides.mjs` kiểm tra 378 tổ hợp bài/nền tảng/mức đọc, cú pháp Python, sáu sketch AVR và các công thức Arcade trong môi trường kiểm thử API.
+- `node tests/platform-guides.mjs` kiểm tra 234 tổ hợp bài/nền tảng/mức đọc, hướng dẫn lưu/mở lại, cú pháp Python và sáu sketch AVR chạy trong bộ kiểm thử.
 - `node tests/tutor-images.mjs` kiểm tra dữ liệu ảnh, giới hạn streaming, context và payload provider bằng nhà cung cấp giả lập.
 - `python3 tests/floating-tutor-smoke.py --base http://127.0.0.1:5500` kiểm tra kéo chuột/cảm ứng, bàn phím, lưu vị trí, vùng nhìn thấy và hộp thoại.
 - `python3 tests/tutor-images-smoke.py --base http://127.0.0.1:5500` kiểm tra tải/dán/chụp, cắt vùng, bộ chọn ảnh điện thoại, Safari decode fallback, xem trước, gửi, giữ khi lỗi và dừng track. Nguồn chụp và phản hồi AI được giả lập, không phát sinh lượt hỏi dịch vụ thật.

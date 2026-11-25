@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Exercise public-first lessons and owner-bound lab drafts; no external accounts or AI."""
 import argparse
+import io
 import json
+import pathlib
+import zipfile
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright, expect
 parser = argparse.ArgumentParser()
 parser.add_argument('--base', default='http://127.0.0.1:5518')
-parser.add_argument('--chromium', default='/usr/bin/chromium')
+parser.add_argument('--chromium', default='/usr/bin/chromium' if pathlib.Path('/usr/bin/chromium').is_file() else None)
 args = parser.parse_args()
 base = args.base.rstrip('/')
 fixture = r'''
@@ -51,10 +54,10 @@ with sync_playwright() as pw:
     expect(page.locator('#labView')).to_be_visible()
     expect(page.locator('#practiceFrame')).to_have_count(1)
     assert page.evaluate('lesson().id')=='buttons' and page.evaluate('frameKey')=='python'
-    page.locator('#labWorkspace summary').click()
+    page.locator('#labWorkSourceDetails > summary').click()
     page.locator('#labWorkCode').fill('print("owned source A")')
     page.locator('#labWorkNotes').fill('Resume after changing the button')
-    page.locator('#labWorkProjectUrl').fill('https://example.com/my-project')
+    expect(page.locator('#labWorkProjectUrl')).to_be_hidden()
     page.locator('#labWorkSave').click()
     expect(page.locator('#labWorkStatus')).to_contain_text('Đã đồng bộ')
     saved = page.evaluate('JSON.parse(localStorage.getItem("fixture.owner.ownerA.strobot.original.course.v3"))')
@@ -76,6 +79,42 @@ with sync_playwright() as pw:
     expect(page.locator('#labWorkStatus')).to_contain_text('Đã đồng bộ')
     with page.expect_download() as download:page.locator('#labWorkDownload').click()
     assert download.value.suggested_filename=='my-code.py'
+    # Native project bytes are retained independently of the optional source copy.
+    package = io.BytesIO()
+    with zipfile.ZipFile(package, 'w') as archive:
+        archive.writestr('main.py', 'print("native archive")')
+        archive.writestr('data.bin', bytes([0, 255, 128, 10]))
+    native_bytes = package.getvalue()
+    page.locator('#labWorkFiles').set_input_files({'name':'python-backup.zip','mimeType':'application/zip','buffer':native_bytes})
+    expect(page.locator('#labWorkFileList')).to_contain_text('python-backup.zip')
+    expect(page.locator('#labWorkStatus')).to_contain_text('Đã đồng bộ')
+    with page.expect_download() as native_download:
+        page.locator('#labWorkFileList').get_by_role('button',name='Tải tệp',exact=True).click()
+    assert pathlib.Path(native_download.value.path()).read_bytes() == native_bytes
+    for width in [390, 1440]:
+        page.set_viewport_size({'width':width,'height':1000})
+        page.locator('#labWorkspace').scroll_into_view_if_needed()
+        assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1')
+        page.screenshot(path=f'/tmp/strobot-native-save-{width}.png')
+    page.reload(wait_until='domcontentloaded');page.evaluate('__openWorkspace("ownerA")')
+    page.locator('#tabBtnLab').click()
+    expect(page.locator('#labWorkFileList')).to_contain_text('python-backup.zip')
+    expect(page.locator('#labWorkCode')).to_have_value('print("imported")')
+    page.locator('#labWorkSourceDetails > summary').click()
+    # Restoring or removing an attachment cancels older asynchronous imports.
+    page.evaluate('''() => { window.originalArrayBuffer=File.prototype.arrayBuffer;
+        File.prototype.arrayBuffer=function(){return new Promise(resolve=>window.releaseRestoreImport=()=>resolve(new TextEncoder().encode('superseded import').buffer))}; }''')
+    page.locator('#labWorkFile').set_input_files({'name':'superseded.py','mimeType':'text/plain','buffer':b'ignored'})
+    page.locator('#labWorkRestore').click()
+    page.evaluate('() => {releaseRestoreImport(); File.prototype.arrayBuffer=originalArrayBuffer}')
+    expect(page.locator('#labWorkCode')).to_have_value('print("imported")')
+    page.evaluate('''() => { window.originalArrayBuffer=File.prototype.arrayBuffer;
+        File.prototype.arrayBuffer=function(){return new Promise(resolve=>window.releaseRemovedImport=()=>resolve(new TextEncoder().encode('superseded attachment').buffer))}; }''')
+    page.locator('#labWorkFiles').set_input_files({'name':'new.py','mimeType':'text/plain','buffer':b'ignored'})
+    page.locator('#labWorkFileList').get_by_role('button',name='Bỏ khỏi bản lưu',exact=True).click()
+    page.evaluate('() => {releaseRemovedImport(); File.prototype.arrayBuffer=originalArrayBuffer}')
+    expect(page.locator('#labWorkFileList li')).to_have_count(0)
+    expect(page.locator('#labWorkCode')).to_have_value('print("imported")')
     # A different owner is never a write target for stale controls.
     page.evaluate('''() => { window.originalArrayBuffer=File.prototype.arrayBuffer;
         File.prototype.arrayBuffer=function(){return new Promise(resolve=>window.releaseImport=()=>resolve(new TextEncoder().encode('late-owner-source').buffer))}; }''')
@@ -91,7 +130,7 @@ with sync_playwright() as pw:
     expect(page.locator('#labWorkNotes')).to_have_value('')
     expect(page.locator('#labWorkCode')).to_have_value('')
     # Real scope-change notification on logout clears private source immediately.
-    page.locator('#labWorkspace summary').click()
+    page.locator('#labWorkSourceDetails > summary').click()
     page.locator('#labWorkCode').fill('print("private owner B")')
     page.locator('#labWorkNotes').fill('Private account B checkpoint')
     page.locator('#labWorkSave').click()

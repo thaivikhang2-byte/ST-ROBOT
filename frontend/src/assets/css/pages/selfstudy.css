@@ -202,3 +202,36 @@ body.learning-page { height:100dvh; overflow:hidden; }
 #theoryView>.lesson-hero,#theoryView>.learning-level-control,#theoryView>.example,#theoryView>.ws-grid-2,#learningGuideContent { max-width:1280px;margin-left:auto;margin-right:auto; }
 @media(min-width:1250px) { .learning-page .ws-grid-2 { grid-template-columns:minmax(250px,.8fr) minmax(0,1.8fr); } }
 @media(max-width:700px) { #theoryView { padding:12px; } .learning-level-control { padding:14px; } }
+
+/* Follow one visible route from instructions to the saved experiment. */
+.practice-roadmap { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;position:sticky;top:0;z-index:3;padding:8px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-sm); }
+.practice-roadmap button { display:flex;align-items:center;justify-content:center;gap:7px; }
+.practice-roadmap button span { display:grid;place-items:center;flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:var(--color-primary-soft);color:var(--color-primary);font-weight:700; }
+.practice-instructions { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px; }
+.practice-instructions ol { padding-left:22px; }
+#practiceHelp { margin-top:12px;border-top:0; }
+#practiceHelp>summary { color:var(--color-text); }
+#sampleCodeActions { margin-top:16px;flex-wrap:wrap;gap:8px;border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:10px; }
+#sampleCodeActions select { width:auto;max-width:100%; }
+#practiceFrame { height:clamp(480px,72dvh,720px); }
+#practiceMission,#frameHost,#localLab,#labWorkspace,#assessment { scroll-margin-top:72px; }
+.lab-editor-launch { padding:24px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface); }
+.lab-editor-launch p { max-width:68ch; }
+.lab-work-method { font-weight:600;color:var(--color-primary); }
+#labWorkSaveSteps { padding-left:22px;margin-bottom:20px; }
+#labWorkSaveSteps li { margin:8px 0; }
+.lab-work-files { margin:14px 0;padding:14px;border:1px solid var(--color-border);border-radius:var(--radius-sm); }
+#labWorkFileList { padding:0;list-style:none; }
+.lab-work-file { display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--color-border); }
+.lab-work-file span { flex:1 1 240px;min-width:0;overflow-wrap:anywhere; }
+#labWorkNotes,#labWorkCode,#labWorkProjectUrl { width:100%; }
+#labWorkSourceDetails { margin-bottom:16px; }
+.completion-checklist { padding-left:22px; }
+.completion-checklist li { margin:6px 0; }
+#completeLesson { margin:12px 0; }
+@media(max-width:700px){
+ .practice-roadmap { grid-template-columns:repeat(2,minmax(0,1fr));position:static; }
+ .practice-instructions { grid-template-columns:minmax(0,1fr);gap:8px; }
+ #practiceFrame { height:clamp(460px,70dvh,640px); }
+ .lab-editor-launch { padding:18px; }
+}

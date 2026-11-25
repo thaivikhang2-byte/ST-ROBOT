@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { BadRequestException } from '@nestjs/common';
 import { resolve } from 'node:path';
 import type { PrismaService } from '../../../database/prisma.service';
@@ -7,6 +8,7 @@ import { AiAgentService } from './ai-agent.service';
 import { AgentToolRegistry } from './agent-tool-registry';
 import { ownLearningData, siteLabResources, siteLessonContext } from './site-learning-context';
 import { siteCourseLabs, siteLabPlatforms } from './site-lab-catalog';
+import { siteLabWorkflows } from './site-lab-workflows';
 
 function database(values: Record<string, string> = {}) {
   const snapshot = { values, summary: { courses: [] }, revision: 7, updated_at: new Date(0) };
@@ -22,6 +24,14 @@ describe('Authoritative site labs and owner learning context', () => {
     const platforms = JSON.parse(source.match(/window\.STROBOT_LAB_PLATFORMS\s*=\s*({[\s\S]*?})\s*;/)![1]) as Record<string, Record<string, unknown>>;
     const courses = JSON.parse(source.match(/window\.STROBOT_COURSE_LABS\s*=\s*({[\s\S]*?})\s*;/)![1]) as Record<string, string[]>;
     expect(siteCourseLabs).toEqual(courses);
+    expect(Object.keys(siteLabPlatforms)).toEqual(Object.keys(platforms));
+    const guest = readFileSync(resolve(process.cwd(), '../ai-server/tutor-context.mjs'), 'utf8');
+    const guestCourses = JSON.parse(guest.match(/export const COURSE_LAB_KEYS = Object\.freeze\(({[\s\S]*?})\);/)![1]);
+    expect(guestCourses).toEqual(courses);
+    for (const retired of ['scratch', 'arcade', 'makecode']) {
+      expect(platforms).not.toHaveProperty(retired);
+      expect(Object.values(courses).flat()).not.toContain(retired);
+    }
     for (const keys of Object.values(courses)) for (const key of keys) {
       for (const field of ['name', 'mode', 'languages', 'url', 'externalUrl']) expect(siteLabPlatforms[key][field as keyof typeof siteLabPlatforms[string]]).toEqual(platforms[key][field]);
     }
@@ -29,6 +39,28 @@ describe('Authoritative site labs and owner learning context', () => {
     expect(arduino.courses[0].platforms.find(p => p.key === 'wokwi')?.selected).toBe(true);
     expect(arduino.courses[0].platforms.map(p => p.key)).toEqual(['circuit', 'avr', 'wokwi', 'phet', 'local']);
     expect(() => siteLabResources('arduino', 'python')).toThrow('not offered');
+    expect(() => siteLabResources('microbit', 'scratch')).toThrow('not offered');
+    expect(() => siteLabResources('vex-iq', 'arcade')).toThrow('not offered');
+  });
+
+  it('uses the same native save and reopen instructions as the learner interface', () => {
+    const modulePath = resolve(process.cwd(), '../frontend/src/modules/learning/LabPlatformWorkflows.js');
+    const instructions = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', `
+      import {pathToFileURL} from 'node:url';
+      const {getLabWorkflow} = await import(pathToFileURL(process.argv[1]).href);
+      const fields = ['mode', 'sourceLabel', 'extensions', 'saveSteps', 'reopenSteps'];
+      const result = Object.fromEntries(JSON.parse(process.argv[2]).map(key => {
+        const value = getLabWorkflow(key);
+        return [key, Object.fromEntries(fields.map(field => [field, value[field]]))];
+      }));
+      process.stdout.write(JSON.stringify(result));
+    `, modulePath, JSON.stringify(Object.keys(siteLabPlatforms))], { encoding: 'utf8', timeout: 10000 }));
+    expect(siteLabWorkflows).toEqual(instructions);
+    expect(siteLabWorkflows.circuit.extensions).toEqual(['.txt']);
+    expect(siteLabWorkflows.gears.extensions).toContain('.zip');
+    expect(siteLabWorkflows.wokwi.mode).toBe('project');
+    expect(siteLabWorkflows.phet.mode).toBe('worksheet');
+    expect(siteLabWorkflows.local.extensions).toEqual([]);
   });
 
   it('includes approved lesson/lab content but never the hidden answer or solution fields', () => {

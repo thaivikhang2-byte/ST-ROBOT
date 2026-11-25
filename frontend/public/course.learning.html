@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../src/assets/css/components.css?v=guided-learning-v15">
   <link rel="stylesheet" href="../src/vendor/katex/katex.min.css?v=ai-render-v14">
   <link rel="stylesheet" href="../src/assets/css/ai-message.css?v=ai-render-v14">
-  <link rel="stylesheet" href="../src/assets/css/pages/selfstudy.css?v=workspace-v16">
+  <link rel="stylesheet" href="../src/assets/css/pages/selfstudy.css?v=native-labs-v1">
   <link rel="stylesheet" href="../src/assets/css/floating-tutor.css?v=workspace-v16">
   <link rel="stylesheet" href="../src/assets/css/tutor-attachments.css?v=screen-region-v2">
   <link rel="stylesheet" href="../src/modules/learning/learning-theory.css?v=workspace-v16">
@@ -47,7 +47,7 @@
             <button type="button" onclick="switchMainTab('theory')" id="tabBtnTheory" class="lab-active-tab">1. Hiểu bài</button>
             <button type="button" onclick="switchMainTab('lab')" id="tabBtnLab">2. Thực hành</button>
           </div>
-          <button type="button" class="btn--primary" onclick="markLessonComplete()">✓ Tự xác nhận hoàn thành</button>
+          <button type="button" id="continuePractice" class="btn--primary" onclick="switchMainTab('lab')">Bắt đầu thực hành →</button>
         </div>
         <div id="theoryView">
           <div class="lesson-hero">
@@ -67,18 +67,20 @@
 
         </div>
         <div id="labView" hidden>
-          <div class="platform-intro"><h2>Chọn nền tảng thực hành</h2><p class="small">Hướng dẫn và mã bên dưới sẽ đổi theo lựa chọn của bạn.</p></div>
+          <div class="platform-intro"><h2>Thực hành bài học</h2><p class="small">Chọn công cụ bên dưới. Hướng dẫn, mã mẫu và cách lưu bài sẽ đổi theo công cụ bạn chọn.</p></div>
           <div id="labButtons" class="toolbar platform-selector" role="group" aria-label="Nền tảng thực hành cho khóa học"></div>
+          <nav class="practice-roadmap" aria-label="Các bước thực hành"><button type="button" onclick="focusPracticePart('practiceMission')"><span>1</span> Hướng dẫn</button><button type="button" onclick="focusPracticePart(frameKey==='local'?'localLab':'frameHost')"><span>2</span> Chạy thử</button><button type="button" onclick="focusPracticePart('labWorkspace')"><span>3</span> Lưu bài</button><button type="button" onclick="focusPracticePart('assessment')"><span>4</span> Kiểm tra</button></nav>
           <section class="ws-card glass-panel" id="practiceMission">
             <p class="ws-eyebrow" id="activePlatformLabel">Nhiệm vụ của bạn</p><h2 id="practiceTitle"></h2><p id="exercise"></p><p id="platformCapability" class="small"></p>
-            <p class="small">Dự đoán trước khi chạy → quan sát kết quả → giải thích → đổi một đầu vào và thử lại.</p>
-            <label for="prediction">1. Bạn dự đoán điều gì? Ghi cả đầu vào sẽ thử.</label>
-            <textarea id="prediction" rows="2" maxlength="2000" placeholder="Tôi chọn… Tôi nghĩ kết quả sẽ… vì…"></textarea>
-            <div class="lab-actions practice-navigation"><button type="button" onclick="focusPracticePart(frameKey==='local'?'localLab':'frameHost')">Đến bàn thực hành ↓</button><button type="button" onclick="focusPracticePart('observation')">Ghi kết quả ↓</button></div><details id="practiceHelp"><summary>Các bước thực hành</summary><h3>Chuẩn bị trong nền tảng này</h3><ol id="platformSetupSteps"></ol><h3>Làm lần lượt</h3><ol id="practiceSteps"></ol><p id="labGuide"></p><h3>Bạn sẽ quan sát được gì?</h3><ul id="platformExpected"></ul><details><summary>Gặp lỗi ở bước này?</summary><ul id="platformTroubleshooting"></ul></details><details><summary>Liên hệ hoạt động này với bài học</summary><p id="platformComparisonMission"></p><ul id="platformComparisonMeasures"></ul><p id="platformComparisonLimit" class="small"></p></details></details>
-            <details id="sampleCodeDetails"><summary>Mã mẫu và môi trường sử dụng</summary><p class="small" id="codeEnvironmentNote"></p><div class="code-box"><div class="code-box-head"><span id="codeLangLabel">Mã nguồn mẫu</span><select id="codeVariantSelect" aria-label="Môi trường của mã mẫu" hidden></select><button type="button" onclick="copySampleCode()">Sao chép</button><button type="button" onclick="downloadSampleCode()">Tải mã mẫu</button></div><pre id="sampleCodeBox" class="notranslate" translate="no" lang="en"></pre></div></details>
+            <details id="practiceHelp" open><summary>1. Chuẩn bị và thực hiện</summary><div class="practice-instructions"><section><h3>Chuẩn bị</h3><ol id="platformSetupSteps"></ol></section><section><h3>Các bước thực hiện</h3><ol id="practiceSteps"></ol></section></div><h3>Kết quả cần kiểm tra</h3><ul id="platformExpected"></ul><details><summary>Xử lý lỗi thường gặp</summary><ul id="platformTroubleshooting"></ul></details><details><summary>Thử thêm và đối chiếu</summary><p id="labGuide"></p><p id="platformComparisonMission"></p><ul id="platformComparisonMeasures"></ul><p id="platformComparisonLimit" class="small"></p></details></details>
+            <label for="prediction">Trước khi chạy: bạn sẽ thử đầu vào nào, dự kiến kết quả ra sao?</label>
+            <textarea id="prediction" rows="2" maxlength="2000" placeholder="Ví dụ: đặt thời gian bật 200 ms, tắt 800 ms; dự kiến LED nháy một lần mỗi giây."></textarea>
+            <div id="sampleCodeActions" class="code-box-head"><span id="codeLangLabel">Mã nguồn mẫu</span><select id="codeVariantSelect" aria-label="Môi trường của mã mẫu" hidden></select><button type="button" onclick="copySampleCode()">Sao chép mã mẫu</button><button type="button" onclick="downloadSampleCode()">Tải mã mẫu</button></div>
+            <details id="sampleCodeDetails"><summary>Xem toàn bộ mã mẫu</summary><p class="small" id="codeEnvironmentNote"></p><div class="code-box"><pre id="sampleCodeBox" class="notranslate" translate="no" lang="en"></pre></div></details>
+            <div class="lab-actions practice-navigation"><button type="button" class="btn--primary" onclick="focusPracticePart(frameKey==='local'?'localLab':'frameHost')">2. Đến bàn thực hành ↓</button></div>
           </section>
           <div class="lab-heading">
-            <h2 id="labBoxTitle"></h2>
+            <div><p class="ws-eyebrow">2. Chạy thử</p><h2 id="labBoxTitle"></h2></div>
             <div class="lab-actions">
               <button type="button" onclick="focusPracticePart('practiceMission')">Xem nhiệm vụ ↑</button>
               <a id="labExternalBtn" class="btn btn--primary btn--sm" target="_blank" rel="noopener noreferrer">Mở riêng ở tab ngoài ↗</a>
@@ -95,23 +97,24 @@
           <div id="frameHost"></div><div id="localLab" hidden></div>
           <section id="labWorkspace" class="ws-card glass-panel" aria-label="Bài thực hành của tôi"></section>
           <section class="ws-card glass-panel" id="assessment">
-            <h2>Ghi nhận điều bạn đã làm</h2>
+            <h2>4. Ghi kết quả và kiểm tra</h2>
             <label for="practiceSource">Bạn thực hành bằng</label><select id="practiceSource"><option value="">Chọn nơi bạn vừa thực hành</option><option value="local-model">Bàn mô hình trong web</option><option value="external">Editor / lab nhúng hoặc mở riêng</option><option value="hardware">Bộ kit thật</option></select>
             <p id="platformEvidencePrompt" class="small"></p><p id="modelEvidenceStatus" class="small" role="status"></p>
-            <label for="observation">2. Kết quả quan sát được</label><textarea id="observation" rows="2" maxlength="3000" placeholder="Với đầu vào… tôi thấy… (số đo, trạng thái hoặc đường đi)"></textarea>
-            <label for="explanation">3. Vì sao kết quả đó xảy ra? So với dự đoán của bạn thế nào?</label><textarea id="explanation" rows="2" maxlength="3000" placeholder="Kết quả khớp/khác dự đoán vì…"></textarea>
-            <label for="transfer">4. Thay đổi một đầu vào rồi thử lại</label><textarea id="transfer" rows="2" maxlength="2000" placeholder="Tôi đổi… từ… thành… Kết quả mới là… Tôi rút ra…"></textarea>
-            <details><summary>Lưu thêm ghi chú và đường dẫn dự án</summary><label for="projectUrl">Đường dẫn dự án đã lưu ở nền tảng thực hành (nếu có)</label><input id="projectUrl" type="url" maxlength="2000" placeholder="https://…"><p class="small">Tài khoản của nền tảng thực hành được quản lý riêng. Hãy lưu hoặc tải dự án ở editor trước khi đóng khung.</p><label for="journal">Ghi chú của bạn</label><textarea id="journal" maxlength="15000" rows="4" placeholder="Lỗi đã gặp, cách sửa, mã thay đổi…"></textarea></details>
+            <label for="observation">Kết quả lần chạy đầu</label><textarea id="observation" rows="2" maxlength="3000" placeholder="Ghi đầu vào và số đo, trạng thái hoặc đường đi quan sát được."></textarea>
+            <label for="explanation">Giải thích kết quả</label><textarea id="explanation" rows="2" maxlength="3000" placeholder="Kết quả có đúng dự đoán không? Dùng quy tắc của bài để giải thích."></textarea>
+            <label for="transfer">Thử lại với một thay đổi</label><textarea id="transfer" rows="2" maxlength="2000" placeholder="Ghi giá trị đã đổi, kết quả mới và điều bạn rút ra từ hai lần chạy."></textarea>
+            <details><summary>Ghi chú thêm</summary><div id="legacyProjectLink" hidden><label for="projectUrl">Liên kết trong nhật ký đã lưu trước đây</label><input id="projectUrl" type="url" maxlength="2000" placeholder="https://…"></div><label for="journal">Ghi chú của bạn</label><textarea id="journal" maxlength="15000" rows="4" placeholder="Lỗi đã gặp, cách khắc phục hoặc việc cần làm tiếp."></textarea></details>
             <p id="saveNotice" role="status"></p>
             <div id="tabConflictRecovery" class="ws-card" role="alert" hidden>
               <p>Một mục trong hồ sơ đang được sửa ở tab khác. Bản nháp của tab này vẫn được giữ và chưa ghi đè bản đang lưu.</p>
               <div class="lab-actions"><button type="button" onclick="document.getElementById('exportNotes').click()">Tải hồ sơ bản nháp</button><button type="button" onclick="useLatestTabCopy()">Bỏ bản nháp tab này, dùng bản đang lưu</button></div>
             </div>
-            <div class="lab-actions"><button type="button" id="exportNotes">Tải hồ sơ thực hành khóa này</button><label class="portfolio-import" for="importNotes">Khôi phục từ tệp JSON<input id="importNotes" type="file" accept="application/json,.json"></label></div>
-            <details><summary>Kiểm tra lại kiến thức</summary><form id="quizForm"><h3 id="quizQuestion"></h3><div id="quizOptions"></div><button type="submit" class="btn--primary">Kiểm tra đáp án</button><p id="quizFeedback" role="status"></p></form></details>
+            <details id="courseBackup"><summary>Sao lưu hoặc khôi phục hồ sơ khóa học</summary><p class="small">Hồ sơ JSON chứa bài làm và ghi chép của khóa học, kể cả bản lưu từ nền tảng cũ. Dùng mục này để dự phòng; tệp dự án của lab được thêm ở phần Lưu bài thực hành phía trên.</p><div class="lab-actions"><button type="button" id="exportNotes">Tải hồ sơ thực hành khóa này</button><label class="portfolio-import" for="importNotes">Khôi phục hồ sơ ST-Robot (.json)<input id="importNotes" type="file" accept="application/json,.json"></label></div></details>
+            <details id="lessonQuiz" open><summary>Câu kiểm tra cuối bài</summary><form id="quizForm"><h3 id="quizQuestion"></h3><div id="quizOptions"></div><button type="submit" class="btn--primary">Kiểm tra đáp án</button><p id="quizFeedback" role="status"></p></form></details>
             <details><summary>Đối chiếu sau khi tự làm</summary><p id="solution"></p><h3>Tiêu chí đối chiếu · 100 điểm</h3><ul id="rubric"></ul><p class="small">Dùng kết quả quan sát và lời giải thích để tự đối chiếu hoặc nhờ giáo viên góp ý theo các tiêu chí này.</p></details>
             <p id="completionStatus" class="small" role="status"></p>
-            <button type="button" class="btn--primary" onclick="markLessonComplete()">Tự xác nhận hoàn thành bài</button>
+            <ul id="completionChecklist" class="completion-checklist"></ul>
+            <button type="button" id="completeLesson" class="btn--primary" onclick="markLessonComplete()">Xác nhận hoàn thành bài</button>
             <p class="small">Tiến độ ghi nhận việc bạn tự báo cáo và làm kiểm tra. Kết quả từ editor hoặc kit do bạn ghi lại; bàn mô hình ghi thao tác theo quy tắc của từng bài.</p>
           </section>
         </div>
@@ -133,12 +136,12 @@
   <dialog id="microbitResetDialog" class="dialog" aria-labelledby="microbitResetTitle"><div class="dialog-body"><h2 id="microbitResetTitle">Nạp lại mã mẫu của bài này?</h2><p>Mã đã chỉnh sửa của bài đang mở sẽ được thay bằng mã mẫu. Hãy tải bản cần giữ trước khi tiếp tục. Dự án của các bài khác được giữ nguyên.</p></div><div class="dialog-foot"><button id="microbitCancelReset" type="button" class="btn" onclick="document.getElementById('microbitResetDialog').close()">Giữ mã hiện tại</button><button id="microbitConfirmReset" type="button" class="btn btn--primary" onclick="resetMicrobitSource()">Nạp mã mẫu</button></div></dialog>
   <script type="module" src="../src/app.js?v=provider-auth-v5"></script>
   <script type="module">import { MicrobitEditorBridge } from '../src/modules/learning/MicrobitEditorBridge.js?v=account-sync-v1'; window.STROBOT_MICROBIT_BRIDGE = MicrobitEditorBridge;</script>
-<script type="module">import { mountLessonBench } from '../src/modules/learning/LessonBench.js?v=guided-learning-v15'; import * as portfolio from '../src/modules/learning/PracticePortfolio.js?v=owned-lab-v1'; window.STROBOT_MOUNT_LESSON_BENCH=mountLessonBench; window.STROBOT_PRACTICE_PORTFOLIO=portfolio;</script>
-<script type="module">import { LabWorkspacePanel } from '../src/modules/learning/LabWorkspace.js?v=account-lab-v2'; window.STROBOT_LAB_WORKSPACE=LabWorkspacePanel;</script>
-<script type="module">import { getPlatformGuide } from '../src/modules/learning/PlatformGuides.js?v=workspace-v16'; window.STROBOT_PLATFORM_GUIDE=getPlatformGuide;</script>
+<script type="module">import { mountLessonBench } from '../src/modules/learning/LessonBench.js?v=guided-learning-v15'; import * as portfolio from '../src/modules/learning/PracticePortfolio.js?v=native-labs-v1'; window.STROBOT_MOUNT_LESSON_BENCH=mountLessonBench; window.STROBOT_PRACTICE_PORTFOLIO=portfolio;</script>
+<script type="module">import { LabWorkspacePanel } from '../src/modules/learning/LabWorkspace.js?v=native-labs-v1'; window.STROBOT_LAB_WORKSPACE=LabWorkspacePanel;</script>
+<script type="module">import { getPlatformGuide } from '../src/modules/learning/PlatformGuides.js?v=native-labs-v1'; window.STROBOT_PLATFORM_GUIDE=getPlatformGuide;</script>
 <script src="../src/data/curriculum.js?v=workspace-v16"></script>
 <script src="../src/data/lesson-pdfs.js?v=workspace-v16"></script>
-<script id="lab-platform-data" data-lab-version="76d59149ba2b">
+<script id="lab-platform-data" data-lab-version="518ab60d4cdb">
 // Platform URLs use provider-supported embed modes.
 // The micro:bit editor uses the official controller protocol for editable projects.
 window.STROBOT_LAB_PLATFORMS = {
@@ -156,14 +159,6 @@ window.STROBOT_LAB_PLATFORMS = {
         "languages": "Arduino C/C++ · AVR",
         "url": "https://www.falstad.com/circuit/avr8js/",
         "sourceUrl": "https://github.com/wokwi/avr8js",
-        "embedSupport": "existing"
-    },
-    "makecode": {
-        "name": "MakeCode · micro:bit",
-        "mode": "embed",
-        "languages": "Blocks · JavaScript · MakeCode Python",
-        "url": "https://makecode.microbit.org/#editor",
-        "sourceUrl": "https://makecode.microbit.org/docs",
         "embedSupport": "existing"
     },
     "python": {
@@ -187,10 +182,9 @@ window.STROBOT_LAB_PLATFORMS = {
     },
     "wokwi": {
         "name": "Wokwi · Arduino Uno",
-        "mode": "embed",
-        "languages": "Arduino C/C++ · mô phỏng số",
-        "url": "https://wokwi.com/share/embed/322062421191557714",
-        "embedUrl": "https://wokwi.com/share/embed/322062421191557714",
+        "mode": "external",
+        "languages": "Arduino C/C++ · editor ở tab riêng",
+        "url": "https://wokwi.com/projects/322062421191557714",
         "sourceUrl": "https://docs.wokwi.com/",
         "embedSupport": "official",
         "externalUrl": "https://wokwi.com/projects/322062421191557714"
@@ -203,26 +197,6 @@ window.STROBOT_LAB_PLATFORMS = {
         "embedUrl": "https://phet.colorado.edu/sims/html/circuit-construction-kit-dc/latest/circuit-construction-kit-dc_all.html",
         "sourceUrl": "https://phet.colorado.edu/en/simulations/circuit-construction-kit-dc",
         "embedSupport": "official"
-    },
-    "scratch": {
-        "name": "Scratch · Mê cung",
-        "mode": "embed",
-        "languages": "Khối lệnh · chạy dự án mẫu",
-        "url": "https://scratch.mit.edu/projects/10128431/embed",
-        "embedUrl": "https://scratch.mit.edu/projects/10128431/embed",
-        "sourceUrl": "https://scratch.mit.edu/ideas",
-        "embedSupport": "official",
-        "externalUrl": "https://scratch.mit.edu/projects/10128431/editor/"
-    },
-    "arcade": {
-        "name": "MakeCode Arcade · Trò chơi",
-        "mode": "embed",
-        "languages": "Blocks · TypeScript · game simulator",
-        "url": "https://arcade.makecode.com/---run?id=_1yfTMtFAe5yC",
-        "embedUrl": "https://arcade.makecode.com/---run?id=_1yfTMtFAe5yC",
-        "sourceUrl": "https://arcade.makecode.com/share",
-        "embedSupport": "official",
-        "externalUrl": "https://arcade.makecode.com/#pub:_1yfTMtFAe5yC"
     },
     "local": {
         "name": "Bàn thí nghiệm trong bài",
@@ -241,31 +215,23 @@ window.STROBOT_COURSE_LABS = {
     ],
     "microbit": [
         "python",
-        "scratch",
-        "arcade",
         "local"
     ],
     "vex-iq": [
         "gears",
-        "scratch",
-        "arcade",
         "local"
     ],
     "lego-spike": [
         "gears",
-        "scratch",
-        "arcade",
         "local"
     ],
     "vex-vr": [
         "gears",
-        "scratch",
-        "arcade",
         "local"
     ]
 };
 </script>
-<script src="../src/modules/learning/LessonView.js?v=workspace-v16"></script>
+<script src="../src/modules/learning/LessonView.js?v=native-labs-v1"></script>
 <script>
 const COURSES=window.STROBOT_CURRICULUM;
 const PDFS=window.STROBOT_PDFS;
@@ -281,7 +247,7 @@ function currentWorkspaceContext(){return {ownerId:learningStorage?.ownerId||nul
 function matchesWorkspace(context){const now=currentWorkspaceContext();return writableWorkspace()&&['ownerId','courseId','lessonId','platformKey'].every(key=>context?.[key]===now[key])}
 function flushWorkspace(){if(labWorkspace?.dirty&&!labWorkspace.corrupt)labWorkspace.persist()}
 function renderWorkspace(){labWorkspace?.setContext(currentWorkspaceContext(),record(),!!writableWorkspace())}
-function setPrivateControls(){const disabled=!writableWorkspace();document.querySelectorAll('#assessment input,#assessment textarea,#assessment select,#assessment button,#prediction,#learningLevel,button[onclick="markLessonComplete()"],#confirmImportNotes').forEach(node=>node.disabled=disabled);$('localLab').inert=disabled;$('localLab').setAttribute('aria-busy',String(disabled));}
+function setPrivateControls(){const disabled=!writableWorkspace();document.querySelectorAll('#assessment input,#assessment textarea,#assessment select,#assessment button,#prediction,#learningLevel,#confirmImportNotes').forEach(node=>node.disabled=disabled);$('localLab').inert=disabled;$('localLab').setAttribute('aria-busy',String(disabled));renderEvidenceStatus();}
 function refreshOwnedView(){const index=currentLessonIndex,tab=$('labView').hidden?'theory':'lab',platform=frameKey;loadLesson(index);if(tab==='lab'){if(courseLabKeys().includes(platform))selectLabPlatform(platform);switchMainTab('lab')}}
 const labs=window.STROBOT_LAB_PLATFORMS;
 function lesson(){return course.lessons[currentLessonIndex]}function record(){state[course.id]??={};const id=lesson().id;state[course.id][id]??={note:'',choice:null,done:false};return state[course.id][id]}
@@ -294,6 +260,11 @@ async function initPage(){
  labWorkspace=new window.STROBOT_LAB_WORKSPACE($('labWorkspace'),{
   isCurrent:matchesWorkspace,getSyncStatus:()=>learnerSyncService?.status,
   readEditorSource:()=>microbitEditor?.getSource(),
+  readExperiment:context=>{
+   if(context.platformKey!=='local'||!matchesWorkspace(context)||!record().modelEvidence?.summary)return null;
+   const evidence=record().modelEvidence;
+   return ['Kết quả lần chạy gần nhất: '+evidence.summary,'Các thao tác đã ghi:',...(evidence.actions||[]).slice(-4)].join('\n').slice(0,2000);
+  },
   onSave:(context,work)=>{if(!context.ownerId||!matchesWorkspace(context))return false;const r=record(),previous=r.labWork;r.labWork={...(r.labWork||{}),[context.platformKey]:work};if(!save()){r.labWork=previous;return false}return true}
  });
  $('learningLevel').value=learningLevel;
@@ -349,9 +320,10 @@ function loadLesson(i) {
  $('quizFeedback').textContent=r.choice===null?'':(r.choice===l.answer?'Đúng. ':'Chưa đúng. ')+l.why;
  $('journal').value=r.note||'';
  for(const id of ['prediction','observation','explanation','transfer','projectUrl'])$(id).value=r[id]||'';
+ $('legacyProjectLink').hidden=!r.projectUrl;
  $('practiceSource').value=r.source||'';
  renderEvidenceStatus();
- $('theoryDetails').open=false;$('sampleCodeDetails').open=false;
+ $('theoryDetails').open=false;$('sampleCodeDetails').open=false;$('practiceHelp').open=true;$('lessonQuiz').open=true;
  $('rubric').innerHTML=l.rubric.map(x=>'<li>'+esc(x[0])+': '+x[1]+' điểm</li>').join('');
  $('pdfFileNameLabel').textContent=course.id+'-giao-trinh-6-bai.pdf';
  $('pdfDocHeading').textContent=course.name;
@@ -375,18 +347,20 @@ function renderPlatformGuide(key){
  $('platformEvidencePrompt').textContent=guide.evidence.join(' ');
  const examples=guide.codeExamples,selector=$('codeVariantSelect');
  $('sampleCodeDetails').hidden=examples.length===0;
+ $('sampleCodeActions').hidden=examples.length===0;
  selector.replaceChildren(...examples.map(example=>{const option=document.createElement('option');option.value=example.id;option.textContent=example.label||example.lang;return option}));
  selector.hidden=examples.length<2;
  const update=()=>{const selected=examples.find(example=>example.id===selector.value)||examples[0];$('sampleCodeBox').textContent=selected?.code||'';$('codeLangLabel').textContent=selected?.lang||'';$('codeEnvironmentNote').textContent='Mã này dành cho '+labs[key].name+'. Làm theo phần chuẩn bị và chạy thử trên đúng nền tảng trước khi thay đổi.'};
  selector.onchange=update;if(examples[0])selector.value=examples[0].id;update();
 }
-function courseLabKeys() { return (window.STROBOT_COURSE_LABS[course.id] || ['local']).filter(key=>key==='local'||canEmbedPlatform(labs[key])); }
+function courseLabKeys() { return (window.STROBOT_COURSE_LABS[course.id] || ['local']).filter(key=>key==='local'||canEmbedPlatform(labs[key])||(labs[key]?.mode==='external'&&/^https:\/\//.test(labs[key].externalUrl||labs[key].url||''))); }
 function renderLabButtons() {
  $('labButtons').replaceChildren(...courseLabKeys().map(key=>{
   const button=document.createElement('button');
   button.type='button';button.dataset.labKey=key;button.setAttribute('aria-pressed','false');
   const name=document.createElement('strong');name.textContent=labs[key].name;
   const meta=document.createElement('small');meta.textContent=labs[key].languages;
+  if(key===defaultLabKey())meta.textContent+=' · Gợi ý cho bài này';
   button.append(name,meta);button.addEventListener('click',()=>selectLabPlatform(key));
   return button;
  }));
@@ -399,10 +373,15 @@ function switchMainTab(t) {
  $('tabBtnLab').classList.toggle('lab-active-tab',t==='lab');
  $('tabBtnTheory').setAttribute('aria-pressed',String(t==='theory'));
  $('tabBtnLab').setAttribute('aria-pressed',String(t==='lab'));
+ $('continuePractice').hidden=t==='lab';
  if(t==='lab'&&!frameKey)selectLabPlatform(defaultLabKey());
  if(t==='lab'&&labNeedsStart){$('labView').scrollTop=0;labNeedsStart=false;void learnerSyncService?.recordActivity('lab_opened',course.id,lesson().id,learningStorage?.ownerId)}
 }
-function defaultLabKey() { return course.lab==='circuit'?'avr':course.lab; }
+function defaultLabKey() {
+ if(course.id==='arduino')return lesson().id==='led'?'circuit':lesson().id==='timing'?'avr':'local';
+ if(course.id==='microbit'&&lesson().id==='radio')return 'local';
+ return course.lab;
+}
 function canEmbedPlatform(cfg) {
  return cfg?.mode==='embed' && ['existing','official'].includes(cfg.embedSupport)
   && /^https:\/\//.test(cfg.embedUrl||cfg.url||'');
@@ -430,6 +409,15 @@ function selectLabPlatform(key) {
  $('labFullscreenBtn').hidden=!canEmbedPlatform(cfg);
  $('platformHelp').textContent=key==='local'?'Bàn mô hình hoạt động ngay trong web: thay đầu vào để kiểm tra quy tắc của bài. Mã Python/C++ được chạy ở editor tương ứng.':'Lưu hoặc tải dự án trong editor của nền tảng này. Bài thực hành và ghi chép bên dưới gắn với tài khoản khi bạn đã đăng nhập. Nếu khung tải chậm, dùng “Tải lại khung”, “Mở riêng” hoặc chọn bàn mô hình để tiếp tục kiểm tra kiến thức.';
  if(cfg.mode==='local')return;
+ if(cfg.mode==='external'){
+  const card=document.createElement('section');card.className='lab-editor-launch';
+  const title=document.createElement('h3');title.textContent='Mở editor Wokwi để sửa cả mã và sơ đồ';
+  const description=document.createElement('p');description.textContent='Trong editor, tạo bản dự án của bạn rồi làm theo hướng dẫn ở trên. Trở lại bài học để lưu liên kết, sketch.ino và diagram.json vào tài khoản ST-Robot.';
+  const link=document.createElement('a');link.className='btn btn--primary';link.href=cfg.externalUrl||cfg.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Mở editor Wokwi ↗';
+  card.append(title,description,link);$('frameHost').append(card);
+  $('platformHelp').textContent='Wokwi mở ở tab riêng với đầy đủ phần soạn mã và lắp mạch. Tài khoản Wokwi được quản lý riêng.';
+  return;
+ }
  if(cfg.controller==='microbit-python'&&!writableWorkspace()){$('platformHelp').textContent='Đang mở đúng hồ sơ của bạn trước khi nạp mã Python. Bạn có thể đọc bài và xem nhiệm vụ trong lúc chờ.';return;}
  if(!canEmbedPlatform(cfg))return;
  const f=document.createElement('iframe');
@@ -470,7 +458,10 @@ function markLessonComplete(){
 function renderEvidenceStatus(){
  const r=record(),e=r.modelEvidence;
  $('modelEvidenceStatus').textContent=e?'Lần thao tác mô hình đã ghi gần nhất: '+e.summary:'Sau khi ghi dự đoán, chạy mô hình hoặc dùng editor/kit rồi ghi lại kết quả quan sát.';
- $('completionStatus').textContent=r.done?'Bạn đã tự xác nhận hoàn thành bài này.':'Hoàn thành phần dự đoán, kết quả, giải thích, thử lại và câu kiểm tra để tự xác nhận.';
+ const check=window.STROBOT_PRACTICE_PORTFOLIO.assessPracticeRecord(r,{lesson:lesson(),course});
+ $('completionStatus').textContent=r.done?'Đã ghi nhận hoàn thành bài.':check.ready?'Đã đủ nội dung để xác nhận hoàn thành.':'Cần hoàn tất các mục sau:';
+ $('completionChecklist').replaceChildren(...(r.done?[]:check.missing).map(text=>{const item=document.createElement('li');item.textContent=text;return item}));
+ $('completeLesson').disabled=!writableWorkspace()||!check.ready||!!r.done;
 }
 async function previewPortfolioImport(){
  const file=$('importNotes').files[0];$('importNotes').value='';if(!file||!writableWorkspace())return;const ownerId=learningStorage.ownerId,selectedCourse=course;
@@ -503,7 +494,7 @@ window.addEventListener('DOMContentLoaded',initPage);
 
 <script type="module">
 import { aiClient, AI_SERVICE_ORIGIN, AI_PROVIDER_CODES, AI_ACCOUNT_CODES } from '../src/services/AiService.js?v=provider-auth-v5';
-import { buildTutorLearningContext } from '../src/services/TutorLearningContext.js?v=owned-lab-v1';
+import { buildTutorLearningContext } from '../src/services/TutorLearningContext.js?v=native-labs-v1';
 import { createFloatingTutor } from '../src/modules/learning/FloatingTutor.js?v=workspace-v16';
 import { createTutorAttachments } from '../src/modules/learning/TutorAttachments.js?v=screen-region-v2';
 import { renderAiMessage } from '../src/services/AiMessageRenderer.js?v=ai-render-v14';

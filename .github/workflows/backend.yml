@@ -80,7 +80,9 @@ jobs:
           node tests/adaptive-review.mjs &&
           node tests/microbit-editor-bridge.mjs &&
           node tests/practice-portfolio.mjs &&
-          node tests/lab-workspace.mjs
+          node tests/lab-workspace.mjs &&
+          node tests/lab-native-files.mjs &&
+          node tests/platform-guides.mjs
       - name: Install browser journey dependencies
         run: |
           python3 -m pip install playwright
@@ -108,6 +110,8 @@ jobs:
           python3 tests/account-performance-smoke.py --base http://127.0.0.1:5519
           python3 tests/login-timing-smoke.py --base http://127.0.0.1:5519
           python3 tests/route-loading-smoke.py --base http://127.0.0.1:5519
+          python3 tests/lab-workspace-smoke.py --base http://127.0.0.1:5519
+          python3 tests/guided-learning-smoke.py --base http://127.0.0.1:5519
       - name: Verify password upgrades, student approval and cross-device learning
         shell: bash
         run: |

@@ -1,33 +1,41 @@
-# Tài khoản học tập và bài thực hành
+# Tài khoản và cách lưu bài thực hành
 
-Học sinh dùng một tài khoản ST-Robot để xem tiến độ, ghi chép và tiếp tục bài thực hành trên các thiết bị. Trong mỗi bài, chọn **Thực hành**, chọn nền tảng rồi dùng **Bài thực hành của tôi**. Ghi chú, liên kết dự án và bản mã được lưu riêng theo khóa, bài và nền tảng. Khi trạng thái báo **Đã đồng bộ bài làm vào tài khoản**, máy khác đăng nhập cùng tài khoản có thể nạp lại bản này. Mục **Bài thực hành của tôi** yêu cầu đăng nhập: sau khi đăng xuất, các ô mã, ghi chú và nút lưu của mục này được ẩn/khóa và có lối vào đăng nhập. Hệ thống không ghi bài mới vào `labWork` của khách. Lý thuyết, lab công khai và nhật ký khách vẫn dùng được; dữ liệu khách đã có được giữ riêng, không tự nhập vào tài khoản mới.
+Học sinh đăng nhập ST-Robot, mở bài rồi chọn **Thực hành → Lưu bài**. Bài làm được lưu riêng theo tài khoản, khóa học, bài học và nền tảng. Chỉ chuyển thiết bị khi thấy **Đã đồng bộ bài làm vào tài khoản**. Thông báo giữ bản nháp trên thiết bị chưa có nghĩa là máy chủ đã nhận bài.
 
-Mã và ghi chú là bản riêng của người học trong ST-Robot. Admin xem báo cáo tiến độ tổng hợp, không nhận nội dung mã/ghi chú qua báo cáo đó. AI học tập của chính người học có thể đọc bản đã đồng bộ của bài/nền tảng đang chọn để hỗ trợ; đây là bản sao đã lưu, không phải khả năng nhìn trực tiếp editor ngoài. Các chuỗi giống khóa/mật khẩu được che trước khi chuyển vào ngữ cảnh AI; học sinh vẫn không nên ghi thông tin đăng nhập trong bài.
+Sau khi đăng xuất, phần bài làm cá nhân được xóa khỏi màn hình và khóa thao tác lưu, kể cả tệp đang đọc dở. Bản trên máy chủ được giữ nguyên. Các tab cùng phiên trong trình duyệt nhận thông báo đăng xuất; thiết bị độc lập vẫn dùng được. Bài khách đã có được giữ riêng, không tự nhập vào tài khoản khác.
 
-| Nền tảng | Được gắn với tài khoản ST-Robot | Cách tiếp tục dự án ngoài |
+## Lưu và mở lại theo nền tảng
+
+| Nền tảng | Cần lưu | Cách tiếp tục |
 | --- | --- | --- |
-| Bàn mô hình trong bài | Tự lưu dự đoán, thao tác minh chứng, kết quả và tiến độ | Đổi tham số trong bàn mô hình; không có tài khoản ngoài |
-| micro:bit Python Editor | Bridge chính thức tự lưu/khôi phục dự án theo bài trong hồ sơ tài khoản; có thể lấy mã Python vào bản bài làm hoặc tải `.py` | Chờ editor báo đã lưu; giữ tệp tải về khi cần |
-| Wokwi / AVR8js | Lưu liên kết dự án, bản mã văn bản và ghi chú | Lưu dự án tại nền tảng hoặc tải tệp rồi nhập bản mã vào ST-Robot |
-| GearsBot | Lưu liên kết, bản mã Python/văn bản và ghi chú | Dùng chức năng lưu/mở dự án của GearsBot; dự án Blockly lớn giữ tệp gốc |
-| Scratch / MakeCode Arcade | Lưu liên kết và ghi chú; nhận bản mã văn bản phù hợp | Dùng tài khoản/lưu tệp của nền tảng; tệp `.sb3`/dự án nén không nhập như mã văn bản |
-| CircuitJS / PhET | Lưu liên kết và ghi chú quan sát | Dùng chức năng chia sẻ/xuất của nền tảng nếu có |
+| CircuitJS | Tệp mạch `.txt` từ **File → Save As…**, hoặc văn bản từ **Export As Text…** | Tải tệp ở ST-Robot rồi dùng **File → Open File…**; văn bản dùng **Import From Text…** |
+| AVR8js | Bản sketch Arduino C++ hoặc tệp `.ino`; ghi các tham số và nhịp LED | Dừng chương trình, thay sketch bằng bản đã lưu rồi Run |
+| Wokwi | Liên kết dự án của chính học sinh; nên giữ thêm `sketch.ino`, `diagram.json` và tệp phụ | Mở liên kết bằng tài khoản Wokwi sở hữu dự án, hoặc đưa các tệp vào dự án Uno mới |
+| micro:bit Python | Editor nhúng tự lưu toàn bộ dự án qua bridge theo bài/tài khoản; có thể giữ thêm bản `main.py` hoặc tệp xuất | Editor nhúng nạp dự án của bài; bản `.py` riêng chỉ giữ mã chính, không thay toàn bộ dự án nhiều tệp |
+| GearsBot | **File → Export zip package to your computer**; nếu chỉnh sân, lưu thêm **Worlds → Save to file** | Import ZIP bằng menu File; mở tệp sân JSON bằng **Worlds → Load from file**. ZIP chương trình không chứa sân |
+| PhET | Phiếu ghi cách mắc mạch, giá trị và số đo | Dựng lại mạch theo phiếu; ST-Robot không khôi phục bố trí mạch PhET |
+| Bàn mô hình trong bài | Phiếu đầu vào/kết quả; nút **Nhận kết quả từ bàn thực hành** điền kết quả đã chạy | Nhập lại các đầu vào trong phiếu; không xem phiếu là ảnh chụp toàn bộ trạng thái mô hình |
 
-ST-Robot không dùng mật khẩu học sinh để đăng nhập Wokwi/Scratch/GearsBot và không giả lập SSO. Trình duyệt chặn đọc dữ liệu của iframe khác miền; chỉ micro:bit có giao thức bridge được triển khai và kiểm tra nguồn gửi. **Mở riêng ở tab ngoài** luôn có sẵn khi cần không gian editor rộng hơn. Liên kết được lưu riêng trong ST-Robot không làm dự án ngoài trở thành riêng tư: phải đặt quyền chia sẻ ở nền tảng đó; đường dẫn chia sẻ có thể công khai. Giao diện nhắc điều này khi nhập liên kết.
+Trong mỗi nền tảng có hướng dẫn lưu và phần **Mở lại bài trên nền tảng này**. **Bản sao mã nguồn** là phần tùy chọn: sửa ô này không sửa tệp dự án đã đính kèm. Sau khi thay đổi trong editor, xuất và thêm lại tệp để giữ phiên bản mới. **Xem bản đã lưu** nạp lại các ô của ST-Robot, không điều khiển editor ngoài.
 
-Để có đăng nhập một lần cho một nền tảng ngoài, nền tảng phải có tích hợp được hỗ trợ như OAuth/OIDC/LTI hoặc API chính thức cho tổ chức. Cần kiểm tra điều khoản, quyền dữ liệu và khả năng của từng nhà cung cấp trước khi triển khai. Với các editor hiện có, quy trình khả thi là đăng nhập ST-Robot một lần, tiếp tục bản bài làm trong tài khoản, mở liên kết/tệp dự án ngoài khi cần.
+GearsBot có thể giữ dự án trước đó trong bộ nhớ riêng của trình duyệt. Đăng xuất ST-Robot không xóa bộ nhớ khác miền này. Khi dùng máy chung, luôn mở tệp của mình trước khi chạy. Các nền tảng ngoài có tài khoản và quyền chia sẻ riêng; ST-Robot không dùng mật khẩu học sinh để đăng nhập thay hay giả lập SSO. Liên kết được giữ riêng trong ST-Robot không làm dự án chia sẻ ở nền tảng ngoài trở thành riêng tư.
 
-## Dữ liệu và giới hạn
+Scratch và Arcade đã được bỏ khỏi lựa chọn vì các khung cũ chỉ chạy dự án mẫu. Bài cũ của hai nền tảng được giữ trong dữ liệu và hồ sơ sao lưu, không bị xóa khi đổi menu. Tải hồ sơ ở **Kiểm tra → Sao lưu hoặc khôi phục hồ sơ khóa học**.
 
-Bản bài làm dùng khóa đồng bộ hiện có `strobot.original.course.v3`, tại `[courseId][lessonId].labWork[platformKey]`. Mỗi bản có đúng các trường `version: 1`, `savedAt` ISO, `code`, `notes`, `projectUrl`, `fileName`. Chủ sở hữu do phiên đăng nhập/server quyết định; payload không có quyền chọn người sở hữu. Không thêm bảng, storage key hay dữ liệu tài khoản ngoài.
+## Dữ liệu và quyền truy cập
 
-- Mã/tệp văn bản UTF-8 tối đa 32 KiB, ghi chú 2.000 ký tự, URL HTTPS 2.048 ký tự không chứa tên/mật khẩu, tên tệp 120 ký tự an toàn.
-- Chỉ nhận nền tảng được phép của từng khóa; từ chối khóa prototype và trường lạ cả khi nhập bản sao.
-- Tổng trạng thái khóa học tối đa 5 MiB, snapshot đồng bộ tối đa 8 MiB. Backup hồ sơ khóa tối đa 5 MiB và giữ `labWork`; tệp không hợp lệ không thay bản đang nhập/lưu.
-- Mã quá lớn không bị cắt để lưu: bản đang nhập được giữ, có nút tải mã. Dự án nén/nhị phân được giữ tại nền tảng gốc hoặc trên máy, liên kết có thể lưu trong ST-Robot.
-- Đăng xuất dừng ngay các thao tác lưu/nhập tệp vào bài thực hành cá nhân, kể cả tệp đang đọc dở. Dữ liệu riêng của tài khoản không xuất hiện trong mục này ở chế độ khách; bản khách cũ không bị xóa hoặc tự chuyển thành bài của tài khoản khác.
-- Đăng xuất được thông báo tới các tab cùng website, cùng backend và cùng tài khoản trong trình duyệt đó. Các tab nhận thông báo chỉ xóa phiên cục bộ, không gửi lại thao tác logout. Tài khoản khác và thiết bị khác không bị đăng xuất bởi thao tác thông thường này; dùng Đăng xuất mọi thiết bị nếu muốn thu hồi toàn bộ phiên trên server.
-- Lưu trên thiết bị khác với đã đồng bộ. Mất mạng giữ hàng đợi theo đúng tài khoản; xung đột yêu cầu người học chọn/giữ bản, không tự ghi đè nội dung chồng nhau.
-- Trong lúc khôi phục phiên/kết nối, lý thuyết và điều hướng hiển thị ngay. Chức năng sửa hồ sơ, tự hoàn thành, nhập tệp và bridge editor chỉ mở sau khi xác định đúng không gian lưu. Chọn bài/tab/nền tảng trong lúc chờ được giữ lại.
+Dùng khóa đồng bộ hiện có `strobot.original.course.v3`, tại `[courseId][lessonId].labWork[platformKey]`. Server xác định chủ sở hữu từ phiên đăng nhập. Không thêm bảng hoặc migration.
 
-Kiểm thử: `node tests/lab-workspace.mjs`; `node tests/practice-portfolio.mjs`; `node tests/learner-sync.mjs`; `node tests/tutor-learning-context.mjs`; `python tests/lab-workspace-smoke.py --base http://127.0.0.1:5518`; `python tests/guided-learning-smoke.py --base http://127.0.0.1:5518`. Backend có kiểm tra policy snapshot và ngữ cảnh bài học; hành trình sản phẩm kiểm tra dữ liệu thật qua database thử nghiệm, đồng bộ máy thứ hai và cách ly học sinh khác. Các kiểm thử này không gọi AI trả phí hoặc khẳng định có SSO ngoài.
+- Phiên bản 1 giữ nguyên các trường `version`, `savedAt`, `code`, `notes`, `projectUrl`, `fileName`.
+- Phiên bản 2 thêm `files:[{name,dataBase64}]`. Tối đa bốn tệp, tổng byte giải mã 256 KiB; phần mở rộng kiểm tra theo nền tảng. Tên chỉ là tên tệp, không có đường dẫn. Từ chối trường lạ, tên trùng không phân biệt hoa/thường và base64 không chuẩn.
+- Tệp được giữ nguyên byte, không giải nén, không thực thi hoặc nhúng HTML; tải về bằng kiểu `application/octet-stream`.
+- Mã UTF-8 tối đa 32 KiB; ghi chú 2.000 ký tự; URL HTTPS 2.048 ký tự không chứa thông tin đăng nhập; tên tệp 120 ký tự.
+- Tổng trạng thái khóa học vẫn 5 MiB; snapshot đồng bộ 8 MiB. Các tệp hợp lệ riêng lẻ vẫn có thể vượt hạn mức chung. Không tự tăng quota hoặc cắt mất nội dung.
+- Báo cáo quản trị chỉ có tiến độ tổng hợp, không có mã, ghi chú, tên hoặc byte tệp. AI của người học chỉ nhận bản mã/ghi chú đã giới hạn ở đúng bài/nền tảng; backend có thể cung cấp tên/số lượng tệp, không đọc/gửi byte tệp sang AI. Chuỗi giống khóa/mật khẩu được che trước khi đưa vào ngữ cảnh.
+- Mất mạng giữ bản nháp theo tài khoản. Xung đột yêu cầu chọn bản, không ghi đè ngầm. Restore/xóa tệp, đổi bài, đổi tài khoản và đăng xuất vô hiệu hóa thao tác nhập tệp cũ đang đọc dở.
+
+## Kiểm chứng và triển khai
+
+`tests/lab-native-files.mjs` kiểm tra byte, kiểu tệp, giới hạn, backup cũ và dữ liệu AI. `tests/lab-workspace-smoke.py` kiểm tra thao tác thật, tải ZIP nguyên byte, reload, nhập tệp chậm, đổi chủ và đăng xuất. `tests/product-journey-smoke.py` dùng PostgreSQL/Redis thử nghiệm để xác nhận tệp Wokwi, tiến độ, nhật ký và mã của cùng học sinh xuất hiện trên thiết bị thứ hai; tài khoản khác không đọc được.
+
+Backend phải được triển khai cùng frontend mới để chấp nhận schema phiên bản 2. Trên Render, nếu Auto-Deploy tắt, chọn **strobot-backend → Manual Deploy → Deploy latest commit**, chờ **Live** rồi tải lại website. Không cần tạo lại database, admin hoặc nhập lại khóa AI. Kiểm thử cục bộ không xác nhận tình trạng trực tiếp của nhà cung cấp lab/AI.

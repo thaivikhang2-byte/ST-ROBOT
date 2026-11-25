@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright, expect
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--base', default='http://127.0.0.1:5500')
-parser.add_argument('--chromium', default='/usr/bin/chromium')
+parser.add_argument('--chromium', default='/usr/bin/chromium' if pathlib.Path('/usr/bin/chromium').is_file() else None)
 args = parser.parse_args()
 base = args.base.rstrip('/')
 errors, external = [], []
@@ -30,6 +30,22 @@ with sync_playwright() as pw:
     context.route('**/*', route)
     page.goto(base + '/frontend/public/course.learning.html?course=arduino', wait_until='domcontentloaded')
     expect(page.locator('#lessonList button')).to_have_count(6)
+    guide = page.evaluate('lesson().learningGuide')
+    explanation = page.locator('#learningGuideContent')
+    expect(explanation.locator('.learning-guide-intro')).to_be_visible()
+    for section in ['vocabulary', 'case', 'checkpoints']:
+        expect(explanation.locator('[data-guide-section="' + section + '"]')).to_be_visible()
+    analogy = explanation.locator('[data-guide-section="analogy"] .learning-guide-example')
+    assert analogy.get_attribute('open') is None
+    expect(analogy.locator('.learning-guide-familiar')).to_be_hidden()
+    analogy.locator('summary').focus()
+    page.keyboard.press('Enter')
+    expect(analogy.locator('.learning-guide-familiar')).to_be_visible()
+    for field in ['familiar', 'meaning', 'limit']:
+        expect(analogy).to_contain_text(guide['analogy'][field])
+    analogy.locator('summary').click()
+    expect(analogy.locator('.learning-guide-familiar')).to_be_hidden()
+    print('PASS essential explanation stays visible; optional analogy preserves full content and keyboard access', flush=True)
     courses = page.evaluate('COURSES')
     checked = []
     for course in courses:
@@ -39,9 +55,14 @@ with sync_playwright() as pw:
             # Entering/reopening a lesson must not manufacture a model interaction.
             assert page.evaluate('record().modelEvidence || null') is None
             page.locator('#tabBtnLab').click()
-            # Guidance stays available behind its compact disclosure.
-            page.locator('#practiceHelp').evaluate('(node) => node.open = true')
+            # Preparation and actions are visible before the lab; extensions remain optional.
+            expect(page.locator('#practiceHelp')).to_have_attribute('open', '')
             expect(page.locator('#practiceSteps')).to_be_visible()
+            extension = page.locator('#labGuide').locator('xpath=ancestor::details[1]')
+            if not checked:
+                assert extension.get_attribute('open') is None
+                expect(page.locator('#labGuide')).to_be_hidden()
+            extension.locator(':scope > summary').click()
             expect(page.locator('#labGuide')).to_be_visible()
             expect(page.locator('#exercise')).to_be_visible()
             page.locator('#labButtons button[data-lab-key="local"]').click()
@@ -66,6 +87,8 @@ with sync_playwright() as pw:
             assert evidence['actions'] and evidence['summary'].strip()
             assert evidence['prediction'] == page.locator('#prediction').input_value()
             assert page.evaluate('record().done') is False, 'An interaction cannot automatically award completion'
+            extension.locator(':scope > summary').click()
+            expect(page.locator('#labGuide')).to_be_hidden()
             checked.append(course['id'] + '/' + lesson['id'])
     assert len(checked) == 30
     print('PASS all 30 lesson models: no fabricated startup evidence, real interaction, correct lesson identity', flush=True)
@@ -81,10 +104,10 @@ with sync_playwright() as pw:
     selector_after=page.locator('#labButtons').bounding_box()
     assert abs(selector_before['y']-selector_after['y'])<1, 'Async frame errors moved the platform choices'
     page.locator('#labButtons button[data-lab-key="local"]').click()
-    page.locator('button[onclick="focusPracticePart(frameKey===\'local\'?\'localLab\':\'frameHost\')"]').click()
+    page.locator('.practice-roadmap button').nth(1).click()
     expect(page.locator('#localLab')).to_be_focused()
-    page.locator('button[onclick="focusPracticePart(\'observation\')"]').click()
-    expect(page.locator('#observation')).to_be_focused()
+    page.locator('.practice-roadmap button').nth(3).click()
+    expect(page.locator('#assessment')).to_be_focused()
     answer = page.evaluate('lesson().answer')
     page.evaluate('document.getElementById("quizForm").parentElement.open=true')
     page.locator(f'#quizOptions input[value="{answer}"]').check()
@@ -98,16 +121,18 @@ with sync_playwright() as pw:
     page.locator('#practiceSource').select_option('local-model')
     page.locator('.lesson-bench').get_by_role('button', name='Thử mạch', exact=True).click()
     page.locator('#prediction').fill('Tôi chọn 330 Ω; tăng điện trở lên 1000 Ω sẽ làm dòng giảm.')
-    page.locator('#assessment button[onclick="markLessonComplete()"]').click()
-    expect(page.locator('#notice')).to_contain_text('trước khi chạy')
+    expect(page.locator('#completeLesson')).to_be_disabled()
+    expect(page.locator('#completionChecklist')).to_contain_text('trước khi chạy')
     assert page.evaluate('record().done') is False
     page.locator('.lesson-bench').get_by_role('button', name='Thử mạch', exact=True).click()
     page.locator('.lesson-bench').get_by_label('Điện trở nối tiếp (Ω)').fill('1000')
     page.locator('.lesson-bench').get_by_role('button', name='Thử mạch', exact=True).click()
     expect(page.locator('.lesson-bench-output')).to_contain_text('I = 3 mA')
-    page.locator('#assessment button[onclick="markLessonComplete()"]').click()
+    expect(page.locator('#completeLesson')).to_be_enabled()
+    page.locator('#completeLesson').click()
     expect(page.locator('#progressText')).to_contain_text('1/6')
-    expect(page.locator('#completionStatus')).to_contain_text('tự xác nhận')
+    expect(page.locator('#completionStatus')).to_contain_text('Đã ghi nhận hoàn thành bài.')
+    expect(page.locator('#completeLesson')).to_be_disabled()
     page.reload(wait_until='domcontentloaded')
     expect(page.locator('#progressText')).to_contain_text('1/6')
     assert page.evaluate('record().modelEvidence.summary').startswith('R = 1000 Ω')
@@ -115,6 +140,7 @@ with sync_playwright() as pw:
     print('PASS completion gates: prediction before model, correct quiz and structured self-report, reload persistence', flush=True)
 
     # Export, cancel, invalid file and restore are exercised through the UI.
+    page.locator('#courseBackup > summary').click()
     with page.expect_download() as download_info:
         page.locator('#exportNotes').click()
     backup_text = pathlib.Path(download_info.value.path()).read_text()

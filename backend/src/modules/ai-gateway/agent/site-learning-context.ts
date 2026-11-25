@@ -5,6 +5,7 @@ import type { PrismaService } from '../../../database/prisma.service';
 import { courseLessons } from '../../learner-state/learner-state.policy';
 import { learningReportCourses } from './learning-reports';
 import { siteCourseLabs, siteLabPlatforms } from './site-lab-catalog';
+import { siteLabWorkflows } from './site-lab-workflows';
 
 type JsonRecord = Record<string, unknown>;
 const object = (value: unknown): value is JsonRecord => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -40,7 +41,7 @@ export function siteLabResources(courseSlug?: string, selectedPlatformKey?: stri
   return {
     source: 'approved-site-lab-catalog', courses,
     selectedPlatformKey: selectedPlatformKey ?? null,
-    limitations: 'These are the lab choices actually offered by this website. External iframe contents, unsaved external editor code and simulator state cannot be read automatically; do not claim to see or execute them. The local bench is interactive mathematical evidence, not a general code interpreter. Arduino C++ uses AVR8js/Wokwi; CircuitJS/PhET explain circuits. MicroPython uses the micro:bit Python Editor. GearsBot uses its own Blockly/Python robot APIs, not VEX or LEGO firmware APIs. Scratch and Arcade are supplementary block/game practice.',
+    limitations: 'These are the lab choices actually offered by this website. External iframe contents, unsaved external editor code and simulator state cannot be read automatically; do not claim to see or execute them. The local bench is interactive mathematical evidence, not a general code interpreter. Arduino C++ uses AVR8js/Wokwi; CircuitJS/PhET explain circuits. MicroPython uses the micro:bit Python Editor. GearsBot uses its own Blockly/Python robot APIs, not VEX or LEGO firmware APIs. Native project files are retained for download/import; this context includes filenames and explicit saved source text, never archive contents or external simulator state.',
   };
 }
 
@@ -54,6 +55,8 @@ export function siteLessonContext(courseSlug: string, lessonSlug: string, platfo
     lesson: lesson.title, goal: lesson.goal, lessonContent: clip(lesson.theory ?? '', 5000),
     code: clip(lesson.code ?? '', 3200), exercise: clip(lesson.exercise ?? '', 1000), language: lesson.lang,
     labs: siteLabResources(courseSlug, platformKey),
+    ...(platformKey && siteLabWorkflows[platformKey]
+      ? { nativeSavingWorkflow: { platformKey, ...siteLabWorkflows[platformKey] } } : {}),
     // Deliberately never include answer/why/solution/options or hidden grading data.
   };
 }
@@ -79,6 +82,12 @@ function publicProjectUrl(value: unknown) {
 }
 function recordedDate(value: unknown) {
   return typeof value === 'string' && value.length <= 40 && Number.isFinite(Date.parse(value)) ? value : undefined;
+}
+function recordedProjectDate(value: unknown) {
+  const text = recordedDate(value);
+  if (text) return text;
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 8640000000000000
+    ? new Date(value).toISOString() : undefined;
 }
 
 /** Data owner always comes from the verified request actor, never from tool arguments. */
@@ -121,6 +130,7 @@ export async function ownLearningData(db: PrismaService, ownerId: string, course
     const lessons = courseLessons[id].filter(key => !lessonSlug || key === lessonSlug).map(key => {
       const raw = object(saved[key]) ? saved[key] : {};
       const output: JsonRecord = { lessonSlug: key, saved: Object.hasOwn(saved, key), done: raw.done === true, hasJournal: typeof raw.note === 'string' && !!raw.note, hasProject: !!raw.projectUrl || Object.hasOwn(values, `strobot.microbit.editor.v1.${key}`) && id === 'microbit', hasSavedLabWork: object(raw.labWork) && siteCourseLabs[id].some(platform => Object.hasOwn(raw.labWork as JsonRecord, platform)) };
+      if (object(raw.labWork) && ['scratch', 'arcade'].some(platform => Object.hasOwn(raw.labWork as JsonRecord, platform))) output.hasArchivedLabWork = true;
       if (recordedDate(raw.completedAt)) output.completedAt = raw.completedAt;
       if (courseSlug) detailed.push({ output, source: raw });
       return output;
@@ -179,10 +189,21 @@ export async function ownLearningData(db: PrismaService, ownerId: string, course
     // Source is included only for one explicitly selected lesson and platform.
     // The account overview and management summaries never contain this work.
     const work = lessonSlug && platformKey && object(source.labWork) ? source.labWork[platformKey] : undefined;
-    if (object(work) && work.version === 1) {
+    if (object(work) && (work.version === 1 || work.version === 2)) {
       const selected: JsonRecord = { source: 'saved-learner-lab-copy', platformKey };
       output.labWork = selected;
       if (recordedDate(work.savedAt)) selected.savedAt = work.savedAt;
+      if (work.version === 2 && Array.isArray(work.files) && work.files.length <= 4) {
+        const names: string[] = [];
+        selected.fileCount = work.files.length;
+        selected.fileNames = names;
+        selected.fileContentsIncluded = false;
+        for (const file of work.files) {
+          if (!object(file) || typeof file.name !== 'string' || !file.name || file.name.length > 120) continue;
+          names.push(clip(scrub(file.name), 120));
+          if (Buffer.byteLength(JSON.stringify(result)) > 8500) { names.pop(); result.truncated = true; }
+        }
+      }
       addText(selected, 'notes', work.notes, 600);
       addText(selected, 'code', work.code, 2200);
       addText(selected, 'projectUrl', publicProjectUrl(work.projectUrl), 350);
@@ -191,7 +212,8 @@ export async function ownLearningData(db: PrismaService, ownerId: string, course
   if (courseSlug === 'microbit' && lessonSlug) {
     const saved = parseValue(values, `strobot.microbit.editor.v1.${lessonSlug}`, 750000);
     if (object(saved) && object(saved.project) && object(saved.project.files)) {
-      result.project = { source: 'saved-microbit-editor', ...(recordedDate(saved.savedAt) ? { savedAt: saved.savedAt } : {}) };
+      const savedAt = recordedProjectDate(saved.savedAt);
+      result.project = { source: 'saved-microbit-editor', ...(savedAt ? { savedAt } : {}) };
       addText(result.project, 'projectName', saved.project.projectName, 100);
       const encoded = saved.project.files['main.py'];
       if (typeof encoded === 'string' && encoded.length <= 349528 && /^[A-Za-z0-9+/]*={0,2}$/.test(encoded)) {

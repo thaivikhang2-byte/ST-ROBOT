@@ -1,14 +1,14 @@
-import {getArduinoGuide} from './guides/ArduinoGuides.js';
+import {getArduinoGuide} from './guides/ArduinoGuides.js?v=native-labs-v1';
 import {getLocalGuide} from './guides/LocalGuides.js';
-import {getBlockGuide} from './guides/BlockGuides.js';
+import {getLabWorkflow} from './LabPlatformWorkflows.js?v=native-labs-v1';
 
 // These are the choices in lab-platforms.js, not a claim of hardware compatibility.
 const OFFERED = {
     arduino: ['circuit', 'avr', 'wokwi', 'phet', 'local'],
-    microbit: ['python', 'scratch', 'arcade', 'local'],
-    'vex-iq': ['gears', 'scratch', 'arcade', 'local'],
-    'lego-spike': ['gears', 'scratch', 'arcade', 'local'],
-    'vex-vr': ['gears', 'scratch', 'arcade', 'local']
+    microbit: ['python', 'local'],
+    'vex-iq': ['gears', 'local'],
+    'lego-spike': ['gears', 'local'],
+    'vex-vr': ['gears', 'local']
 };
 const LESSONS = {
     arduino: ['led', 'timing', 'distance', 'alarm', 'calibration', 'project'],
@@ -70,8 +70,14 @@ function pythonGuide(lesson) {
     const activity = PYTHON_ACTIVITIES[lesson.id];
     return {
         title: `MicroPython · ${lesson.title}`, goal: lesson.goal, activityType: 'primary',
-        capability: 'micro:bit Python Editor chạy MicroPython cho micro:bit. Mã ở đây dùng microbit, không dùng API MakeCode Python. Simulator và bảng điều khiển tùy phiên bản editor.',
-        setupSteps: ['Chọn micro:bit Python Editor trong Lab; chờ editor tải. Mã mẫu được gửi bằng giao thức controller chính thức. Nếu đang giữ bản tự viết, tải bản sao trước khi thay mẫu.', 'Kiểm tra mã trong editor bắt đầu bằng from microbit import *. Dùng nút nạp mẫu của bài hoặc sao chép toàn bộ mã vào editor, sau đó chọn Run của editor.', 'Nếu iframe không tải, dùng Mở tab riêng tới https://python.microbit.org/v/3/, dán mã MicroPython; chỉnh sửa trong tab riêng không tự đồng bộ về ST-Robot.'],
+        capability: 'Soạn và chạy MicroPython trên micro:bit mô phỏng; có thể tải chương trình cho bo thật.',
+        setupSteps: [
+            'Chọn micro:bit Python Editor và chờ hiện vùng viết mã cùng bo mô phỏng. Nếu đang có bài tự viết, lưu hoặc tải bản sao trước khi thay mẫu.',
+            'Mở Mã mẫu của bài, chọn bản chương trình cần dùng và nạp vào editor. Kiểm tra dòng đầu có from microbit import *.',
+            'Bấm Run trong editor. Dùng các nút A/B hoặc điều khiển cảm biến bên cạnh bo mô phỏng để làm bài.',
+            ...(lesson.id === 'radio' ? ['Nếu simulator không có bảng gửi radio, chọn Bàn thí nghiệm trong bài để thử quy tắc nhận tin. Phần truyền radio thực tế cần hai bo micro:bit.'] : []),
+            'Nếu editor không tải, bấm Mở tab riêng rồi dán mã vào https://python.microbit.org/v/3/. Bài sửa trong tab riêng cần tải tệp và lưu lại vào tài khoản ST-Robot.'
+        ],
         ...activity,
         troubleshooting: ['Không thấy thay đổi: kiểm tra đang Run mã của đúng bài và dừng/chạy lại sau khi sửa; nút mô hình trong trang không thực thi Python.', 'Lỗi import microbit trong Python máy tính: đây là MicroPython cho micro:bit, hãy chạy trong editor đã chọn hoặc trên bo.', 'Lưu tiến trình của ST-Robot và chương trình trong tab editor riêng là hai thao tác khác nhau; tải tệp .py để lưu bản mã.'],
         codeExamples: [{id: 'main', label: 'MicroPython · chương trình của bài', lang: 'MicroPython', code: lesson.code, extension: 'py'}, ...(lesson.id === 'radio' ? [{id: 'sender', label: 'MicroPython · bo gửi thứ hai (A gửi mẫu kế tiếp)', lang: 'MicroPython', code: RADIO_SENDER, extension: 'py'}] : [])],
@@ -101,27 +107,128 @@ const GEARS_RESULTS = {
 };
 const GEARS_MATH = ['odometry', 'control', 'ratio', 'challenge', 'search', 'experiment'];
 
+const GEARS_STEPS = {
+    'vex-iq': {
+        drive: [
+            'Trong mẫu Python, giữ forward(200), WHEEL_DIAMETER_MM = 56 và SPEED = 25. Bấm Reset rồi Run.',
+            'Ghi Requested distance, GPS displacement và góc hai bánh trong console. Làm ba lượt, Reset trước mỗi lượt.',
+            'Đổi forward(200) thành forward(400), giữ nguyên robot và sân. Dự đoán quãng đường rồi chạy lại để so sánh.'
+        ],
+        turn: [
+            'Giữ chuỗi forward(200) → turn_right(90) → forward(200). Đánh dấu vị trí và hướng xuất phát rồi bấm Reset → Run.',
+            'Quan sát hai đoạn thẳng và lần quay giữa đường; ghi vị trí GPS cuối cùng và góc quay bánh được in trong console.',
+            'Đổi turn_right(90) thành turn_right(45), Reset rồi chạy lại. So sánh hướng cuối và hình đường đi của hai lượt.'
+        ],
+        detect: [
+            'Đặt một hộp trước cảm biến siêu âm của robot. Giữ THRESHOLD_CM = 20 và TIME_LIMIT_S = 10; bấm Reset → Run.',
+            'Ghi khoảng cách cuối và lý do dừng trong console. Đối chiếu robot dừng vì obstacle_threshold hay hết time_limit.',
+            'Đổi THRESHOLD_CM thành 30, đặt lại cùng sân và chạy lại. Sau đó bỏ hộp khỏi đường đi để kiểm tra lần dừng do hết thời gian.'
+        ],
+        mission: [
+            'Giữ ROUTE_NAME = "A" và CELL_MM = 100. Dự đoán vị trí sau từng F/R/L, rồi bấm Reset → Run.',
+            'Ghi trạng thái lưới cuối, GPS cuối và các chỗ va chạm nếu có. Đổi ROUTE_NAME thành "B", Reset và chạy từ cùng điểm đầu.',
+            'Đối chiếu hai tuyến có cùng đến (3,2,nam) hay không. Ghi riêng kết quả tính trên lưới và kết quả chuyển động trên sân.'
+        ],
+        odometry: [
+            'Giữ diameter_mm = 56, distance_mm = 500 và motor_turns_per_wheel_turn = 1. Tính trước số vòng bánh rồi chạy mẫu.',
+            'Đọc wheel_turns, wheel_degrees và motor_turns trong console; kiểm tra đơn vị vòng và độ.',
+            'Đổi đường kính thành 70 mm, giữ quãng đường 500 mm rồi chạy lại. Ghi vì sao bánh lớn cần ít vòng hơn cho cùng quãng đường.'
+        ],
+        control: [
+            'Chạy mẫu wheel_commands(0, -10). Đọc hai lệnh bánh trong console và kiểm tra kết quả (25, 35).',
+            'Đổi góc đo từ -10 thành 10 rồi chạy lại; kiểm tra hai lệnh đổi thành (35, 25).',
+            'Giữ phép thử wrap_deg(179 - (-179)), đối chiếu kết quả -2°. Ghi vì sao sai số gần điểm ±180° phải được quy về góc ngắn nhất.'
+        ]
+    },
+    'lego-spike': {
+        mechanism: [
+            'Chọn Cage Bot, giữ tay chắn ở vị trí đầu. Bấm Reset → Run và theo dõi ba mốc 0° → 30° → 0°.',
+            'Ghi target_deg và measured_deg trong console sau mỗi mốc. Kiểm tra tay chắn trở về vị trí nghỉ.',
+            'Đọc phép tính bộ truyền 12:36 ở cuối chương trình: motor 90° cho đầu ra -30°. Phân biệt phép tính này với góc tay chắn đang mô phỏng.'
+        ],
+        colors: [
+            'Đặt hộp đỏ, xanh và vàng trên sân Cage Bot. Bấm Reset → Run rồi đưa từng hộp đến ngang cảm biến màu, cách siêu âm không quá 3 cm.',
+            'Ghi nhãn màu, khoảng cách và nhóm A/B/CHECK được in. Lùi vật ra xa ít nhất 8 cm trước khi đưa hộp khác vào.',
+            'Thử một hộp ở xa hoặc lệch mặt cảm biến. Ghi kết quả đọc được, kể cả CHECK, rồi so với vị trí đặt đúng.'
+        ],
+        sort: [
+            'Bấm Reset → Run. Đưa một hộp đỏ vào vị trí đọc rồi giữ yên; theo dõi received và gate_cycles.',
+            'Giữ hộp qua vài lần đọc để kiểm tra chỉ có một chu kỳ. Sau đó lùi vật ra ít nhất 8 cm và chờ đủ ba mẫu trống.',
+            'Đưa hộp xanh vào. Ghi số vật đã nhận và chu kỳ tay chắn hoàn tất; đối chiếu với trường hợp giữ nguyên một vật.'
+        ],
+        project: [
+            'Đọc danh sách expected_groups trong mẫu. Chuẩn bị thứ tự các hộp tương ứng trước khi bấm Reset → Run.',
+            'Đưa từng hộp vào vùng đọc, chờ tay chắn hoàn tất rồi đưa vật ra. Ghi từng dòng RESULT, gồm lượt sai hoặc timeout.',
+            'Đối chiếu planned, attempted và complete_test. Tính tỷ lệ với toàn bộ lượt đã thử, rồi ghi riêng nhận dạng màu và chu kỳ tay chắn.'
+        ],
+        ratio: [
+            'Giữ teeth_in = 12, teeth_out = 36, speed_in_rpm = 90, torque_in_nm = 0.10 và efficiency = 0.80. Tính trước tốc độ và mô-men đầu ra rồi Run.',
+            'Đọc speed_out_rpm và torque_out_nm trong console; đối chiếu -30 rpm và 0,24 N·m.',
+            'Đổi số răng thành 36:12, chạy lại cùng tốc độ vào. Sau đó chỉ đổi efficiency thành 1 để xem riêng ảnh hưởng của hiệu suất.'
+        ],
+        state: [
+            'Bấm Reset → Run, đưa hộp đỏ vào vùng đọc của Cage Bot. Ghi các trạng thái WAIT, CLASSIFY và WAIT_CLEAR xuất hiện trong console.',
+            'Giữ hộp tại chỗ rồi đưa ra xa ít nhất 8 cm. Kiểm tra chương trình chỉ trở lại WAIT khi đã nhận đủ mẫu trống.',
+            'Đưa hộp xanh vào để bắt đầu lượt kế tiếp. Lưu thứ tự sự kiện, trạng thái và bộ đếm; nếu có ERROR, ghi nguyên lý do trước khi Reset.'
+        ]
+    },
+    'vex-vr': {
+        sequence: [
+            'Giữ chuỗi lệnh F F R F trong mẫu. Từ hướng đông, dự đoán vị trí và hướng sau bốn lệnh rồi bấm Reset → Run.',
+            'Đọc từng dòng trạng thái lưới và GPS cuối trong console. Kiểm tra lệnh R chỉ đổi hướng, không tiến thêm một ô.',
+            'Đổi chuỗi thành F R F L F, Reset rồi chạy lại. So sánh cả vị trí cuối lẫn hướng cuối của hai chuỗi.'
+        ],
+        loop: [
+            'Giữ forward(200) và turn_right(90) bên trong vòng lặp bốn lần. Bấm Reset → Run rồi quan sát đường hình vuông.',
+            'Đọc Return-position error trong console; ghi sai lệch vị trí cuối so với điểm xuất phát.',
+            'Tạo bản sao mã, đưa lệnh rẽ ra ngoài vòng lặp rồi chạy từ cùng điểm đầu. Đối chiếu hình đường đi để xác định phạm vi vòng lặp.'
+        ],
+        avoid: [
+            'Đặt vật cản trước robot, giữ THRESHOLD_CM = 20, TIME_LIMIT_S = 20 và MAX_ACTIONS = 40. Bấm Reset → Run.',
+            'Ghi các quyết định tiến/rẽ và lý do dừng: goal_reached, time_limit hoặc action_limit.',
+            'Đổi riêng THRESHOLD_CM thành 30 và chạy lại cùng sân. Thử thêm sân góc cụt để xem luật rẽ phải có tìm được lối ra hay không.'
+        ],
+        challenge: [
+            'Chạy mẫu và đọc kết quả hai tuyến A/B với giá một bước tiến 1 s, một lần rẽ 3 s. Kiểm tra cả hai cùng tới (3,2).',
+            'Ghi số bước tiến, số lần rẽ và tổng chi phí của từng tuyến; chọn tuyến có chi phí thấp hơn.',
+            'Chạy bộ giá 2 s/0,2 s đã có trong mẫu. Đối chiếu tuyến được chọn có thay đổi không; thời gian ở đây là chi phí đặt trước.'
+        ],
+        search: [
+            'Chạy mẫu BFS và đọc Path cùng Forward steps trong console. Kiểm tra đường bắt đầu ở START và kết thúc ở GOAL.',
+            'Đổi WIDTH, HEIGHT thành 4, 3; đặt BLOCKED = {(1, 0), (1, 1)}, giữ START = (0, 0), GOAL = (3, 2). Chạy lại và kiểm tra đường có 5 bước.',
+            'Thêm (1, 2) vào BLOCKED để tạo vách kín, chạy lại rồi ghi kết quả None. Bỏ tường vừa thêm để khôi phục đường đi.'
+        ],
+        experiment: [
+            'Giữ ba bản đồ, FORWARD_S = 1, TURN_S = 0.5 và EXPANSION_LIMIT = 100. Chạy mẫu BFS và DFS.',
+            'Ghi đủ sáu dòng kết quả của ba sân, kể cả no_path ở sân 3. Đối chiếu số ô mở rộng và chi phí của các tuyến tới đích.',
+            'Đổi EXPANSION_LIMIT thành 2 rồi chạy lại. Phân biệt expansion_limit với no_path; giữ mẫu số ba sân khi tính tỷ lệ hoàn thành.'
+        ]
+    }
+};
+
 function gearsGuide(courseId, lesson) {
     const arithmetic = GEARS_MATH.includes(lesson.id);
     const cage = courseId === 'lego-spike' && !arithmetic;
     const setupSteps = arithmetic ? [
-        'Mở GearsBot và chuyển tab lập trình sang Python; chọn môi trường ev3dev2 nếu có lựa chọn ngôn ngữ. Mã bài này dùng Python 3 để tính toán, không ra lệnh motor.',
-        'Sao chép toàn bộ mẫu vào editor Python, mở vùng console/output rồi Run. Có thể chạy cùng mã trong Python 3; không dán vào Scratch hay Arduino.'
+        'Mở GearsBot, chọn tab Python. Lưu dự án đang có trước khi thay mã của bài mới.',
+        'Mở Mã mẫu của bài, sao chép toàn bộ chương trình vào vùng Python rồi mở console. Bài này tính toán trên dữ liệu, không cần cho robot di chuyển.'
     ] : cage ? [
-        'Mở GearsBot → Robot → Select Robot → Cage Bot. Chuyển sang Python (ev3dev2). Tay chắn là OUTPUT_C/outC; cảm biến màu in3; siêu âm in4; A/B dành cho bánh xe.',
-        'Với bài có đọc màu, chuẩn bị hộp đỏ, xanh và vàng bằng Worlds → World Builder; đặt mặt màu ngang cảm biến. Dùng joystick tới ≤ 3 cm, dừng bánh; lùi ≥ 8 cm giữa vật. Giữ cùng sân và tư thế xuất phát.',
-        'Dán toàn bộ mẫu Python, nhấn Reset trước Run để encoder tay chắn về mốc. Mở console để đọc nhãn, khoảng cách, trạng thái và timeout.'
+        'Trong GearsBot, lưu dự án đang có rồi chọn Robot → Select Robot → Cage Bot; chuyển sang tab Python (ev3dev2).',
+        'Với bài đọc màu, mở Worlds → World Builder và chuẩn bị các hộp đỏ, xanh, vàng. Đặt mặt hộp ngang cảm biến; giữ nguyên vị trí xuất phát giữa các lượt.',
+        'Dán toàn bộ Mã mẫu của bài vào vùng Python và mở console. Tay chắn dùng outC, cảm biến màu in3 và siêu âm in4.',
+        'Bấm Reset để đưa robot về mốc, rồi bấm Run. Dừng robot trước khi sửa mã hoặc bố trí lại sân.'
     ] : [
-        'Mở GearsBot → Robot → Select Robot → Single Sensor Line Follower (singleFollower), chuyển sang Python (ev3dev2). Bánh trái A, bánh phải B, siêu âm INPUT_2, GPS INPUT_4.',
-        'Dùng sân rộng phẳng và cùng tư thế xuất phát. Mẫu giả định bánh 56 mm, khoảng cách bánh 152 mm. Với detect/avoid đặt hộp trước robot; bảo đảm có chỗ cho các đoạn tiến/rẽ.',
-        'Dán toàn bộ chương trình, mở console; nhấn Reset rồi Run trước mỗi lượt. Không dùng API VEX hoặc SPIKE trong editor ev3dev2 này.'
+        'Trong GearsBot, lưu dự án đang có rồi chọn Robot → Select Robot → Single Sensor Line Follower; chuyển sang tab Python (ev3dev2).',
+        'Chọn sân phẳng có đủ chỗ chạy; đánh dấu vị trí và hướng xuất phát. Robot mẫu dùng bánh 56 mm, khoảng cách hai bánh 152 mm.',
+        'Dán toàn bộ Mã mẫu của bài vào vùng Python và mở console. Bánh trái A, bánh phải B, siêu âm INPUT_2, GPS INPUT_4.',
+        'Bấm Reset rồi Run. Dùng cùng robot, sân và điểm xuất phát khi so hai lượt.'
     ];
     return {
         title: `${arithmetic ? 'GearsBot Python · tính toán' : 'GearsBot · thử robot'} · ${lesson.title}`,
         goal: lesson.goal, activityType: 'primary',
-        capability: arithmetic ? 'Editor GearsBot chạy phép tính Python; chương trình này chỉ in kết quả, không điều khiển robot hay tự đo thời gian.' : `GearsBot chạy ev3dev2 Python trên robot ${cage ? 'Cage Bot' : 'Single Sensor Line Follower'}. Đây là robot GearsBot, không giả lập firmware VEX/LEGO và không chạy trực tiếp trên kit thật.`,
+        capability: arithmetic ? 'Chạy Python và đọc kết quả tính toán trong console GearsBot.' : `Điều khiển robot 3D ${cage ? 'Cage Bot' : 'Single Sensor Line Follower'} bằng Python ev3dev2.`,
         setupSteps,
-        steps: [lesson.labGuide, `Trước Run, ghi dự đoán từ yêu cầu: ${lesson.goal}`, 'Ghi kết quả console cùng các tham số đã dùng. Chỉ đổi một tham số/điều kiện trong lượt tiếp theo và Reset khi có chuyển động; lưu cả lỗi, timeout và lượt chưa tới đích.'],
+        steps: GEARS_STEPS[courseId][lesson.id],
         expected: GEARS_RESULTS[lesson.id],
         evidence: [arithmetic ? 'Lưu mã, tham số đầu vào và các dòng console; chỉ ra giá trị tính từ giả thiết, không gọi là số đo robot.' : 'Lưu profile robot/sân, tham số, console và ảnh tư thế trước/sau; ghi Reset, số lượt và lỗi gặp.'],
         troubleshooting: arithmetic ? ['Không có chuyển động là đúng với mẫu tính toán. Xem console; chạy lại sau khi sửa dữ liệu đầu vào.', 'BFS/DFS no_path khác hết ngân sách; giữ nguyên lý do dừng trong bảng kết quả.'] : ['Lỗi cổng/cảm biến: chọn đúng profile robot và Reset; Cage Bot có siêu âm in4, khác singleFollower INPUT_2.', 'Motor timeout hoặc stalled: Stop, kiểm tra vật cản/mốc tay chắn rồi mới Reset. Không bỏ finally dừng motor để ép chương trình tiếp tục.', 'Màu CHECK: kiểm tra hộp ở ngang cảm biến và trong vùng ≤ 3 cm; màu được đo khác nhãn bạn kỳ vọng. Ghi CHECK thành kết quả thử.'],
@@ -141,12 +248,15 @@ export function getPlatformGuide({course, lesson, platformKey, level = 'beginner
     else if (courseId === 'arduino') guide = getArduinoGuide(lesson, platformKey);
     else if (platformKey === 'python') guide = pythonGuide(lesson);
     else if (platformKey === 'gears') guide = gearsGuide(courseId, lesson);
-    else guide = getBlockGuide(courseId, lesson, platformKey);
     if (!guide) throw new RangeError(`Chưa có hướng dẫn ${courseId}/${lesson.id}/${platformKey}.`);
+    const workflow = getLabWorkflow(platformKey);
     return {
         ...guide,
+        saveSteps: workflow.saveSteps,
+        reopenSteps: workflow.reopenSteps,
+        finishCheck: guide.expected.slice(0, 2),
         id: `${courseId}:${lesson.id}:${platformKey}`,
         courseId, lessonId: lesson.id, platformKey, level,
-        levelChallenge: level === 'beginner' ? 'Làm lần lượt các bước; dự đoán một kết quả trước mỗi lượt, ghi đầu vào và điều quan sát được.' : level === 'intermediate' ? 'Hoàn thành mẫu rồi chỉ đổi một tham số; thêm ca biên hoặc chuỗi sự kiện có thể làm sai dự đoán và giải thích kết quả.' : 'Chốt tiêu chí thành công trước khi chạy; tự thiết kế ít nhất ba ca gồm biên/lỗi, lưu cả lượt thất bại và giải thích giới hạn của nền tảng này.'
+        levelChallenge: level === 'beginner' ? 'Làm lần lượt từng bước. Ghi dự đoán trước khi chạy và kết quả sau mỗi lượt.' : level === 'intermediate' ? 'Hoàn thành mẫu, đổi một tham số rồi thử thêm một giá trị sát ngưỡng hoặc một trường hợp lỗi.' : 'Chọn tiêu chí trước khi chạy. Thiết kế ít nhất ba ca thử, giữ cả kết quả đạt và chưa đạt để giải thích.'
     };
 }
