@@ -1,6 +1,6 @@
 // Local learning records are learner reports, including when the fields are complete.
 // These helpers never read storage, mutate an existing record, or verify a claim.
-import { normalizeLabWorkMap } from './LabWorkspace.js?v=native-labs-v1';
+import { normalizeLabWorkMap } from './LabWorkspace.js?v=lab-files-v2';
 export const limits = Object.freeze({
     backupBytes: 5 * 1024 * 1024,
     lessons: 100,

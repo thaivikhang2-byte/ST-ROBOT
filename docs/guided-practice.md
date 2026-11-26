@@ -26,7 +26,7 @@ Giữ khóa `strobot.original.course.v3` và các ghi chú/tiến độ cũ. B�
 
 Tải hồ sơ xuất JSON phiên bản 2 theo từng khóa. Khôi phục hỗ trợ bản cũ, kiểm tra toàn bộ tệp trước khi thay dữ liệu, yêu cầu xem trước và xác nhận thay các bài có trong tệp; giữ các bài khác/khóa khác. Dữ liệu nhập đánh dấu hoàn thành được gắn `imported-self-report`; không tiếp nhận cờ chấm điểm hoặc xác minh tùy ý. Tệp tối đa 5 MiB, chỉ nhận bài thuộc khóa và đường dẫn dự án HTTPS. Đã có kiểm thử tệp lỗi, giới hạn dữ liệu và khóa có nguy cơ sửa prototype.
 
-Hồ sơ chứa dự đoán, quan sát, ghi chú và bài làm theo nền tảng. Tệp dự án gốc có thể đính kèm trong phần Lưu bài thực hành (bốn tệp, tổng 256 KiB). Cầu nối micro:bit tự lưu toàn bộ dự án nhúng theo bài và tài khoản. PhET và mô hình trong web lưu phiếu kết quả; người học nhập lại đầu vào khi mở phiên mới. Các editor ngoài giữ cơ chế lưu và tài khoản riêng. Xem [hướng dẫn từng nền tảng](lab-account-integration.md).
+Hồ sơ chứa dự đoán, quan sát, ghi chú và bài làm theo nền tảng. Tệp dự án, ảnh và tài liệu được thêm ở phần Lưu bài thực hành: mọi định dạng, tối đa 25 MiB/tệp và 250 MiB/tài khoản, lưu riêng khỏi snapshot. Xem bản đã lưu mở danh sách để chọn xem hoặc tải từng tệp. Cầu nối micro:bit tự lưu toàn bộ dự án nhúng theo bài và tài khoản. PhET và mô hình trong web lưu phiếu kết quả; người học nhập lại đầu vào khi mở phiên mới. Các editor ngoài giữ cơ chế lưu và tài khoản riêng. Xem [hướng dẫn từng nền tảng](lab-account-integration.md).
 
 Lỗi tải iframe giữ tùy chọn nền tảng, cho thử tải lại, mở riêng hoặc chuyển mô hình. Một lần tải lỗi không xóa nền tảng khỏi danh sách. Các mô hình và PDF được phục vụ cùng web nên vẫn dùng khi bên cung cấp lab gián đoạn; không cam kết chúng thực thi thay mọi dự án trên nền tảng đó.
 

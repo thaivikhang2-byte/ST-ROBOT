@@ -93,7 +93,7 @@ const WORKFLOWS = {
         notesPlaceholder: 'Ghi nguồn điện, linh kiện, cách nối dây và bảng số đo để dựng lại thí nghiệm.',
         extensions: [], defaultExtension: '.txt', projectUrlVisible: false,
         saveSteps: [
-            'Ghi cách mắc mạch, giá trị nguồn và linh kiện, vị trí đặt dụng cụ đo cùng kết quả từng lượt vào phiếu.',
+            'Ghi cách mắc mạch, giá trị nguồn và linh kiện, vị trí đặt dụng cụ đo cùng kết quả từng lượt vào phiếu. Có thể thêm ảnh chụp mạch hoặc tài liệu ở mục Thêm tệp bài làm.',
             'Bấm Lưu bài thực hành và chờ thông báo đã đồng bộ. Phiếu giữ phần ghi chép; bố trí mạch trong PhET cần được dựng lại khi mở phiên mới.'
         ],
         reopenSteps: [
@@ -108,7 +108,7 @@ const WORKFLOWS = {
         notesPlaceholder: 'Ghi giá trị đã nhập, các bước đã làm, kết quả và một điều cần kiểm tra tiếp.',
         extensions: [], defaultExtension: '.txt', projectUrlVisible: false,
         saveSteps: [
-            'Ghi đầu vào, các thao tác đã làm và kết quả vào phiếu. Dùng nút ghi kết quả của mô hình nếu bài có nút này.',
+            'Ghi đầu vào, các thao tác đã làm và kết quả vào phiếu. Có thể nhận kết quả từ bàn thực hành và thêm ảnh, báo cáo hoặc tệp khác ở mục Thêm tệp bài làm.',
             'Bấm Lưu bài thực hành và chờ thông báo đã đồng bộ. Phiếu giữ kết quả để đối chiếu; mở lại mô hình cần nhập lại các đầu vào đã ghi.'
         ],
         reopenSteps: [

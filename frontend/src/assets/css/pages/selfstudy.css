@@ -235,3 +235,36 @@ body.learning-page { height:100dvh; overflow:hidden; }
  #practiceFrame { height:clamp(460px,70dvh,640px); }
  .lab-editor-launch { padding:18px; }
 }
+
+/* Saved work is chosen from a file list before any content is loaded. */
+.lab-file-viewer { width:min(1080px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);padding:20px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text); }
+.lab-file-viewer::backdrop { background:rgb(7 20 36 / .6); }
+.lab-file-viewer button { min-height:40px;padding:8px 12px;background:var(--color-surface);border:1px solid var(--color-border-control);border-radius:var(--radius-sm);color:var(--color-text);font:inherit;font-size:.875rem;line-height:1.5;cursor:pointer; }
+.lab-file-viewer button:hover { background:var(--color-surface-muted); }
+.lab-file-viewer button.btn--primary { background:var(--color-primary);border-color:var(--color-primary);color:var(--color-on-primary); }
+.lab-file-viewer button:disabled { opacity:.55;cursor:not-allowed; }
+.lab-file-viewer button:focus-visible { outline:2px solid var(--color-primary);outline-offset:2px; }
+.lab-file-viewer-head { display:flex;align-items:center;justify-content:space-between;gap:16px; }
+.lab-file-viewer-head h2 { margin:0;font-size:1.25rem; }
+.lab-file-viewer-status { min-height:1.5em;overflow-wrap:anywhere;font-size:.8125rem;color:var(--color-text-muted); }
+.lab-file-viewer-body { display:grid;grid-template-columns:minmax(190px,260px) minmax(0,1fr);gap:20px;min-height:320px; }
+.lab-file-viewer-list { margin:0;padding:0;list-style:none;max-height:62dvh;overflow:auto; }
+.lab-file-viewer-list li { margin-bottom:8px; }
+.lab-file-viewer-choice { display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;text-align:left;overflow-wrap:anywhere; }
+.lab-file-viewer-choice[aria-pressed="true"] { border-color:var(--color-primary);background:var(--color-primary-soft); }
+.lab-file-viewer-choice span { max-width:100%; }
+.lab-file-viewer-choice small { font-weight:400;color:var(--color-text-muted); }
+.lab-file-viewer-content { min-width:0; }
+.lab-file-viewer-content h3 { margin:0 0 12px;overflow-wrap:anywhere; }
+.lab-file-viewer-preview { min-height:220px;max-height:60dvh;overflow:auto;margin-bottom:16px;padding:12px;border:1px solid var(--color-border);border-radius:var(--radius-sm); }
+.lab-file-viewer-preview img { display:block;max-width:100%;max-height:54dvh;height:auto;margin:auto;object-fit:contain; }
+.lab-file-viewer-preview iframe { display:block;width:100%;height:52dvh;border:0; }
+.lab-file-viewer-preview pre { margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.875rem; }
+.lab-file-viewer-record { margin-bottom:16px; }
+.lab-file-viewer-record pre,.lab-file-viewer-notes { white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto; }
+@media(max-width:700px) {
+ .lab-file-viewer { padding:16px; }
+ .lab-file-viewer-body { grid-template-columns:minmax(0,1fr);gap:14px; }
+ .lab-file-viewer-list { max-height:180px; }
+ .lab-file-viewer-preview { max-height:48dvh; }
+}

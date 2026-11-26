@@ -16,12 +16,14 @@ import { NotificationsModule } from '../../modules/notifications/notifications.m
 import { SystemModule } from '../../modules/system/system.module';
 import { BackupModule } from '../../modules/backup/backup.module';
 import { LearnerStateModule } from '../../modules/learner-state/learner-state.module';
+import { LabFilesModule } from '../../modules/lab-files/lab-files.module';
 
 @Module({
   imports: [
     SystemModule,
     BackupModule,
     LearnerStateModule,
+    LabFilesModule,
     AuthModule,
     UsersModule,
     RolesModule,

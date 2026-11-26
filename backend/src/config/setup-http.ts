@@ -19,6 +19,14 @@ export function setupHttp(app: INestApplication): void {
   app.use('/api/v1/learner-state', function workspaceJson(req: Request, res: Response, next: NextFunction) {
     workspaceParser(req, res, next);
   });
+  // Attachment chunks have a bounded 1 MiB binary payload encoded as JSON.
+  // Register a named wrapper so Nest retains its small parser elsewhere.
+  const labFileParser = json({ limit: '2mb' });
+  app.use('/api/v1/lab-files', function labFileJson(req: Request, res: Response, next: NextFunction) {
+    res.setHeader('Cache-Control', 'private, no-store');
+    if (req.method === 'PUT' && /^\/[0-9a-f-]+\/chunks\/\d+$/i.test(req.path)) labFileParser(req, res, next);
+    else next();
+  });
   const metrics = app.get(MetricsService);
   const settings = app.get(ConfigService);
   const logger = new AppLoggerService(settings.get('logging'));

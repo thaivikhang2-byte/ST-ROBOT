@@ -90,6 +90,7 @@ model User {
   courses        Course[]        @relation("CourseCreator")
   progress       Progress[]
   learner_state LearnerState?
+  lab_files LearnerLabFile[]
   video_sessions VideoSession[]
   video_playback_progress VideoPlaybackProgress[]
   quiz_attempts  QuizAttempt[]
@@ -121,6 +122,44 @@ model User {
   @@index([deleted_at])
   @@index([student_approval_pending, created_at])
   @@map("users")
+}
+
+// Large learner attachments stay outside browser snapshots. Bytes are kept in
+// bounded chunks so an upload/download never requires a whole-file API body.
+model LearnerLabFile {
+  id                String   @id @default(uuid()) @db.Uuid
+  user_id           String   @db.Uuid
+  course_slug       String   @db.VarChar(40)
+  lesson_slug       String   @db.VarChar(40)
+  platform_key      String   @db.VarChar(30)
+  name              String   @db.VarChar(180)
+  size_bytes        Int
+  chunk_count       Int
+  status            String   @default("uploading") @db.VarChar(12)
+  client_upload_id  String   @db.Uuid
+  upload_expires_at DateTime?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  user   User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  chunks LearnerLabFileChunk[]
+
+  @@unique([user_id, client_upload_id])
+  @@index([user_id, course_slug, lesson_slug, platform_key, status, created_at], map: "learner_lab_files_scope_idx")
+  @@index([user_id, status, upload_expires_at], map: "learner_lab_files_expiry_idx")
+  @@map("learner_lab_files")
+}
+
+model LearnerLabFileChunk {
+  file_id     String @db.Uuid
+  chunk_index Int
+  size_bytes  Int
+  data        Bytes  @db.ByteA
+
+  file LearnerLabFile @relation(fields: [file_id], references: [id], onDelete: Cascade)
+
+  @@id([file_id, chunk_index])
+  @@map("learner_lab_file_chunks")
 }
 
 enum RoleGroup {

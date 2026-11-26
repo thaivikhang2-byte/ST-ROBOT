@@ -33,6 +33,17 @@ Fixture native/PostgreSQL `tests/auth-upgrade-pg.cjs` đạt tám nhóm; hai l�
 
 Các kiểm thử dùng database riêng và phản hồi provider giả lập, không gọi sinh nội dung AI trả phí. Không kiểm chứng trực tiếp uptime, header iframe hoặc simulator ở các tên miền ngoài do chính sách mạng của môi trường. Bridge micro:bit được kiểm tra bằng bộ giao thức hiện có; không chạy lại editor upstream thực trong đợt này. Kết quả không thay cho thử nghiệm trên phần cứng hoặc đánh giá của giám khảo.
 
+## Kho tệp và xem bài đã lưu — 26/11/2026
+
+Tệp mới nhận mọi định dạng, tối đa 25 MiB/tệp và 250 MiB/tài khoản, 50 tệp cho một bài/nền tảng. Chúng nằm trong bảng PostgreSQL riêng, truyền theo khối 1 MiB; không nới hoặc làm nặng snapshot tiến độ. V1/v2 cũ được giữ nguyên. Migration chỉ bổ sung bảng/chỉ mục/ràng buộc và được áp dụng khi startup.
+
+- Ba bộ backend mới có 52 kiểm thử đạt: phiên/quyền hiện tại, chủ sở hữu, quota gồm giữ chỗ, giới hạn parser, thử lại idempotent, tệp rỗng, hoàn tất thiếu byte, hết hạn và xóa. Tài khoản khác không GET/xóa tệp theo ID được.
+- Node file-store và browser workspace/viewer đạt: ảnh PNG, định dạng lạ hơn 256 KiB, tệp không có phần mở rộng, văn bản/PDF, HTML không chạy mã, tải nguyên byte, hủy/đổi lựa chọn và đăng xuất đóng ảnh. Trình xem tải một tệp được chọn, không tải nội dung toàn danh sách.
+- Hành trình PostgreSQL/Redis chín nhóm đạt sau migration mới: bốn tệp gồm PNG và tệp lạ lớn hơn 1 MiB lưu qua database; thiết bị thứ hai xem ảnh/tải đúng byte. Snapshot học tập không chứa các tệp mới. Dữ liệu và quyền học sinh/admin trước đó tiếp tục hoạt động.
+- Khi tiếp tục sau ngắt kết nối: build/typecheck đạt; toàn bộ 48 bộ Jest đạt với 409 kiểm thử, sáu kiểm thử Redis tùy chọn được bỏ qua. Các bộ Node file-store, native v2 cũ, portfolio và ngữ cảnh tutor cũng đạt. Không khởi động server thường trực để kiểm tra lại.
+
+Lượt tải đã tạo thành công nhưng mất phản hồi trước khi client nhận ID có thể giữ quota đến lần dọn sau 24 giờ. Tệp đã hoàn tất và ghi chú không bị thay đổi. Chi tiết dung lượng, cách xem lại và phạm vi sao lưu ở [hướng dẫn lưu bài](lab-account-integration.md).
+
 ## Triển khai và sử dụng
 
 Backend Render giữ Root Directory `backend`, build `npm ci --include=dev && npm run prisma:generate && npm run build`, start `npm run start:production`. Startup tự áp dụng migration bổ sung cờ chờ duyệt, giữ dữ liệu tài khoản cũ. Với `MANAGED_ACCOUNTS_ENABLED=true`, luồng học sinh chờ duyệt mặc định được bật; không cần nhập lại khóa AI hay tạo lại admin. GitHub Pages phục vụ frontend mới từ cùng nhánh chính. Nếu Auto-Deploy bị tắt, chọn **strobot-backend → Manual Deploy → Deploy latest commit** rồi chờ Live. Backend và frontend phải cùng cập nhật trước khi kiểm tra đăng ký mới.

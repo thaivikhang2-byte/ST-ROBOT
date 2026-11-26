@@ -159,6 +159,8 @@ def main():
     note_a = 'Private student A journal ' + run_id
     lab_code, lab_notes = '// private-workspace-' + run_id + '\nvoid setup() {}\nvoid loop() {}', 'Private lab checkpoint ' + run_id
     diagram_bytes = json.dumps({'version': 1, 'author': run_id, 'editor': 'wokwi', 'parts': [], 'connections': []}).encode()
+    evidence_png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+    binary_report = bytes(range(256)) * 4096 + b'original-large-report'
     dummy_key = 'synthetic-provider-never-dispatched-' + secrets.token_urlsafe(24)
     private_values = [admin_password, student_a['password'], student_b['password'], dummy_key,
                       cfg.get('JWT_SECRET', ''), cfg.get('JWT_REFRESH_SECRET', ''),
@@ -390,8 +392,11 @@ def main():
                 learner.locator('#labWorkFiles').set_input_files([
                     {'name': 'sketch.ino', 'mimeType': 'text/plain', 'buffer': lab_code.encode()},
                     {'name': 'diagram.json', 'mimeType': 'application/json', 'buffer': diagram_bytes},
+                    {'name': 'evidence.png', 'mimeType': 'image/png', 'buffer': evidence_png},
+                    {'name': 'report.classwork', 'mimeType': 'application/octet-stream', 'buffer': binary_report},
                 ])
-                expect(learner.locator('#labWorkFileList')).to_contain_text('diagram.json')
+                expect(learner.locator('#labWorkFileStatus')).to_contain_text('Đã lưu 4 tệp', timeout=30000)
+                expect(learner.locator('#labWorkFileList li')).to_have_count(4)
                 learner.locator('#labWorkSave').click()
                 learner.locator('#labButtons button[data-lab-key="local"]').click()
                 learner.locator('#prediction').fill('The LED should light with a closed forward circuit.')
@@ -419,10 +424,15 @@ def main():
                     record = state.get('arduino', {}).get('led', {})
                     work = record.get('labWork', {}).get('wokwi', {})
                     return (record.get('note') == note_a and record.get('done') is True
-                            and work.get('version') == 2 and work.get('code') == lab_code and work.get('notes') == lab_notes
-                            and {file['name']: file['dataBase64'] for file in work.get('files', [])}
-                            == {'sketch.ino': base64.b64encode(lab_code.encode()).decode(), 'diagram.json': base64.b64encode(diagram_bytes).decode()})
+                            and work.get('version') == 1 and work.get('code') == lab_code and work.get('notes') == lab_notes
+                            and 'files' not in work)
                 eventually(saved_work, 'Completed practice and lab checkpoint did not reach PostgreSQL', page=learner)
+                file_scope = '?courseId=arduino&lessonId=led&platformKey=wokwi'
+                saved_files = api.call('/v1/lab-files' + file_scope, token=token_a)
+                require({file['name'] for file in saved_files['files']} == {'sketch.ino', 'diagram.json', 'evidence.png', 'report.classwork'},
+                        'Dedicated file storage did not retain every attachment format')
+                require(saved_files['usage']['usedBytes'] == len(lab_code.encode()) + len(diagram_bytes) + len(evidence_png) + len(binary_report),
+                        'Account file usage did not count actual stored bytes')
                 expect(learner.locator('#labWorkStatus')).to_contain_text('Đã đồng bộ')
                 passed('student completion, journal and lab checkpoint persist through real synchronization')
 
@@ -444,11 +454,24 @@ def main():
                 expect(learner_again.locator('#journal')).to_have_value(note_a)
                 expect(learner_again.locator('#labWorkCode')).to_have_value(lab_code)
                 expect(learner_again.locator('#labWorkNotes')).to_have_value(lab_notes)
-                expect(learner_again.locator('#labWorkFileList li')).to_have_count(2)
+                expect(learner_again.locator('#labWorkFileList li')).to_have_count(4)
                 with learner_again.expect_download() as native_download:
                     learner_again.locator('#labWorkFileList li').filter(has_text='diagram.json').get_by_role('button', name='Tải tệp', exact=True).click()
                 require(pathlib.Path(native_download.value.path()).read_bytes() == diagram_bytes,
                         'Native diagram bytes changed across PostgreSQL and the second browser')
+                learner_again.locator('#labWorkRestore').click()
+                saved_dialog = learner_again.locator('dialog[data-lab-file-viewer]')
+                expect(saved_dialog).to_be_visible()
+                expect(saved_dialog.locator('.lab-file-viewer-choice')).to_have_count(4)
+                saved_dialog.locator('.lab-file-viewer-choice').filter(has_text='evidence.png').click()
+                expect(saved_dialog.locator('.lab-file-viewer-preview img')).to_be_visible()
+                saved_dialog.locator('.lab-file-viewer-choice').filter(has_text='report.classwork').click()
+                expect(saved_dialog.get_by_role('button', name='Tải tệp', exact=True)).to_be_enabled()
+                with learner_again.expect_download() as report_download:
+                    saved_dialog.get_by_role('button', name='Tải tệp', exact=True).click()
+                require(pathlib.Path(report_download.value.path()).read_bytes() == binary_report,
+                        'Arbitrary multi-chunk report bytes changed across devices')
+                saved_dialog.get_by_role('button', name='Đóng danh sách tệp đã lưu', exact=True).click()
                 passed('the same learner restores progress and lab work on another browser/device')
 
                 stage = 'same-browser logout clears prior lab tabs and preserves saved work'
@@ -521,6 +544,9 @@ def main():
                 expect(learner_b.locator('#labWorkCode')).to_have_value('')
                 expect(learner_b.locator('#labWorkNotes')).to_have_value('')
                 expect(learner_b.locator('#labWorkFileList li')).to_have_count(0)
+                first_file = saved_files['files'][0]
+                api.call('/v1/lab-files/' + first_file['id'] + '/chunks/0', token=token_b, status=404)
+                api.call('/v1/lab-files/' + first_file['id'], method='DELETE', token=token_b, status=404)
                 api.call('/v1/users/' + second['id'] + '/approve-student', method='POST', token=token_b, status=403)
                 passed('a separate student account cannot read or approve another learner workspace')
 

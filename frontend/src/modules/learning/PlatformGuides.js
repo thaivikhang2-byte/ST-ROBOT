@@ -1,6 +1,6 @@
-import {getArduinoGuide} from './guides/ArduinoGuides.js?v=native-labs-v1';
+import {getArduinoGuide} from './guides/ArduinoGuides.js?v=lab-files-v2';
 import {getLocalGuide} from './guides/LocalGuides.js';
-import {getLabWorkflow} from './LabPlatformWorkflows.js?v=native-labs-v1';
+import {getLabWorkflow} from './LabPlatformWorkflows.js?v=lab-files-v2';
 
 // These are the choices in lab-platforms.js, not a claim of hardware compatibility.
 const OFFERED = {

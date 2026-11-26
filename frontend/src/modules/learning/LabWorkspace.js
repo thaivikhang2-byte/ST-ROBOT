@@ -1,5 +1,6 @@
-import { LAB_FILE_LIMITS, decodeLabFile, encodeLabFile, labFileExtension, normalizeLabFiles } from './LabArtifacts.js?v=native-labs-v1';
-import { getLabWorkflow } from './LabPlatformWorkflows.js?v=native-labs-v1';
+import { decodeLabFile, labFileExtension, normalizeLabFiles } from './LabArtifacts.js?v=lab-files-v2';
+import { getLabWorkflow } from './LabPlatformWorkflows.js?v=lab-files-v2';
+import { LabFileViewer } from './LabFileViewer.js?v=lab-files-v2';
 
 export const LAB_WORK_LIMITS = Object.freeze({ codeBytes: 32768, notes: 2000, projectUrl: 2048, fileName: 120 });
 // Includes retired platforms so existing account records and backups stay readable.
@@ -52,9 +53,11 @@ const element = (tag, text, className) => {
 };
 /** Records are written by the host's owner-bound course writer, never an external iframe/account. */
 export class LabWorkspacePanel {
-    constructor(host, { onSave, isCurrent, getSyncStatus, readEditorSource, readExperiment } = {}) {
-        Object.assign(this, { host, onSave, isCurrent: isCurrent || (() => false), getSyncStatus: getSyncStatus || (() => ({})), readEditorSource, readExperiment });
+    constructor(host, { onSave, isCurrent, getSyncStatus, readEditorSource, readExperiment, fileStore } = {}) {
+        Object.assign(this, { host, onSave, isCurrent: isCurrent || (() => false), getSyncStatus: getSyncStatus || (() => ({})), readEditorSource, readExperiment, fileStore });
         this.drafts = new Map(); this.files = []; this.fileOperation = 0; this.generation = 0; this.dirty = false; this.ready = false;
+        this.remoteFiles = []; this.fileScopeEpoch = 0; this.remoteLimits = { fileBytes: 25 * 1024 * 1024, accountBytes: 250 * 1024 * 1024, filesPerLab: 50 };
+        this.viewer = new LabFileViewer();
         this.build();
     }
     build() {
@@ -73,11 +76,16 @@ export class LabWorkspacePanel {
         this.url = element('input'); this.url.id = 'labWorkProjectUrl'; this.url.type = 'url'; this.url.maxLength = LAB_WORK_LIMITS.projectUrl; this.url.placeholder = 'https://wokwi.com/projects/…'; this.urlLabel = field('Liên kết dự án của bạn', this.url);
         this.privacy = element('p', 'ST-Robot lưu liên kết trong tài khoản của bạn. Quyền xem dự án ở nền tảng ngoài do bạn đặt; liên kết chia sẻ có thể công khai.', 'small'); this.privacy.hidden = true; this.fieldset.append(this.privacy);
         this.fileArea = element('div', undefined, 'lab-work-files');
-        const fileLabel = element('label', 'Thêm tệp dự án', 'portfolio-import');
+        const fileLabel = element('label', 'Thêm tệp bài làm', 'portfolio-import');
         this.attachments = element('input'); this.attachments.id = 'labWorkFiles'; this.attachments.type = 'file'; this.attachments.multiple = true;
         fileLabel.htmlFor = this.attachments.id; fileLabel.append(this.attachments);
         this.fileList = element('ul'); this.fileList.id = 'labWorkFileList';
-        this.fileArea.append(fileLabel, element('p', 'Tối đa 4 tệp, tổng dung lượng 256 KiB. Tải lại các tệp này để mở trong editor tương ứng.', 'small'), this.fileList); this.fieldset.append(this.fileArea);
+        this.fileLimits = element('p', '', 'small'); this.fileLimits.id = 'labWorkFileLimits';
+        this.fileUsage = element('p', '', 'small'); this.fileUsage.id = 'labWorkFileUsage';
+        this.fileStatus = element('p', '', 'small'); this.fileStatus.id = 'labWorkFileStatus'; this.fileStatus.setAttribute('role', 'status'); this.fileStatus.setAttribute('aria-live', 'polite');
+        this.cancelUpload = element('button', 'Hủy tải tệp'); this.cancelUpload.type = 'button'; this.cancelUpload.id = 'labWorkCancelUpload'; this.cancelUpload.hidden = true;
+        this.cancelUpload.addEventListener('click', () => this.uploadController?.abort());
+        this.fileArea.append(fileLabel, this.fileLimits, element('p', 'Ảnh, PDF, tài liệu, video, mã nguồn và các tệp khác đều được nhận. Tệp được lưu vào tài khoản khi tải lên hoàn tất.', 'small'), this.fileUsage, this.fileStatus, this.cancelUpload, this.fileList); this.fieldset.append(this.fileArea);
         const details = this.sourceDetails = element('details'); details.id = 'labWorkSourceDetails'; details.append(element('summary', 'Bản sao mã nguồn'));
         this.code = element('textarea'); this.code.id = 'labWorkCode'; this.code.rows = 8; this.code.maxLength = LAB_WORK_LIMITS.codeBytes; this.code.spellcheck = false; this.code.style.fontFamily = 'monospace'; this.code.setAttribute('translate', 'no'); this.code.placeholder = 'Dán mã của bạn hoặc nhập tệp mã nguồn. Ô này giữ bản sao, không chạy mã trong editor ngoài.';
         const label = this.codeLabel = element('label', 'Mã của tôi / nội dung tệp (tối đa 32 KiB)'); label.htmlFor = this.code.id;
@@ -100,11 +108,7 @@ export class LabWorkspacePanel {
             clearTimeout(this.timer); if (!this.corrupt) this.timer = setTimeout(() => this.persist(), 500);
         });
         this.save.addEventListener('click', () => this.persist());
-        this.restore.addEventListener('click', () => {
-            if (!this.ready || !this.isCurrent(this.context) || this.corrupt) return;
-            if (this.dirty && !confirm('Bỏ thay đổi chưa lưu và nạp bản đã lưu? Hãy tải bản mã trước nếu cần giữ lại.')) return;
-            clearTimeout(this.timer); this.fileOperation++; this.drafts.delete(this.key); this.fill(this.saved); this.status.textContent = 'Đã nạp bản lưu vào ô bài làm. Editor ngoài được quản lý riêng.';
-        });
+        this.restore.addEventListener('click', () => void this.openSavedFiles());
         this.file.addEventListener('change', () => void this.importFile()); download.addEventListener('click', () => this.download());
         this.attachments.addEventListener('change', () => void this.importAttachments());
         this.experiment.addEventListener('click', () => {
@@ -141,15 +145,15 @@ export class LabWorkspacePanel {
         try { if (this.ready && record?.labWork?.[context.platformKey]) this.saved = normalizeLabWork(record.labWork[context.platformKey], context.platformKey); } catch { this.corrupt = true; }
         const draft = this.ready ? this.drafts.get(this.key) : null; this.fill(draft || this.saved); this.dirty = !!draft;
         this.fieldset.disabled = !this.ready; this.fieldset.hidden = !this.ready; this.signIn.hidden = !ready || Boolean(context.ownerId);
-        this.capture.hidden = context.platformKey !== 'python'; this.restore.disabled = this.corrupt;
+        this.capture.hidden = context.platformKey !== 'python'; this.restore.disabled = false;
         const workflow = getLabWorkflow(context.platformKey);
         this.workflow = workflow; this.method.textContent = workflow.sourceLabel;
         for (const [host, steps] of [[this.saveSteps, workflow.saveSteps], [this.reopenSteps, workflow.reopenSteps]]) host.replaceChildren(...steps.map(text => element('li', text)));
         this.notesLabel.textContent = workflow.notesLabel; this.notes.placeholder = workflow.notesPlaceholder;
         this.codeLabel.textContent = workflow.codeLabel || 'Mã nguồn của bản lưu cũ';
         this.sourceDetails.hidden = !workflow.codeVisible && !this.code.value;
-        this.fileArea.hidden = workflow.extensions.length === 0;
-        this.attachments.accept = workflow.extensions.join(','); this.attachments.value = '';
+        this.fileArea.hidden = false;
+        this.attachments.removeAttribute('accept'); this.attachments.value = '';
         this.file.accept = workflow.extensions.filter(extension => !['.zip', '.hex', '.png', '.sb3'].includes(extension)).join(',');
         this.url.hidden = this.urlLabel.hidden = !workflow.projectUrlVisible && !this.url.value;
         this.urlLabel.textContent = workflow.projectUrlLabel || 'Liên kết của bản lưu cũ';
@@ -160,6 +164,14 @@ export class LabWorkspacePanel {
         else if (this.corrupt) this.status.textContent = 'Bản đã lưu cần kiểm tra và được giữ nguyên. Bấm Lưu để chủ động thay thế sau khi giữ hồ sơ dự phòng.';
         else if (this.dirty) this.status.textContent = 'Bản nháp chưa lưu vẫn được giữ. Bấm Lưu để thử lại hoặc tải bản mã.';
         else this.updateStatus();
+        if (this.remoteScope !== this.key || this.remoteOwnerReady !== this.ready) {
+            this.listController?.abort(); this.uploadController?.abort(); this.downloadController?.abort(); this.viewer.close(); this.fileScopeEpoch++;
+            this.remoteScope = this.key; this.remoteOwnerReady = this.ready; this.remoteFiles = []; this.uploading = false;
+            this.attachments.disabled = false; this.cancelUpload.hidden = true; this.fileStatus.textContent = ''; this.fileUsage.textContent = '';
+            this.renderFiles();
+            if (this.ready) void this.refreshRemote();
+        }
+        this.renderFileLimits();
     }
     persist() {
         clearTimeout(this.timer); if (!this.ready || !this.context?.ownerId || !this.isCurrent(this.context)) return false;
@@ -167,7 +179,7 @@ export class LabWorkspacePanel {
         try {
             const work = normalizeLabWork(this.values(), this.context.platformKey);
             if (this.onSave?.(this.context, work) !== true) throw Error('Chưa lưu được bài. Bản nháp vẫn được giữ; bạn có thể tải bản mã trước khi rời trang.');
-            this.saved = work; this.corrupt = false; this.dirty = false; this.restore.disabled = false; this.drafts.delete(this.key); this.fileName.textContent = work.fileName ? 'Tệp: ' + work.fileName : ''; this.updateStatus(); return true;
+            this.saved = work; this.corrupt = false; this.dirty = false; this.drafts.delete(this.key); this.fileName.textContent = work.fileName ? 'Tệp: ' + work.fileName : ''; this.updateStatus(); return true;
         } catch (error) { this.dirty = true; this.remember(); this.status.textContent = error?.message || 'Chưa lưu được bài; bản nháp vẫn được giữ.'; return false; }
     }
     updateStatus() {
@@ -187,48 +199,139 @@ export class LabWorkspacePanel {
             this.code.value = work.code; this.currentFileName = work.fileName; this.dirty = true; this.persist();
         } catch (error) { if (generation === this.generation && operation === this.fileOperation && this.isCurrent(this.context)) this.status.textContent = error.message; }
     }
+    fileCurrent(epoch = this.fileScopeEpoch) {
+        return this.ready && epoch === this.fileScopeEpoch && this.isCurrent(this.context);
+    }
+    formatBytes(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' KB';
+        return (bytes / (1024 * 1024)).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' MB';
+    }
+    renderFileLimits() {
+        this.fileLimits.textContent = `Tối đa ${this.formatBytes(this.remoteLimits.fileBytes)}/tệp, ${this.formatBytes(this.remoteLimits.accountBytes)}/tài khoản; ${this.remoteLimits.filesPerLab} tệp cho bài thực hành đang chọn.`;
+    }
+    fileError(error) {
+        if (error?.name === 'AbortError' || error?.code === 'REQUEST_ABORTED') return 'Đã hủy thao tác. Các tệp đã lưu được giữ nguyên.';
+        if (error?.status === 401 || error?.status === 403) return 'Phiên đăng nhập hoặc quyền lưu tệp đã thay đổi. Đăng nhập lại để tiếp tục.';
+        if (error?.status === 404) return 'Chưa mở được kho tệp. Tải lại trang rồi thử lại.';
+        if (error?.status === 413) return /tài khoản|Mỗi bài|Mỗi tệp/.test(error.message || '') ? error.message : 'Tệp vượt quá dung lượng cho phép.';
+        if (/account.*(?:quota|limit)|quota.*account/i.test(error?.message || '')) return 'Tài khoản đã đạt giới hạn dung lượng. Xóa tệp không cần dùng rồi tải lại.';
+        if (/lab.*(?:quota|limit)|(?:50|500).*files/i.test(error?.message || '')) return 'Số tệp đã đạt giới hạn. Xóa tệp không cần dùng rồi tải lại.';
+        return error?.message || 'Chưa lưu được tệp. Kiểm tra kết nối rồi thử lại.';
+    }
+    async refreshRemote() {
+        if (!this.fileStore || !this.fileCurrent()) return false;
+        this.listController?.abort();
+        const controller = this.listController = new AbortController(), epoch = this.fileScopeEpoch, context = { ...this.context };
+        try {
+            const result = await this.fileStore.list(context, { signal: controller.signal });
+            if (!this.fileCurrent(epoch) || controller.signal.aborted) return false;
+            this.remoteFiles = result.files;
+            if (result.limits) this.remoteLimits = { ...this.remoteLimits, ...result.limits };
+            this.renderFileLimits(); this.renderFiles();
+            this.fileUsage.textContent = result.usage ? `Đã dùng ${this.formatBytes(result.usage.usedBytes || 0)} / ${this.formatBytes(this.remoteLimits.accountBytes)} trong tài khoản.` : '';
+            if (!this.uploading) this.fileStatus.textContent = '';
+            return true;
+        } catch (error) {
+            if (this.fileCurrent(epoch) && !controller.signal.aborted) this.fileStatus.textContent = this.fileError(error);
+            return false;
+        }
+    }
     async importAttachments() {
         const selected = [...(this.attachments.files || [])]; this.attachments.value = '';
-        if (!selected.length || !this.ready || !this.isCurrent(this.context)) return;
-        const generation = this.generation, operation = ++this.fileOperation;
+        if (!selected.length || !this.fileCurrent() || this.uploading) return;
+        const epoch = this.fileScopeEpoch, context = { ...this.context };
+        if (!this.fileStore) { this.fileStatus.textContent = 'Chưa mở được kho tệp. Tải lại trang rồi thử lại.'; return; }
+        if (selected.some(file => file.size > this.remoteLimits.fileBytes)) {
+            this.fileStatus.textContent = `Mỗi tệp được lưu tối đa ${this.formatBytes(this.remoteLimits.fileBytes)}.`; return;
+        }
+        if (this.remoteFiles.length + selected.length > this.remoteLimits.filesPerLab) {
+            this.fileStatus.textContent = `Mỗi bài thực hành lưu tối đa ${this.remoteLimits.filesPerLab} tệp. Xóa tệp không cần dùng rồi tải lại.`; return;
+        }
+        const controller = this.uploadController = new AbortController();
+        this.uploading = true; this.attachments.disabled = true; this.cancelUpload.hidden = false;
+        let completed = 0;
         try {
-            if (selected.length > LAB_FILE_LIMITS.count || selected.some(file => file.size > LAB_FILE_LIMITS.fileBytes)
-                || selected.reduce((sum, file) => sum + file.size, 0) > LAB_FILE_LIMITS.totalBytes)
-                throw Error('Mỗi bài nhận tối đa 4 tệp với tổng dung lượng 256 KiB.');
-            this.status.textContent = 'Đang đọc tệp dự án…';
-            const incoming = await Promise.all(selected.map(async file => ({ name: file.name, dataBase64: encodeLabFile(new Uint8Array(await file.arrayBuffer())) })));
-            if (generation !== this.generation || operation !== this.fileOperation || !this.isCurrent(this.context)) return;
-            const merged = new Map(this.files.map(file => [file.name.toLowerCase(), file]));
-            for (const file of incoming) merged.set(file.name.toLowerCase(), file);
-            const files = normalizeLabFiles([...merged.values()], this.context.platformKey);
-            const values = this.values();
-            const source = incoming.find(file => /^(main\.py|sketch\.ino)$/i.test(file.name))
-                || incoming.find(file => ['.py', '.ino', '.cpp', '.c', '.h', '.txt'].includes(labFileExtension(file.name)));
-            if (source) {
-                const bytes = decodeLabFile(source.dataBase64);
-                if (bytes.length <= LAB_WORK_LIMITS.codeBytes) {
-                    try { values.code = new TextDecoder('utf-8', { fatal: true }).decode(bytes); values.fileName = source.name; } catch { /* Keep opaque native bytes available for download. */ }
-                }
+            for (const file of selected) {
+                if (!this.fileCurrent(epoch) || controller.signal.aborted) break;
+                this.fileStatus.textContent = `Đang tải ${file.name}…`;
+                const metadata = await this.fileStore.upload(context, file, { signal: controller.signal, onProgress: ({ loaded, total }) => {
+                    if (this.fileCurrent(epoch) && !controller.signal.aborted) this.fileStatus.textContent = `Đang tải ${file.name} · ${total ? Math.round(loaded / total * 100) : 100}%.`;
+                } });
+                if (!this.fileCurrent(epoch) || controller.signal.aborted) break;
+                this.remoteFiles = [...this.remoteFiles.filter(value => value.id !== metadata.id), metadata]; completed++; this.renderFiles();
             }
-            const work = normalizeLabWork({ ...values, version: 2, files }, this.context.platformKey);
-            this.fill(work); this.dirty = true; this.persist();
+            if (this.fileCurrent(epoch)) {
+                await this.refreshRemote();
+                if (this.fileCurrent(epoch)) this.fileStatus.textContent = controller.signal.aborted
+                    ? `Đã hủy tải. ${completed} tệp đã tải xong được giữ trong tài khoản.`
+                    : `Đã lưu ${completed} tệp vào tài khoản. Bấm Xem bản đã lưu để chọn tệp và xem lại.`;
+            }
         } catch (error) {
-            if (generation === this.generation && operation === this.fileOperation && this.isCurrent(this.context)) this.status.textContent = error?.message || 'Chưa thêm được tệp; bản lưu trước vẫn được giữ.';
+            if (this.fileCurrent(epoch)) this.fileStatus.textContent = this.fileError(error) + (completed ? ` ${completed} tệp đã tải xong được giữ trong tài khoản.` : '');
+        } finally {
+            if (this.fileCurrent(epoch)) { this.uploading = false; this.attachments.disabled = false; this.cancelUpload.hidden = true; }
+        }
+    }
+    viewerFiles() {
+        return [...(this.saved?.files || []).map((file, index) => ({ id: 'legacy-' + index, name: file.name,
+            sizeBytes: decodeLabFile(file.dataBase64).length, legacy: file })), ...this.remoteFiles];
+    }
+    async openSavedFiles(selectedId) {
+        if (!this.fileCurrent()) return;
+        const epoch = this.fileScopeEpoch, context = { ...this.context };
+        await this.refreshRemote();
+        if (!this.fileCurrent(epoch)) return;
+        const files = this.viewerFiles(), saved = this.saved;
+        this.viewer.open({ files, notes: saved?.notes, code: saved?.code, sourceName: saved?.fileName,
+            projectUrl: saved?.projectUrl, savedAt: saved?.savedAt,
+            isCurrent: () => this.fileCurrent(epoch), getBytes: async (file, options) => {
+                if (!this.fileCurrent(epoch)) throw Error('Bài thực hành đã thay đổi.');
+                if (file.legacy) return decodeLabFile(file.legacy.dataBase64);
+                return this.fileStore.download(context, file, options);
+            } });
+        if (selectedId) {
+            const index = files.findIndex(file => file.id === selectedId);
+            if (index >= 0) void this.viewer.select(index);
         }
     }
     renderFiles() {
-        const generation = this.generation, key = this.key;
-        this.fileList.replaceChildren(...this.files.map(file => {
-            const item = element('li', undefined, 'lab-work-file');
-            item.append(element('span', `${file.name} · ${(decodeLabFile(file.dataBase64).length / 1024).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} KiB`));
+        const generation = this.generation, epoch = this.fileScopeEpoch;
+        const legacy = this.files.map((file, index) => ({ id: 'legacy-' + index, name: file.name, sizeBytes: decodeLabFile(file.dataBase64).length, legacy: file }));
+        this.fileList.replaceChildren(...[...legacy, ...this.remoteFiles].map(file => {
+            const item = element('li', undefined, 'lab-work-file'); item.dataset.fileId = file.id;
+            const label = element('span', file.name + ' · ' + this.formatBytes(file.sizeBytes));
+            if (file.createdAt && Number.isFinite(Date.parse(file.createdAt))) label.append(element('small', ' · ' + new Date(file.createdAt).toLocaleString('vi-VN')));
+            item.append(label);
+            const view = element('button', 'Xem tệp'); view.type = 'button';
+            view.addEventListener('click', () => { if (this.fileCurrent(epoch)) void this.openSavedFiles(file.id); });
             const download = element('button', 'Tải tệp'); download.type = 'button';
-            download.addEventListener('click', () => { if (this.ready && this.isCurrent(this.context) && generation === this.generation && key === this.key) this.downloadBytes(decodeLabFile(file.dataBase64), file.name); });
-            const remove = element('button', 'Bỏ khỏi bản lưu'); remove.type = 'button';
-            remove.addEventListener('click', () => {
-                if (!this.ready || !this.isCurrent(this.context) || generation !== this.generation || key !== this.key) return;
-                this.fileOperation++; this.files = this.files.filter(value => value.name !== file.name); this.dirty = true; this.renderFiles(); this.persist();
+            download.addEventListener('click', async () => {
+                if (!this.fileCurrent(epoch)) return;
+                this.downloadController?.abort(); const controller = this.downloadController = new AbortController();
+                try {
+                    const bytes = file.legacy ? decodeLabFile(file.legacy.dataBase64) : await this.fileStore.download({ ...this.context }, file, { signal: controller.signal });
+                    if (this.fileCurrent(epoch) && !controller.signal.aborted) this.downloadBytes(bytes, file.name);
+                } catch (error) { if (this.fileCurrent(epoch) && !controller.signal.aborted) this.fileStatus.textContent = this.fileError(error); }
             });
-            item.append(download, remove); return item;
+            const remove = element('button', file.legacy ? 'Bỏ khỏi bản lưu' : 'Xóa tệp'); remove.type = 'button';
+            remove.addEventListener('click', async () => {
+                if (!this.fileCurrent(epoch)) return;
+                if (file.legacy) {
+                    if (generation !== this.generation) return;
+                    this.fileOperation++; this.files = this.files.filter(value => value.name !== file.name); this.dirty = true; this.renderFiles(); this.persist(); return;
+                }
+                if (!confirm('Xóa tệp “' + file.name + '” khỏi tài khoản? Tệp khác và ghi chú được giữ nguyên.')) return;
+                remove.disabled = true;
+                try {
+                    await this.fileStore.remove({ ...this.context }, file.id);
+                    if (!this.fileCurrent(epoch)) return;
+                    this.viewer.close(); this.remoteFiles = this.remoteFiles.filter(value => value.id !== file.id); this.renderFiles();
+                    await this.refreshRemote();
+                    if (this.fileCurrent(epoch)) this.fileStatus.textContent = 'Đã xóa tệp khỏi tài khoản.';
+                } catch (error) { if (this.fileCurrent(epoch)) { remove.disabled = false; this.fileStatus.textContent = this.fileError(error); } }
+            });
+            item.append(view, download, remove); return item;
         }));
     }
     downloadBytes(bytes, name) {
@@ -240,6 +343,6 @@ export class LabWorkspacePanel {
         const name = this.currentFileName || [this.context.courseId, this.context.lessonId, this.context.platformKey].join('-') + (this.workflow?.defaultExtension || '.txt');
         const url = URL.createObjectURL(new Blob([this.code.value], { type: 'text/plain;charset=utf-8' })); const link = element('a'); link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
-    hasDraft() { return this.dirty || this.drafts.size > 0; }
-    destroy() { clearTimeout(this.timer); this.generation++; this.ready = false; this.drafts.clear(); this.fill(null); this.saved = null; this.fieldset.disabled = true; this.fieldset.hidden = true; }
+    hasDraft() { return this.dirty || this.drafts.size > 0 || this.uploading; }
+    destroy() { clearTimeout(this.timer); this.listController?.abort(); this.uploadController?.abort(); this.downloadController?.abort(); this.viewer.destroy(); this.fileScopeEpoch++; this.remoteFiles = []; this.generation++; this.ready = false; this.drafts.clear(); this.fill(null); this.saved = null; this.fieldset.disabled = true; this.fieldset.hidden = true; }
 }

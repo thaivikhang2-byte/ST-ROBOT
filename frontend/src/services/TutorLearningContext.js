@@ -1,6 +1,6 @@
 // Only learning records from the current page's account-scoped storage may be
 // sent to the vision/guest tutor. Never enumerate localStorage or sessionStorage.
-import { LAB_COURSE_PLATFORMS, normalizeLabWork } from '../modules/learning/LabWorkspace.js?v=native-labs-v1';
+import { LAB_COURSE_PLATFORMS, normalizeLabWork } from '../modules/learning/LabWorkspace.js?v=lab-files-v2';
 const COURSE_IDS = new Set(['arduino', 'microbit', 'vex-iq', 'lego-spike', 'vex-vr']);
 const SOURCES = new Set(['local-model', 'external', 'hardware']);
 const plain = value => value && typeof value === 'object' && !Array.isArray(value)
