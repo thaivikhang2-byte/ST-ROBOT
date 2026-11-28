@@ -72,6 +72,8 @@ jobs:
           node tests/router-loading.mjs &&
           node tests/account-dashboard.mjs &&
           node tests/ai-admin-setup.mjs &&
+          node tests/ai-spending-setup.mjs &&
+          node tests/legacy-ai-spending-boundary.mjs &&
           node tests/tutor-learning-context.mjs &&
           node tests/production-start.mjs &&
           node tests/production-setup.mjs &&
@@ -131,4 +133,5 @@ jobs:
           }), { mode: 0o600 });
           NODE
           node tests/auth-upgrade-pg.cjs --env-file "$strobot_fixture"
+          node tests/ai-spending-pg.cjs --env-file "$strobot_fixture"
           python3 tests/product-journey-smoke.py --env-file "$strobot_fixture"

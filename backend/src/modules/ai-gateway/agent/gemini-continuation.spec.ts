@@ -61,6 +61,29 @@ function harness() {
 }
 
 describe('Gemini agent tool continuations', () => {
+  it('economy completes a tool-assisted answer within two dispatches and a smaller output limit', async () => {
+    const { agent, user, generateContent, gateway } = harness();
+    Object.assign(agent, { spending: { executionPolicy: async () => ({ economyEnabled: true, spendingEnabled: false }) } });
+    const chat = jest.spyOn(gateway, 'chat');
+    generateContent.mockResolvedValueOnce({ candidates: [{ finishReason: 'STOP', content: { parts: [{
+      functionCall: { id: 'economy-call', name: 'learning_search_courses', args: { query: 'Arduino' } },
+      thoughtSignature: 'economy-signature',
+    }] } }] }).mockResolvedValueOnce({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'Arduino is available' }] } }] });
+    expect((await agent.chat(user, { mode: 'PERSONAL', message: 'Find a robotics course' })).message).toBe('Arduino is available');
+    expect(generateContent).toHaveBeenCalledTimes(2);
+    expect(chat.mock.calls.every(call => call[1].maxOutputTokens === 700 && call[1].allowFallback === false && call[5]?.maxAttempts === 1)).toBe(true);
+    expect(chat.mock.calls[1][1].tools).toEqual([]);
+  });
+
+  it('economy never automatically repeats a failed provider dispatch even when the gateway permits three attempts', async () => {
+    const { agent, user, generateContent, gateway } = harness();
+    Object.assign(agent, { spending: { executionPolicy: async () => ({ economyEnabled: true }) } });
+    Object.assign(gateway, { config: new ConfigService({ AI_GATEWAY_ENABLED: true, AI_MAX_APPLICATION_ATTEMPTS: 3 }) });
+    generateContent.mockRejectedValue({ status: 503 });
+    await expect(agent.chat(user, { mode: 'PERSONAL', message: 'Explain a circuit' })).rejects.toBeDefined();
+    expect(generateContent).toHaveBeenCalledTimes(1);
+  });
+
   it('replays provider call IDs on both sides of parallel same-name tool exchanges', async () => {
     const { agent, user, generateContent } = harness();
     generateContent.mockResolvedValueOnce({

@@ -17,9 +17,12 @@ import { OpenRouterAdapter } from './openrouter.adapter';
 import { WorkersAiAdapter } from './workers-ai.adapter';
 import { AiCircuitBreakerService } from './ai-circuit-breaker.service';
 import { VaultAdminService } from './vault/vault-admin.service';
+import { AiSpendingService } from './spending/ai-spending.service';
+import { AiSpendingController } from './spending/ai-spending.controller';
+import { LearningAccessService } from '../progress/learning-access.service';
 
 @Module({
-  controllers: [AiGatewayController, AiAdminController],
+  controllers: [AiGatewayController, AiAdminController, AiSpendingController],
   providers: [
     AiGatewayService,
     AiRegistryService,
@@ -37,7 +40,9 @@ import { VaultAdminService } from './vault/vault-admin.service';
     WorkersAiAdapter,
     AiCircuitBreakerService,
     VaultAdminService,
+    AiSpendingService,
+    LearningAccessService,
   ],
-  exports: [AiGatewayService, AiRegistryService, AiCircuitBreakerService],
+  exports: [AiGatewayService, AiRegistryService, AiCircuitBreakerService, AiSpendingService],
 })
 export class AiGatewayModule {}

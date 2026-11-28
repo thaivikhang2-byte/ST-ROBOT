@@ -1,4 +1,5 @@
 import { accountService } from '../../services/AccountService.js';
+import { attachAiSpendingSetup } from './AiSpendingSetup.js?v=ai-spending-v1';
 
 const API = '/v1/admin/ai';
 export const AI_SETUP_PROVIDERS = Object.freeze({
@@ -213,13 +214,14 @@ let nextPanel = 0;
 export function attachAiAdminSetup(container, session = accountService) {
     if (!container) return () => {};
     const client = new AiSetupClient(session), prefix = `ai-setup-${++nextPanel}`;
-    let generation = 0, controller, destroyed = false;
+    let generation = 0, controller, destroyed = false, spendingCleanup;
     if (!document.querySelector('link[data-ai-admin-style]')) {
         const link = node('link'); link.rel = 'stylesheet'; link.href = new URL('./AiAdminSetup.css', import.meta.url).href;
         link.dataset.aiAdminStyle = ''; document.head.append(link);
     }
     function render(user = session.user) {
         const version = ++generation;
+        spendingCleanup?.(); spendingCleanup = null;
         controller?.abort(); controller = new AbortController();
         const signal = controller.signal;
         const current = () => !destroyed && version === generation && user?.id === session.user?.id
@@ -271,6 +273,8 @@ export function attachAiAdminSetup(container, session = accountService) {
         form.append(fields, limitsHint, suggestions, defaultLabel, consentLabel, actions);
         container.append(summary, credentialList, limitWarnings, form, status, node('p',
             'Tra model chỉ gọi API metadata khi bạn bấm. Công cụ này không tự gửi câu hỏi thử hoặc kiểm tra khoản phí; nhà cung cấp có hạn mức riêng.', 'field-hint'));
+        const spendingHost = node('section'); container.append(spendingHost);
+        spendingCleanup = attachAiSpendingSetup(spendingHost, session, { canConfigure: canConfigureAi });
         let snapshot = null, busy = false, endpointPristine = true;
         const selected = () => snapshot?.vault?.providers?.find(item => item.id === provider.value);
         const renderSelectedProvider = () => {
@@ -396,5 +400,5 @@ export function attachAiAdminSetup(container, session = accountService) {
     }
     const unsubscribe = session.subscribe(user => render(user));
     render();
-    return () => { destroyed = true; generation++; controller?.abort(); unsubscribe?.(); container.replaceChildren(); };
+    return () => { destroyed = true; generation++; controller?.abort(); spendingCleanup?.(); unsubscribe?.(); container.replaceChildren(); };
 }

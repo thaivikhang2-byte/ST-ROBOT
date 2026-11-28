@@ -59,7 +59,7 @@ async function withServer(env, upstream, test) {
   const server = createServer(async (url, options) => {
     calls.push({ url, options });
     return upstream(url, options, calls);
-  });
+  }, { legacyGenerationEnabled: true });
   try {
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
     await test(server, calls, logs);
@@ -120,7 +120,7 @@ async function assertHealth(server, provider, keyConfigured, modelConfigured) {
   const result = await request(server, { method: 'GET', path: '/health' });
   assert.equal(result.status, 200);
   assert.deepEqual(result.data, { ok: true, revision: null,
-    ai: { provider, keyConfigured, modelConfigured, allowedOrigin: ORIGIN } });
+    ai: { provider, keyConfigured, modelConfigured, allowedOrigin: ORIGIN, generationEnabled: true } });
   assert.equal(result.headers['cache-control'], 'no-store');
   privateOutput(result.data);
 }

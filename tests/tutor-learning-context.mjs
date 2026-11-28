@@ -239,7 +239,7 @@ for (const backendCode of [forbidden, 'AI_PROVIDER_UNAVAILABLE ' + forbidden, '_
 }
 
 const visionCalls = [], visionMetadata = [];
-const vision = createAiClient({ account: {...account, async request() { throw new Error('Images must keep the vision route'); }},
+const vision = createAiClient({ account: {...account, async request(path) { assert.equal(path, '/v1/ai/agent/status?mode=EDUCATIONAL'); return {economyEnabled: false, spendingEnabled: false}; }},
   fetchImpl: async (url, options) => { visionCalls.push({url, options}); return url.endsWith('/health') ? json({ok: true}) : json({reply: 'Ảnh thấy LED.'}); } });
 await vision.requestReply('/api/tutor', {...payload, images: [{dataUrl: 'fixture-image'}]}, {onContext: info => visionMetadata.push(info)});
 assert.deepEqual(visionCalls.map(call => call.url), [AI_SERVICE_ORIGIN + '/health', AI_SERVICE_ORIGIN + '/api/tutor']);

@@ -315,6 +315,7 @@ export class AiGatewayService {
     external?: AbortSignal,
     responses = false,
     registeredAgentTools = false,
+    execution?: { maxAttempts: number },
   ) {
     await this.enabled();
     const capability = responses ? 'responses' : 'chat';
@@ -329,7 +330,7 @@ export class AiGatewayService {
     const context = this.context(external);
     const maxAttempts = Math.max(
       1,
-      Number(this.config.get('AI_MAX_APPLICATION_ATTEMPTS', 3)),
+      Math.min(Number(this.config.get('AI_MAX_APPLICATION_ATTEMPTS', 3)), execution?.maxAttempts ?? 5),
     );
     const maxSwitches = Math.max(
       0,

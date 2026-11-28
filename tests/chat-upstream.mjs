@@ -47,7 +47,7 @@ async function withServer(upstream, callback, { key = KEY, limit = 50 } = {}) {
   process.env.DAILY_REQUEST_LIMIT = String(limit);
   process.env.WOKU_API_KEY = key;
   const { createServer } = await import(`../ai-server/server.mjs?chat-test=${++serverIndex}`);
-  const server = createServer(upstream);
+  const server = createServer(upstream, { legacyGenerationEnabled: true });
   try {
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
     await callback(server);

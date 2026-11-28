@@ -43,7 +43,7 @@ async function withServer(upstream, test, { model = PRIMARY, key = KEY, limit = 
   const server = createServer(async (url, options) => {
     calls.push({ url, options });
     return upstream(url, options, calls);
-  });
+  }, { legacyGenerationEnabled: true });
   try {
     await new Promise((resolve, rejectPromise) => { server.once('error', rejectPromise); server.listen(0, '127.0.0.1', resolve); });
     await test(server, calls, logs);

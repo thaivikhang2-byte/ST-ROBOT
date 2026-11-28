@@ -55,7 +55,7 @@ async function withServer(upstream, test, { limit = 50 } = {}) {
   process.env.DAILY_REQUEST_LIMIT = String(limit);
   process.env.WOKU_API_KEY = 'local-stub-only';
   const { createServer } = await import(`../ai-server/server.mjs?practice-test=${++serverIndex}`);
-  const server = createServer(upstream);
+  const server = createServer(upstream, { legacyGenerationEnabled: true });
   try {
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
     await test(server);
@@ -130,7 +130,7 @@ try {
   }, async server => {
     let result = await request(server, { method: 'GET', path: '/health', origin: null, body: undefined });
     assert.equal(result.status, 200); assert.equal(result.data.ok, true);
-    assert.deepEqual(result.data.ai, { provider:'woku',keyConfigured: true, modelConfigured: true, allowedOrigin: 'https://practice.test' });
+    assert.deepEqual(result.data.ai, { provider:'woku',keyConfigured: true, modelConfigured: true, allowedOrigin: 'https://practice.test', generationEnabled: true });
     assert.ok(result.data.revision === null || /^[a-f0-9]{40}$/i.test(result.data.revision));
     assert.equal((await request(server, { path: '/not-an-api' })).status, 404);
     assert.equal((await request(server, { origin: 'https://other.test' })).status, 403);

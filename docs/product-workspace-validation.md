@@ -44,6 +44,20 @@ Tệp mới nhận mọi định dạng, tối đa 25 MiB/tệp và 250 MiB/tài
 
 Lượt tải đã tạo thành công nhưng mất phản hồi trước khi client nhận ID có thể giữ quota đến lần dọn sau 24 giờ. Tệp đã hoàn tất và ghi chú không bị thay đổi. Chi tiết dung lượng, cách xem lại và phạm vi sao lưu ở [hướng dẫn lưu bài](lab-account-integration.md).
 
+## Tiết kiệm credit và ngân sách AI — 28/11/2026
+
+Thêm chế độ tiết kiệm mặc định: tối đa hai dispatch/provider cho một câu hỏi agent, một lần thử mỗi lượt, không tự đổi provider khi lỗi; đầu ra 700 token. Lịch sử giữ hai lượt cũ theo nhóm đầy đủ và byte budget, giữ chữ ký tool. Ngữ cảnh tài khoản được rút gọn nhưng mã/ghi chú bài đang chọn vẫn được giữ. Giá định tuyến xét cả đầu vào/đầu ra đã xác nhận trong cùng provider.
+
+Chính sách USD là lựa chọn riêng, chưa tự bật trên production: admin cần nhập đúng giá Woku và xác nhận. Preset một USD, 0,03 USD/ngày trước thi và 0,40 USD dành từ 00:00 ngày 12/12 giờ Việt Nam. Mọi tài khoản dùng chung trần; dự toán trước dispatch được giữ dưới khóa database. Các lượt thiếu usage hoặc reservation hết hạn không tự trở thành miễn phí.
+
+- Build/typecheck đạt; toàn bộ 50 bộ Jest đạt với 455 kiểm thử, sáu kiểm thử Redis tùy chọn được bỏ qua. Bộ giới hạn agent xác nhận tối đa hai dispatch và lỗi provider không tự gọi lại; lịch sử chữ ký/JSON, quyền và model scope được giữ.
+- Bộ spending kiểm tra giá chưa xác nhận, quota tổng/ngày, giờ Việt Nam, dự phòng ngày thi, CAS, TLS, quyền hiện tại và usage chưa rõ. Chi phí rất nhỏ được trả bằng chuỗi thập phân để nhập lại cấu hình an toàn.
+- `tests/ai-spending-pg.cjs` đạt sáu nhóm trên PostgreSQL thật, dùng hai kết nối tranh quota để xác nhận chỉ một lượt được nhận ở sát giới hạn. SQL trả đúng Decimal/bigint, khóa giữ chỗ và mốc dự phòng hoạt động. Database ngẫu nhiên thử riêng đã được dọn.
+- Các kiểm thử legacy xác nhận mặc định không sinh nội dung, khách cần đăng nhập, ảnh không chuyển sang kênh ngoài ngân sách trong chế độ tiết kiệm. Chỉ explicit opt-in mới mở legacy. Ảnh không bị tự bỏ để trả lời như đã xem.
+- Hành trình PostgreSQL/Chromium chín nhóm được chạy lại sau migration ngân sách: đăng ký/duyệt, AI metadata, lưu/tải tệp đa thiết bị, đăng xuất và cách ly tài khoản tiếp tục đạt; không phát sinh request sinh nội dung provider.
+
+Các kiểm tra không xác minh khóa hoặc số dư Woku thật. Danh sách key trống cần shop đối soát; không tự kết luận đã hết credit hoặc tự nạp tiền. Xem [cách cấu hình ngân sách và phạm vi bảo vệ](ai-spending.md).
+
 ## Triển khai và sử dụng
 
 Backend Render giữ Root Directory `backend`, build `npm ci --include=dev && npm run prisma:generate && npm run build`, start `npm run start:production`. Startup tự áp dụng migration bổ sung cờ chờ duyệt, giữ dữ liệu tài khoản cũ. Với `MANAGED_ACCOUNTS_ENABLED=true`, luồng học sinh chờ duyệt mặc định được bật; không cần nhập lại khóa AI hay tạo lại admin. GitHub Pages phục vụ frontend mới từ cùng nhánh chính. Nếu Auto-Deploy bị tắt, chọn **strobot-backend → Manual Deploy → Deploy latest commit** rồi chờ Live. Backend và frontend phải cùng cập nhật trước khi kiểm tra đăng ký mới.

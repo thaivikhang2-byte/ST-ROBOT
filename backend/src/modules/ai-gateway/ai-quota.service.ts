@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AiModel, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -9,12 +9,14 @@ import type { RequestUser } from '../../shared/sdk';
 import type { AiUsage } from './ai.types';
 import type { ProviderLease } from './provider-leases';
 import { grantPermissions, resolveGrants } from '../roles/authorization';
+import { AiSpendingService } from './spending/ai-spending.service';
 
 @Injectable()
 export class AiQuotaService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    @Optional() private readonly spending?: AiSpendingService,
   ) {}
   async reserve(
     user: RequestUser,
@@ -132,6 +134,7 @@ export class AiQuotaService {
             throw new AiError(ErrorCode.AI_QUOTA_EXCEEDED, 429, 'AI provider allocation exhausted');
         }
       }
+      const reservedCostUsd = await this.spending?.reserve(tx, currentModel, tokens, now);
       await tx.aiUsageBucket.update({
         where: { id: bucket.id },
         data: { requests: { increment: 1 }, charged_tokens: { increment: tokens } },
@@ -144,6 +147,7 @@ export class AiQuotaService {
           endpoint,
           reserved_tokens: tokens,
           charged_tokens: tokens,
+          reserved_cost_usd: reservedCostUsd,
           deadline_at: deadline,
           started_at: now,
           pricing_version: model.pricing_version,
@@ -206,7 +210,9 @@ export class AiQuotaService {
           output_tokens: usage?.outputTokens,
           total_tokens: usage?.totalTokens,
           estimated_cost:
-            typeof usage?.costUsd === 'number' &&
+            undispatched
+              ? new Prisma.Decimal(0)
+              : typeof usage?.costUsd === 'number' &&
             Number.isFinite(usage.costUsd) &&
             usage.costUsd >= 0
               ? new Prisma.Decimal(usage.costUsd.toFixed(8))
@@ -221,7 +227,7 @@ export class AiQuotaService {
                       .mul(record.input_price)
                       .add(new Prisma.Decimal(usage.outputTokens!).mul(record.output_price))
                       .div(1000000)
-                  : null,
+                  : record.reserved_cost_usd ?? null,
           charged_tokens: charged,
           error_category: errorCategory,
           provider_request_id: providerId?.slice(0, 200),

@@ -11,7 +11,7 @@ const json = (value, status = 200) => new Response(JSON.stringify(value), { stat
 const ready = () => json({ ok: true, ai: { keyConfigured: true, modelConfigured: true } });
 const reply = () => json({ reply: '33 + 3 = 36.' });
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-const make = (fetchImpl, options = {}) => createAiClient({ fetchImpl, startupTimeoutMs: 300, replyTimeoutMs: 300, retryDelayMs: 0, ...options });
+const make = (fetchImpl, options = {}) => createAiClient({ account: { configured: false }, fetchImpl, startupTimeoutMs: 300, replyTimeoutMs: 300, retryDelayMs: 0, ...options });
 let groups = 0;
 
 function isFailure(code, stage) {

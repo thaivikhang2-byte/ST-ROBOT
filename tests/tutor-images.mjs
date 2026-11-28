@@ -36,7 +36,7 @@ async function withServer(upstream, test, provider = 'woku') {
   const { createServer } = await import(`../ai-server/server.mjs?tutor-images=${++imports}`);
   const calls = [], logs = [], savedError = console.error;
   console.error = (...items) => logs.push(items);
-  const server = createServer(async (url, options) => { calls.push({ url, options, body: options.body ? JSON.parse(options.body) : undefined }); return upstream(url, options, calls); });
+  const server = createServer(async (url, options) => { calls.push({ url, options, body: options.body ? JSON.parse(options.body) : undefined }); return upstream(url, options, calls); }, { legacyGenerationEnabled: true });
   try {
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
     await test(server, calls, logs);

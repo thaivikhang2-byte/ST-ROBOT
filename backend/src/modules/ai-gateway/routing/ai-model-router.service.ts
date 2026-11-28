@@ -113,6 +113,7 @@ export class AiModelRouterService {
     explicitModelId?: string;
     hasActiveTools: boolean;
     hasPremiumPermission: boolean;
+    preferEconomy?: boolean;
   }): Promise<RoutingDecision> {
     const base = this.classifyRequest({
       message: options.message,
@@ -145,7 +146,20 @@ export class AiModelRouterService {
     }
 
     if (!chosen && pool.length) {
-      if (base.lane === 'AGENT_ACTION_LANE') {
+      const defaultModel = pool.find(model => model.is_default) ?? pool[0];
+      const priced = (models: AiModel[]) => models.filter(model => model.input_price !== null
+        && model.output_price !== null && !!model.pricing_version
+        && (!options.preferEconomy || model.pricing_version.startsWith('operator-confirmed:'))
+        && Number.isFinite(Number(model.input_price)) && Number(model.input_price) >= 0
+        && Number.isFinite(Number(model.output_price)) && Number(model.output_price) >= 0)
+        .sort((a, b) => (Number(a.input_price) * 2000 + Number(a.output_price) * 700)
+          - (Number(b.input_price) * 2000 + Number(b.output_price) * 700));
+      if (options.preferEconomy) {
+        const compatible = pool.filter(model => model.provider_id === defaultModel.provider_id
+          && model.capabilities.includes('chat')
+          && (!base.requiresTools || model.capabilities.includes('tools') && model.allowed_tools.length > 0));
+        chosen = priced(compatible)[0] ?? compatible.find(model => model.is_default) ?? compatible[0] ?? defaultModel;
+      } else if (base.lane === 'AGENT_ACTION_LANE') {
         chosen =
           pool.find((m) => m.capabilities.includes('tools') && m.allowed_tools.length > 0) ??
           pool.find((m) => m.is_default) ??
@@ -158,9 +172,7 @@ export class AiModelRouterService {
           pool[0];
       } else {
         // FAST_LANE prefers economical models when pricing is configured, or default model
-        const withPrice = pool
-          .filter((m) => m.input_price !== null)
-          .sort((a, b) => Number(a.input_price) - Number(b.input_price));
+        const withPrice = priced(pool);
         chosen = withPrice[0] ?? pool.find((m) => m.is_default) ?? pool[0];
       }
     }

@@ -36,6 +36,8 @@ import { SystemPromptRegistryService } from '../prompts/system-prompt-registry.s
 import { AiRagService, type RagRetrievedCitation } from '../rag/ai-rag.service';
 import { AiCacheService } from '../cache/ai-cache.service';
 import { AiModelRouterService } from '../routing/ai-model-router.service';
+import { AiSpendingService } from '../spending/ai-spending.service';
+import { AGENT_ECONOMY, economyHistory, economyLessonContext } from './agent-economy';
 
 const RETENTION_DAYS = 90;
 const MAX_HISTORY = 40;
@@ -70,6 +72,7 @@ export class AiAgentService {
     @Optional() private readonly rag?: AiRagService,
     @Optional() private readonly cache?: AiCacheService,
     @Optional() private readonly router?: AiModelRouterService,
+    @Optional() private readonly spending?: AiSpendingService,
   ) {}
 
   private async actor(
@@ -344,6 +347,8 @@ export class AiAgentService {
       }
     }
     const scopedActor = await this.actor(user, 'ai:chat', scope);
+    const executionPolicy = await this.spending?.executionPolicy();
+    const economy = executionPolicy?.economyEnabled === true;
     const begun = await this.beginTurn(user, dto, scope);
     const started = performance.now();
     let outcome = 'failed';
@@ -397,6 +402,7 @@ export class AiAgentService {
         explicitModelId: dto.modelId,
         hasActiveTools: activeTools.length > 0,
         hasPremiumPermission: effectivePermissions.includes('ai:premium'),
+        preferEconomy: economy,
       });
       const targetModelId = dto.modelId ?? routingDecision?.selectedModelId;
       if (routingDecision) {
@@ -418,7 +424,13 @@ export class AiAgentService {
       const providerTools = this.tools.asProviderTools(
         activeTools.filter((tool) => selectedModel?.allowed_tools.includes(tool.name)),
       );
-      const compiledPrompt = this.systemPrompt(dto.mode, lessonContext, memories, ragCitations);
+      const compiledPrompt = this.systemPrompt(dto.mode,
+        economy ? economyLessonContext(lessonContext) : lessonContext,
+        memories, economy ? ragCitations.slice(0, 1) : ragCitations);
+      if (economy) {
+        compiledPrompt.promptVersion += '.economy-v1';
+        compiledPrompt.content += '\nReply in the user’s language. Keep the answer concise (normally 3–6 short points), preserve necessary code and practical steps, and ask one focused question when details are missing.';
+      }
 
       // Check L1 Exact / L2 Semantic Cache for eligible informational single-turn or policy questions
       const authState = await this.db.authorizationState.findUnique({ where: { id: 'default' } });
@@ -476,31 +488,37 @@ export class AiAgentService {
         }
       }
 
+      const restored = this.toGatewayMessages(begun.rows);
+      const history = economy ? economyHistory(restored) : { messages: restored, omittedTurns: 0 };
+      if (history.omittedTurns) compiledPrompt.content += '\nSome older conversation turns were omitted to save credit. Do not claim to remember omitted details; ask for the specific detail if needed.';
       const messages: AiMessageDto[] = [
         { role: 'system', content: compiledPrompt.content },
-        ...this.toGatewayMessages(begun.rows),
+        ...history.messages,
       ];
       let executed = 0;
       let finalText = '';
       let lastProvider = selectedModel?.provider_id ?? '';
       let lastModel = selectedModel?.model_id ?? '';
       let lastFallbackFrom: string | undefined;
-      for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
+      const iterations = economy ? AGENT_ECONOMY.providerCalls : MAX_ITERATIONS;
+      for (let iteration = 0; iteration < iterations; iteration++) {
         signal?.throwIfAborted();
         const currentActor = await this.actor(user, 'ai:chat', scope);
         await this.authorizeMode(user.id, dto.mode);
+        const offeredTools = economy && iteration === iterations - 1 ? [] : providerTools;
         const result = await this.gateway.chat(
           currentActor,
           {
             modelId: targetModelId,
-            allowFallback: true,
+            allowFallback: !economy,
             messages,
-            maxOutputTokens: 1200,
-            tools: providerTools,
+            maxOutputTokens: economy ? AGENT_ECONOMY.outputTokens : 1200,
+            tools: offeredTools,
           },
           signal,
           false,
           true,
+          economy ? { maxAttempts: 1 } : undefined,
         );
         lastProvider = result.provider;
         lastModel = result.model;
@@ -509,6 +527,7 @@ export class AiAgentService {
           finalText = result.text?.slice(0, 12000) ?? '';
           break;
         }
+        if (economy && !offeredTools.length) break;
         const calls = result.toolCalls.slice(0, MAX_TOOL_CALLS - executed).map((call) => ({
           ...call,
           arguments: this.normalizeArguments(call.arguments),
@@ -606,7 +625,8 @@ export class AiAgentService {
       }
       if (!finalText)
         finalText =
-          'I reached the safe tool-call limit for this turn. Please narrow the request and try again.';
+          economy ? 'Đã đạt giới hạn gọi AI cho câu hỏi này. Hãy hỏi một nội dung cụ thể hơn để tiếp tục.'
+            : 'I reached the safe tool-call limit for this turn. Please narrow the request and try again.';
       signal?.throwIfAborted();
       await this.actor(user, 'ai:chat', scope);
       await this.authorizeMode(user.id, dto.mode);
@@ -678,7 +698,8 @@ export class AiAgentService {
   async configurationStatus(user: RequestUser, mode: AiAgentMode) {
     const actor = await this.actor(user);
     await this.authorizeMode(user.id, mode);
-    return { ...(await this.gateway.configurationStatus(actor)), mode, supportsImages: false };
+    return { ...(await this.gateway.configurationStatus(actor)), mode, supportsImages: false,
+      ...(await this.spending?.executionPolicy()) };
   }
 
   async capabilities(user: RequestUser, mode: AiAgentMode) {

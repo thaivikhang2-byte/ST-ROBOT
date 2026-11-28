@@ -1,5 +1,7 @@
 # Cấu hình nhà cung cấp AI
 
+> Hệ thống tài khoản hiện tại dùng **Tài khoản → Cấu hình AI** trên backend `strobot-backend`. Xem [hạn mức và tiết kiệm credit](ai-spending.md). Các biến `AI_PROVIDER`/`WOKU_API_KEY` bên dưới thuộc dịch vụ legacy, hiện mặc định không sinh nội dung; chúng không thay cấu hình đã mã hóa trong database.
+
 Máy chủ hỗ trợ Woku và kết nối trực tiếp Google Gemini. Woku vẫn là mặc định; thêm khóa Google vào cấu hình không tự đổi dịch vụ. Chat, AI Tutor và gợi ý dạng câu đều dùng nhà cung cấp được chọn khi máy chủ khởi động. Địa chỉ API được cố định trong mã, không nhận từ câu hỏi hoặc URL do người dùng gửi.
 
 ## Tiếp tục dùng gói Woku đã mua

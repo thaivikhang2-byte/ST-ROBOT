@@ -208,6 +208,9 @@ export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...ar
                 if (data?.ok !== true) throw new AiRequestError('Máy chủ chưa sẵn sàng trả lời. Bạn có thể thử lại.', {
                     code: 'AI_STARTUP_RESPONSE', stage: 'startup', httpStatus: response.status
                 });
+                if (data.ai?.generationEnabled === false) throw new AiRequestError('Trợ lý công khai đang tắt để quản lý chi phí. Hãy đăng nhập để dùng trợ lý tài khoản.', {
+                    code: 'AI_UNAVAILABLE', stage: 'startup', httpStatus: response.status, retryable: false
+                });
                 if (data.ai?.keyConfigured === false) throw new AiRequestError('Dịch vụ AI cần cập nhật quyền kết nối. Người quản trị hãy kiểm tra khóa API trên máy chủ.', {
                     code: 'AI_AUTH', stage: 'startup', httpStatus: response.status, retryable: false
                 });
@@ -227,10 +230,36 @@ export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...ar
         if (account?.configured) {
             await account.ready();
             if (signal?.aborted) throw cancelled();
-            if (account.user?.id && !(Array.isArray(payload.images) && payload.images.length))
+            if (!account.user?.id) throw new AiRequestError('Đăng nhập để dùng trợ lý AI và hạn mức của tài khoản.', {
+                code: 'AI_AUTH', stage: 'startup', httpStatus: 401, retryable: false,
+                api: account.baseUrl + '/v1/ai/agent/chat'
+            });
+            if (!(Array.isArray(payload.images) && payload.images.length))
                 // An account request must not silently fall back to a public chat
                 // that cannot read its database or honor the same data scope.
                 return accountReply(path, payload, options);
+            const ownerId = account.user.id, sessionVersion = account.sessionVersion;
+            const endpoint = account.baseUrl + '/v1/ai/agent/status';
+            let policy;
+            try {
+                policy = await withinDeadline(phaseSignal => account.request('/v1/ai/agent/status?mode=EDUCATIONAL', {
+                    signal: phaseSignal, timeoutMs: Math.min(agentTimeoutMs, 20000),
+                }), Math.min(agentTimeoutMs, 20000), signal, () => new AiRequestError(
+                    'Chưa xác nhận được hạn mức cho yêu cầu có ảnh. Hãy nhập nội dung lỗi bằng chữ; ảnh chưa được gửi.',
+                    { code: 'AI_IMAGE_UNSUPPORTED', stage: 'startup', retryable: false, api: endpoint }));
+            } catch (error) {
+                if (error?.name === 'AbortError') throw error;
+                if (account.user?.id !== ownerId || account.sessionVersion !== sessionVersion) throw cancelled();
+                throw new AiRequestError('Chưa xác nhận được hạn mức cho yêu cầu có ảnh. Hãy nhập nội dung lỗi bằng chữ; ảnh chưa được gửi.', {
+                    code: 'AI_IMAGE_UNSUPPORTED', stage: 'startup', retryable: false, api: endpoint
+                });
+            }
+            if (signal?.aborted || account.user?.id !== ownerId || account.sessionVersion !== sessionVersion) throw cancelled();
+            if (policy?.economyEnabled !== false || policy?.spendingEnabled !== false)
+                throw new AiRequestError('Chế độ tiết kiệm đang ưu tiên câu hỏi bằng văn bản. Hãy nhập nội dung lỗi; ảnh chưa được gửi.', {
+                    code: 'AI_IMAGE_UNSUPPORTED', backendCode: 'AI_CAPABILITY_UNSUPPORTED',
+                    stage: 'startup', retryable: false, api: endpoint
+                });
         }
         await start(signal, onStatus);
         onStatus?.('replying');
@@ -265,7 +294,8 @@ export function createAiClient({ fetchImpl = (...args) => globalThis.fetch(...ar
                 readyUntil = Date.now() + readinessTtlMs;
                 if (path === '/api/tutor') onContext?.({ source: 'browser-self-report',
                     hasLearningReport: payload.educationalContext !== undefined,
-                    vision: Boolean(payload.images?.length), api: AI_SERVICE_ORIGIN + path });
+                    vision: Boolean(payload.images?.length), outsideManagedBudget: account?.configured === true,
+                    api: AI_SERVICE_ORIGIN + path });
                 return data.reply;
             }, replyTimeoutMs, signal, () => new AiRequestError('Dịch vụ AI phản hồi quá lâu. Bạn có thể thử lại câu hỏi này.', {
                 code: 'AI_REPLY_TIMEOUT', stage: 'reply'

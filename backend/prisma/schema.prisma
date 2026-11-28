@@ -434,6 +434,7 @@ model AiUsageRecord {
   input_price        Decimal? @db.Decimal(18, 8)
   output_price       Decimal? @db.Decimal(18, 8)
   estimated_cost     Decimal? @db.Decimal(18, 8)
+  reserved_cost_usd  Decimal? @db.Decimal(18, 8)
   fallback_from      String? @db.Uuid
   error_category     String? @db.VarChar(50)
   provider_request_id String? @db.VarChar(200)
@@ -451,6 +452,22 @@ model AiUsageRecord {
   @@index([account_group, started_at])
   @@index([provider_id, credential_id, started_at])
   @@map("ai_usage_records")
+}
+
+model AiSpendPolicy {
+  id String @id @default("default") @db.VarChar(20)
+  enabled Boolean @default(false)
+  economy_enabled Boolean @default(true)
+  total_budget_usd Decimal @db.Decimal(18, 8)
+  daily_budget_usd Decimal @db.Decimal(18, 8)
+  reserve_usd Decimal @db.Decimal(18, 8)
+  starts_at DateTime
+  reserve_from DateTime
+  ends_at DateTime
+  revision Int @default(1)
+  updated_by_id String? @db.Uuid
+  updated_at DateTime @updatedAt
+  @@map("ai_spend_policies")
 }
 
 model Lesson {

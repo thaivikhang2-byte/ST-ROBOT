@@ -57,7 +57,7 @@ async function withServer(configured, test, options = {}) {
     const body = JSON.parse(options.body);
     const content = body.max_tokens === 600 ? JSON.stringify({ templateIds: [templateId] }) : 'Phản hồi fixture cục bộ.';
     return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  });
+  }, { legacyGenerationEnabled: true });
   try {
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
     await test(server, () => calls);
@@ -116,14 +116,14 @@ try {
   await withServer(origin + '/ST-ROBOT', async (server, calls) => {
     const health = await request(server, { requestOrigin: null });
     assert.equal(health.status, 200);
-    assert.deepEqual(health.data, { ok: true, revision, ai: { provider:'woku',keyConfigured: true, modelConfigured: true, allowedOrigin: origin } });
+    assert.deepEqual(health.data, { ok: true, revision, ai: { provider:'woku',keyConfigured: true, modelConfigured: true, allowedOrigin: origin, generationEnabled: true } });
     assert.ok(!health.text.includes(key) && !health.text.includes(model), 'Public health must reveal no key or configured model name');
     assert.equal(calls(), 0, 'Health must not call the paid AI provider');
   });
   for (const gitRevision of [undefined, 'invalid-private-revision', 'a'.repeat(39), 'a'.repeat(41)]) {
     await withServer(undefined, async (server, calls) => {
       const health = await request(server, { requestOrigin: null });
-      assert.deepEqual(health.data, { ok: true, revision: null, ai: { provider:'woku',keyConfigured: false, modelConfigured: false, allowedOrigin: origin } });
+      assert.deepEqual(health.data, { ok: true, revision: null, ai: { provider:'woku',keyConfigured: false, modelConfigured: false, allowedOrigin: origin, generationEnabled: true } });
       assert.ok(!health.text.includes('invalid-private-revision'));
       assert.equal(calls(), 0);
     }, { apiKey: '   ', aiModel: undefined, gitRevision });

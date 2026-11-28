@@ -55,7 +55,9 @@ function untilAborted(operation, signal) {
     Promise.resolve().then(operation).then(value => finish(resolve, value), error => finish(reject, error));
   });
 }
-export function createServer(upstream = fetch) {
+export function createServer(upstream = fetch, {
+  legacyGenerationEnabled = process.env.LEGACY_AI_GENERATION_ENABLED === 'true',
+} = {}) {
   const provider = getProviderConfig();
   const model = provider.model;
   const resolveFallbackModel = createModelFallbackResolver({upstream,catalogUrl:provider.catalogEndpoint});
@@ -69,7 +71,7 @@ export function createServer(upstream = fetch) {
       return reply(200, {
         ok:true,
         revision:typeof revision === 'string' && /^[a-f0-9]{40}$/i.test(revision) ? revision : null,
-        ai:{provider:provider.id,keyConfigured:Boolean(process.env[provider.keyVariable]?.trim()),modelConfigured:Boolean(process.env[provider.modelVariable]?.trim()),allowedOrigin}
+        ai:{provider:provider.id,keyConfigured:Boolean(process.env[provider.keyVariable]?.trim()),modelConfigured:Boolean(process.env[provider.modelVariable]?.trim()),allowedOrigin,generationEnabled:legacyGenerationEnabled === true}
       });
     }
     const homeChat = req.url === '/api/home-chat';
@@ -82,6 +84,12 @@ export function createServer(upstream = fetch) {
       return res.end();
     }
     if (req.method !== 'POST') return reply(405, {error:'Hãy gửi câu hỏi bằng biểu mẫu của trợ lý.'});
+    // The legacy routes do not share the account gateway's durable spending
+    // ledger. They must never spend a configured key without explicit opt-in.
+    if (legacyGenerationEnabled !== true) return reply(503, {
+      error:'Trợ lý công khai đang tắt để quản lý chi phí. Hãy đăng nhập để dùng trợ lý tài khoản.',
+      code:'AI_UNAVAILABLE',retryable:false,stage:'server'
+    });
     const apiKey = process.env[provider.keyVariable]?.trim();
     if (!apiKey) return reply(503, {error:'Dịch vụ AI cần cập nhật quyền kết nối. Người quản trị hãy kiểm tra khóa API trên máy chủ.',code:'AI_AUTH',retryable:false,stage:'server'});
     if (practicePlan ? !/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] || '') : !req.headers['content-type']?.startsWith('application/json')) return reply(415, {error:practicePlan ? 'Hãy gửi lựa chọn luyện tập bằng biểu mẫu trên website.' : 'Hãy kiểm tra nội dung câu hỏi rồi gửi lại.'});
